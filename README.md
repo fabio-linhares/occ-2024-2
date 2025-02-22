@@ -170,7 +170,7 @@ Este projeto estabelece uma base robusta para a reprodução dos resultados do a
 ## 👨‍💻 Sobre o Autor
 
 Este projeto foi desenvolvido por **zerocopia** (Fabio Linhares).
-Para saber mais sobre minha trajetória, [clique aqui e leia o aboutme.md](aboutme.md).
+Para saber mais sobre minha trajetória, clique [aqui](aboutme.md).
 
 - [LinkedIn](https://www.linkedin.com/in/fabio-linhares/)
 - [Portfólio](https://fabio-linhares.github.io/)
