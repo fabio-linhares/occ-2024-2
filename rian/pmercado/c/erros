@@ -1,0 +1,3 @@
+/nix/store/22qnvg3zddkf7rbpckv676qpsc2najv9-binutils-2.43.1/bin/ld: main.o: na função "main":
+main.cpp:(.text+0x0): múltiplas definições de "main"; config_extractor.o:config_extractor.cpp:(.text+0x7b1): definido primeiro aqui
+collect2: error: ld returned 1 exit status
