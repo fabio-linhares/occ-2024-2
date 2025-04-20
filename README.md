@@ -17,6 +17,43 @@ O foco deste projeto é desenvolver algoritmos eficientes para:
 
 ---
 
+## Módulos Especializados
+
+Este projeto contém dois módulos específicos para abordar aspectos complementares de otimização:
+
+### 1. Bin Packing (Prof. Bruno)
+
+O módulo de Bin Packing implementa soluções para o problema clássico de empacotamento, onde o objetivo é distribuir um conjunto de itens com diferentes tamanhos em recipientes (bins) de capacidade fixa, minimizando o número total de recipientes utilizados.
+
+**Características principais:**
+- Implementação de algoritmos heurísticos como First Fit Decreasing (FFD)
+- Meta-heurística baseada em busca local com movimentos adaptativos
+- Interface interativa para visualização e análise de resultados
+- Suporte para instâncias reais e geração de instâncias aleatórias
+
+**Aplicações práticas:**
+- Otimização de carregamento de containers
+- Alocação de recursos em ambientes virtualizados
+- Planejamento de cortes em materiais industriais
+
+### 2. Programação Linear Inteira (Prof. Rian)
+
+O módulo de Programação Linear Inteira implementa soluções para problemas de otimização combinatória, utilizando formulações matemáticas que permitem encontrar soluções ótimas ou de alta qualidade para problemas complexos.
+
+**Características principais:**
+- Formulação de modelos matemáticos precisos usando o CPLEX
+- Implementação de restrições para garantir a integralidade das variáveis
+- Otimização de funções objetivo lineares sob restrições
+- Técnicas para lidar com a complexidade computacional de problemas NP-difíceis
+
+**Aplicações práticas:**
+- Otimização de cadeias de suprimentos
+- Escalonamento de produção
+- Roteamento de veículos
+- Problemas de localização de instalações
+
+---
+
 ## Detalhes do Problema SPO
 
 O Problema da Seleção de Pedidos Ótima é um desafio de otimização com origem em aplicações práticas da logística de e-commerce, definido formalmente como:
