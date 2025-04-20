@@ -58,6 +58,12 @@ def main():
     # Carregar CSS
     load_css("styles/custom.css")
     
+    # Adicionar suporte para LaTeX com MathJax
+    st.markdown(r"""
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    """, unsafe_allow_html=True)
+    
     # Esconder as informações não desejadas e aplicar estilos personalizados
     hide_streamlit_style = """
     <style>
@@ -225,7 +231,7 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("""
+                st.markdown(r"""
                 <div style="border-radius: 10px; padding: 15px; background-color: rgba(109, 40, 217, 0.2);">
                     <h4 style="font-weight: bold; margin-top: 0;">Índices e Conjuntos:</h4>
                     <ul style="margin-bottom: 0;">
@@ -258,7 +264,7 @@ def main():
             """, unsafe_allow_html=True)
             
             # Função objetivo com destaque
-            st.markdown("""
+            st.markdown(r"""
             <div style="border-radius: 10px; padding: 15px; background-color: rgba(245, 158, 11, 0.2); margin-top: 15px;">
                 <h4 style="font-weight: bold; margin-top: 0;">Função Objetivo:</h4>
                 <div style="text-align: center; font-size: 1.2em; padding: 10px;">
@@ -269,7 +275,7 @@ def main():
             """, unsafe_allow_html=True)
             
             # Restrições com formatação melhorada
-            st.markdown("""
+            st.markdown(r"""
             <div style="border-radius: 10px; padding: 15px; background-color: rgba(239, 68, 68, 0.2); margin-top: 15px;">
                 <h4 style="font-weight: bold; margin-top: 0;">Restrições:</h4>
                 <ol>
