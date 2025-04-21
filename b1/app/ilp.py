@@ -4,6 +4,9 @@ import time
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import subprocess
+import re
+import os
 
 ###############################
 def load_csv_file(file):
@@ -17,7 +20,21 @@ def load_csv_file(file):
         DataFrame pandas ou None em caso de erro
     """
     try:
-        return pd.read_csv(file, sep=None, engine='python')
+        # Tentar carregar com interpretação automática de tipos
+        df = pd.read_csv(file, sep=None, engine='python')
+        
+        # Se a primeira coluna parecer ser um índice (sem nome ou Unnamed)
+        if df.columns[0] == '' or str(df.columns[0]).startswith('Unnamed:'):
+            df = df.set_index(df.columns[0])
+            
+        # Tentar converter colunas para tipos numéricos onde possível
+        for col in df.columns:
+            try:
+                df[col] = pd.to_numeric(df[col])
+            except:
+                pass
+                
+        return df
     except Exception as e:
         st.error(f"Erro ao carregar o arquivo: {str(e)}")
         return None
@@ -230,6 +247,18 @@ def resolver_set_cover(df):
     Resolve o Problema de Cobertura Mínima usando PLI.
     df: DataFrame (linhas: elementos; colunas: conjuntos; valores 0/1).
     """
+    # Converter os valores para numéricos, garantindo que a comparação funcione corretamente
+    try:
+        # Tentar converter todo o DataFrame para valores numéricos
+        df_numeric = df.apply(pd.to_numeric, errors='coerce')
+        
+        # Usar o DataFrame convertido se não houver NaN, caso contrário, manter o original
+        # e fazer conversões individuais durante a comparação
+        if not df_numeric.isnull().any().any():
+            df = df_numeric
+    except:
+        pass  # Se falhar, continuamos com o DataFrame original
+    
     elementos = df.index.tolist()
     conjuntos = df.columns.tolist()
 
@@ -240,7 +269,8 @@ def resolver_set_cover(df):
     model += pulp.lpSum([x[j] for j in conjuntos])
 
     for i in elementos:
-        model += pulp.lpSum([x[j] for j in conjuntos if df.loc[i, j] > 0]) >= 1, f'E_{i}'
+        # Converter o valor para float antes de comparar
+        model += pulp.lpSum([x[j] for j in conjuntos if float(df.loc[i, j]) > 0]) >= 1, f'E_{i}'
 
     start_time = time.time()
     model.solve(pulp.PULP_CBC_CMD(msg=False))
@@ -328,7 +358,51 @@ def resolver_feed_problem(df_produtos, df_ingredientes, df_restricoes):
         "tempo_solucao": solve_time
     }
 ###############################
-def resolver_min_cost_flow(df_arcos, origem, destino):
+def carregar_problema_fluxo_custo_minimo(file_path):
+    """
+    Carrega um arquivo de problema de fluxo de custo mínimo no formato específico.
+    
+    Args:
+        file_path: Caminho para o arquivo
+        
+    Returns:
+        Tupla (DataFrame de arcos, nós de origem, demandas)
+    """
+    try:
+        with open(file_path, 'r') as f:
+            linhas = f.readlines()
+        
+        # A primeira linha contém o comentário, ignoramos
+        # A segunda linha contém o número de nós e arcos
+        n_nos, n_arcos = map(int, linhas[1].strip().split())
+        
+        # A terceira linha contém as ofertas/demandas
+        ofertas_demandas = list(map(int, linhas[2].strip().split()))
+        
+        # A quarta linha é o cabeçalho dos arcos
+        colunas = linhas[3].strip().split(',')
+        
+        # As linhas restantes contêm os arcos
+        dados_arcos = []
+        for i in range(4, len(linhas)):
+            if linhas[i].strip():  # Ignora linhas vazias
+                valores = linhas[i].strip().split(',')
+                dados_arcos.append(dict(zip(colunas, valores)))
+        
+        # Converte para DataFrame
+        df_arcos = pd.DataFrame(dados_arcos)
+        
+        # Converte colunas numéricas
+        for col in ['custo', 'capacidade']:
+            df_arcos[col] = pd.to_numeric(df_arcos[col])
+        
+        return df_arcos, ofertas_demandas
+    except Exception as e:
+        st.error(f"Erro ao carregar o arquivo de fluxo de custo mínimo: {str(e)}")
+        return None, None
+
+###############################
+def resolver_min_cost_flow(df_arcos, origem=None, destino=None):
     """ 
     df_arcos: DataFrame com colunas: 'de', 'para', 'custo', 'capacidade'
     origem, destino: nomes dos nós origem e destino
@@ -352,15 +426,84 @@ def resolver_min_cost_flow(df_arcos, origem, destino):
     start_time = time.time()
     model.solve(pulp.PULP_CBC_CMD(msg=False))
     solve_time = time.time() - start_time
+    
+    # Converte as tuplas para strings para evitar problemas de serialização
+    arcos_usados = {}
+    for a in arcos:
+        flow = pulp.value(x[a])
+        if flow > 1e-5:
+            arco_str = f"{a[0]}->{a[1]}"
+            arcos_usados[arco_str] = flow
+    
     return {
         "status": pulp.LpStatus[model.status],
-        "arcos_usados": {a: pulp.value(x[a]) for a in arcos if pulp.value(x[a])>1e-5},
+        "arcos_usados": arcos_usados,
         "custo_total": pulp.value(model.objective),
         "tempo_solucao": solve_time
     }
+
 ###############################
-def resolver_caminho_minimo(df_arcos, origem, destino):
-    return resolver_min_cost_flow(df_arcos, origem, destino)
+def resolver_min_cost_flow_from_file(file_path):
+    """
+    Resolve o problema de fluxo de custo mínimo a partir de um arquivo.
+    
+    Args:
+        file_path: Caminho para o arquivo
+        
+    Returns:
+        Dicionário com os resultados
+    """
+    df_arcos, ofertas_demandas = carregar_problema_fluxo_custo_minimo(file_path)
+    if df_arcos is None:
+        return {"status": "error", "mensagem": "Erro ao carregar o arquivo"}
+    
+    # Encontra origem (oferta positiva) e destino (demanda negativa)
+    nos = list(range(1, len(ofertas_demandas) + 1))
+    origens = [str(i) for i, o in zip(nos, ofertas_demandas) if o > 0]
+    destinos = [str(i) for i, o in zip(nos, ofertas_demandas) if o < 0]
+    
+    # Criar o modelo
+    arcos = [(row['de'], row['para']) for idx, row in df_arcos.iterrows()]
+    custo = {(row['de'], row['para']): row['custo'] for idx, row in df_arcos.iterrows()}
+    capacidade = {(row['de'], row['para']): row['capacidade'] for idx, row in df_arcos.iterrows()}
+    
+    x = pulp.LpVariable.dicts("x", arcos, lowBound=0, upBound=None, cat=pulp.LpInteger)
+    model = pulp.LpProblem("MinCostFlow", pulp.LpMinimize)
+    
+    # Função objetivo: minimizar custo total
+    model += pulp.lpSum([custo[a] * x[a] for a in arcos])
+    
+    # Restrições de conservação de fluxo com ofertas/demandas
+    for i, oferta in enumerate(ofertas_demandas, 1):
+        no = str(i)
+        saidas = [a for a in arcos if a[0] == no]
+        entradas = [a for a in arcos if a[1] == no]
+        
+        model += pulp.lpSum([x[a] for a in saidas]) - pulp.lpSum([x[a] for a in entradas]) == oferta
+    
+    # Restrições de capacidade
+    for a in arcos:
+        model += x[a] <= capacidade[a]
+    
+    # Resolver
+    start_time = time.time()
+    model.solve(pulp.PULP_CBC_CMD(msg=False))
+    solve_time = time.time() - start_time
+    
+    # Converte as tuplas para strings para evitar problemas de serialização
+    arcos_usados = {}
+    for a in arcos:
+        flow = pulp.value(x[a])
+        if flow > 1e-5:
+            arco_str = f"{a[0]}->{a[1]}"
+            arcos_usados[arco_str] = flow
+    
+    return {
+        "status": pulp.LpStatus[model.status],
+        "arcos_usados": arcos_usados,
+        "custo_total": pulp.value(model.objective),
+        "tempo_solucao": solve_time
+    }
 ###############################
 def resolver_max_flow(df_arcos, origem, destino):
     """ 
@@ -382,10 +525,132 @@ def resolver_max_flow(df_arcos, origem, destino):
     start_time = time.time()
     model.solve(pulp.PULP_CBC_CMD(msg=False))
     solve_time = time.time() - start_time
+    
+    # Converte as tuplas para strings para evitar problemas de serialização
+    arcos_usados = {}
+    for a in arcos:
+        flow = pulp.value(x[a])
+        if flow > 1e-5:
+            arco_str = f"{a[0]}->{a[1]}"
+            arcos_usados[arco_str] = flow
+    
     return {
         "status": pulp.LpStatus[model.status],
         "fluxo_maximo": pulp.value(model.objective),
-        "arcos_usados": {a: pulp.value(x[a]) for a in arcos if pulp.value(x[a])>1e-5},
+        "arcos_usados": arcos_usados,
+        "tempo_solucao": solve_time
+    }
+###############################
+def carregar_problema_fluxo_maximo(file_path):
+    """
+    Carrega um arquivo de problema de fluxo máximo no formato específico.
+    
+    Args:
+        file_path: Caminho para o arquivo
+        
+    Returns:
+        Tupla (DataFrame de arcos, nó origem, nó destino)
+    """
+    try:
+        with open(file_path, 'r') as f:
+            linhas = f.readlines()
+        
+        # A primeira linha contém o comentário, ignoramos
+        # A segunda linha contém: número de nós, número de arcos, origem, destino
+        partes = linhas[1].strip().split()
+        if len(partes) >= 4:  # Verifica se tem todos os campos necessários
+            n_nos, n_arcos, origem, destino = partes[0], partes[1], partes[2], partes[3]
+        else:
+            st.error("Formato inválido: a segunda linha deve conter número de nós, arcos, origem e destino")
+            return None, None, None
+            
+        # Procura pela linha de cabeçalho
+        linha_cabecalho = None
+        for i, linha in enumerate(linhas[2:], 2):
+            if "de,para,capacidade" in linha:
+                linha_cabecalho = i
+                break
+        
+        if linha_cabecalho is None:
+            st.error("Não foi encontrado o cabeçalho 'de,para,capacidade' no arquivo")
+            return None, None, None
+            
+        # O cabeçalho contém os nomes das colunas
+        colunas = linhas[linha_cabecalho].strip().split(',')
+        
+        # As linhas seguintes contêm os arcos
+        dados_arcos = []
+        for i in range(linha_cabecalho + 1, len(linhas)):
+            if linhas[i].strip():  # Ignora linhas vazias
+                valores = linhas[i].strip().split(',')
+                if len(valores) == len(colunas):
+                    dados_arcos.append(dict(zip(colunas, valores)))
+        
+        # Converte para DataFrame
+        df_arcos = pd.DataFrame(dados_arcos)
+        
+        # Converte coluna de capacidade para numérico
+        if 'capacidade' in df_arcos.columns:
+            df_arcos['capacidade'] = pd.to_numeric(df_arcos['capacidade'])
+        
+        return df_arcos, origem, destino
+    except Exception as e:
+        st.error(f"Erro ao carregar o arquivo de fluxo máximo: {str(e)}")
+        return None, None, None
+
+###############################
+def resolver_max_flow_from_file(file_path):
+    """
+    Resolve o problema de fluxo máximo a partir de um arquivo.
+    
+    Args:
+        file_path: Caminho para o arquivo
+        
+    Returns:
+        Dicionário com os resultados
+    """
+    df_arcos, origem, destino = carregar_problema_fluxo_maximo(file_path)
+    if df_arcos is None:
+        return {"status": "error", "mensagem": "Erro ao carregar o arquivo"}
+    
+    # Criar o modelo
+    nos = list(set(df_arcos['de']).union(df_arcos['para']))
+    arcos = [(row['de'], row['para']) for idx, row in df_arcos.iterrows()]
+    capacidade = {(row['de'], row['para']): row['capacidade'] for idx, row in df_arcos.iterrows()}
+    
+    x = pulp.LpVariable.dicts("x", arcos, lowBound=0, cat=pulp.LpInteger)
+    model = pulp.LpProblem("MaxFlow", pulp.LpMaximize)
+    
+    # Função objetivo: maximizar fluxo que sai da origem
+    model += pulp.lpSum([x[a] for a in arcos if a[0] == origem])
+    
+    # Restrições de conservação de fluxo
+    for n in nos:
+        if n == origem or n == destino:
+            continue
+        model += pulp.lpSum([x[a] for a in arcos if a[0] == n]) == pulp.lpSum([x[a] for a in arcos if a[1] == n])
+    
+    # Restrições de capacidade
+    for a in arcos:
+        model += x[a] <= capacidade[a]
+    
+    # Resolver
+    start_time = time.time()
+    model.solve(pulp.PULP_CBC_CMD(msg=False))
+    solve_time = time.time() - start_time
+    
+    # Converte as tuplas para strings para evitar problemas de serialização
+    arcos_usados = {}
+    for a in arcos:
+        flow = pulp.value(x[a])
+        if flow > 1e-5:
+            arco_str = f"{a[0]}->{a[1]}"
+            arcos_usados[arco_str] = flow
+    
+    return {
+        "status": pulp.LpStatus[model.status],
+        "fluxo_maximo": pulp.value(model.objective),
+        "arcos_usados": arcos_usados,
         "tempo_solucao": solve_time
     }
 ###############################
@@ -405,9 +670,12 @@ def resolver_nurse_scheduling(df_turnos, dias_consec):
         model += pulp.lpSum([x[(n,d)] for n in enfermeiras]) >= demanda[d]
     # Restrição de dias consecutivos (simples: cada enfermeira só pode trabalhar em blocos de dias_consec)
     for n in enfermeiras:
-        for inicio in range(len(dias)-dias_consec+1):
+        # Corrigindo o problema de índice - só vamos até dias_consec dias consecutivos
+        for inicio in range(len(dias)-dias_consec):
+            # Vamos garantir que não tentamos acessar mais dias do que existem na lista
+            final = min(inicio + dias_consec, len(dias)-1)
             # Não pode trabalhar mais do que o bloco permitido
-            model += pulp.lpSum([x[(n,dias[k])] for k in range(inicio,inicio+dias_consec+1)]) <= dias_consec
+            model += pulp.lpSum([x[(n,dias[k])] for k in range(inicio, final+1)]) <= dias_consec
     # Minimiza o total de enfermeiras alocadas
     model += pulp.lpSum([x[(n,d)] for n in enfermeiras for d in dias])
     start_time = time.time()
@@ -552,16 +820,72 @@ def resolver_blending_tintas(df_produtos, df_componentes, df_disp):
         "tempo_solucao": solve_time
     }
 ###############################
+def resolver_caminho_minimo(df_arcos, origem, destino):
+    result = resolver_min_cost_flow(df_arcos, origem, destino)
+    return result
+###############################
+def resolver_modelo_generico(filepath):
+    """
+    Resolve um modelo genérico de PLI a partir de um arquivo .mps ou .lp.
+    """
+    try:
+        start_time = time.time()
+        ext = os.path.splitext(filepath)[1].lower()
+        if ext == '.mps':
+            # Carrega o modelo MPS através do PuLP
+            _, model = pulp.LpProblem.fromMPS(filepath)
+            model.solve(pulp.PULP_CBC_CMD(msg=False))
+            valor_objetivo = pulp.value(model.objective)
+            status = pulp.LpStatus[model.status]
+        elif ext == '.lp':
+            # Usa CBC externo para resolver LP (encontra o binário do CBC no PATH)
+            output_sol = filepath + ".sol"
+            result = subprocess.run(
+                ['cbc', filepath, 'solve', 'solu', output_sol], 
+                capture_output=True, text=True, timeout=120)
+            if not os.path.exists(output_sol):
+                raise Exception("Erro ao chamar o solver CBC para arquivo LP:\n" + result.stdout + "\n" + result.stderr)
+            # Parse resultado
+            valor_objetivo, status = None, "Erro"
+            # Procura o valor objetivo no arquivo de solução
+            with open(output_sol, 'r', encoding="utf-8") as fin:
+                for line in fin:
+                    if line.startswith("Optimal - objective value"):
+                        m = re.search(r"Optimal - objective value\s+([-\d.]+)", line)
+                        if m:
+                            valor_objetivo = float(m.group(1))
+                            status = "Optimal"
+                        break
+            # Limpa arquivo temporário
+            os.remove(output_sol)
+        else:
+            raise ValueError("Formato de arquivo não suportado. Só é aceito .mps ou .lp.")
+
+        solve_time = time.time() - start_time
+        return {
+            "status": status,
+            "valor_objetivo": valor_objetivo,
+            "tempo_solucao": solve_time
+        }
+    except Exception as e:
+        st.error(f"Erro ao resolver o modelo genérico: {str(e)}")
+        return {
+            "status": "Erro",
+            "valor_objetivo": None,
+            "tempo_solucao": None
+        }
+###############################
 def app():
     st.header("Programação Linear Inteira (PLI)")
     st.markdown("""
     A Programação Linear Inteira (PLI) resolve problemas exatos de otimização combinatória. 
     Escolha abaixo qual problema deseja modelar e resolvê-lo.
+                
+    Obs.: Removido por ora o  "Modelo Genérico",
     """)
     problema = st.selectbox(
         "Selecione o Problema de PLI a resolver:",
         [
-            "Modelo Genérico",
             "Problema da Mochila",
             "Problema da Dieta",
             "Problema da Ração",
@@ -593,7 +917,10 @@ def app():
                 with st.spinner("Resolvendo..."):
                     resultados = resolver_modelo_generico("temp_model_"+upfile.name)
                     st.success(f"Status: {resultados['status']}")
-                    st.metric("Valor objetivo", f"{resultados['valor_objetivo']:.6f}")
+                    if resultados and 'valor_objetivo' in resultados and resultados['valor_objetivo'] is not None:
+                        st.metric("Valor objetivo", f"{resultados['valor_objetivo']:.6f}")
+                    else:
+                        st.error("Não foi possível calcular o valor objetivo. Verifique os erros acima.")
                     st.metric("Tempo de resolução", f"{resultados['tempo_solucao']:.4f} seg")
 
     # 2. PROBLEMA DA MOCHILA (já estava implementado!)
@@ -818,24 +1145,44 @@ def app():
         ### Problema do Caixeiro Viajante (TSP)
 
         Formato esperado: CSV NxN, linhas e colunas nomeadas com as cidades.
+        Exemplo:
+        ```
+        cidade,A,B,C,D,E
+        A,0,10,15,20,8
+        B,10,0,12,15,16
+        C,15,12,0,6,14
+        D,20,15,6,0,10
+        E,8,16,14,10,0
+        ```
         """)
         uploaded_file = st.file_uploader("Carregar matriz de distâncias (CSV)", type=["csv", "txt"])
         if uploaded_file is not None:
-            df = load_csv_file(uploaded_file)
-            if df is not None:
-                st.write("Matriz de distâncias:")
-                st.dataframe(df)
-                if st.button("Resolver TSP"):
-                    with st.spinner("Resolvendo..."):
-                        resultados = resolver_tsp(df)
-                        if resultados["status"] != "Optimal":
-                            st.error("Problema não pôde ser resolvido.")
-                        else:
-                            st.success(f"Status: {resultados['status']}")
-                            st.metric("Custo total", f"{resultados['custo_total']:.2f}")
-                            st.write("Rota ótima:")
-                            st.write(" → ".join(resultados["rota"]))
-                            st.metric("Tempo de resolução", f"{resultados['tempo_solucao']:.4f} segundos")
+            # Carregue o arquivo diretamente como CSV, definindo a primeira coluna como índice
+            try:
+                df = pd.read_csv(uploaded_file, index_col=0)
+                
+                # Limpe os nomes das colunas (sem converter índice para evitar MultiIndex)
+                df.columns = [str(col).strip() for col in df.columns]
+                
+                # Verifique se o dataframe tem o formato esperado
+                if df.shape[0] != df.shape[1]:
+                    st.error("O arquivo não contém uma matriz quadrada de distâncias.")
+                else:
+                    st.write("Matriz de distâncias:")
+                    st.dataframe(df)
+                    if st.button("Resolver TSP"):
+                        with st.spinner("Resolvendo..."):
+                            resultados = resolver_tsp(df)
+                            if resultados["status"] != "Optimal":
+                                st.error("Problema não pôde ser resolvido.")
+                            else:
+                                st.success(f"Status: {resultados['status']}")
+                                st.metric("Custo total", f"{resultados['custo_total']:.2f}")
+                                st.write("Rota ótima:")
+                                st.write(" → ".join(map(str, resultados["rota"])))
+                                st.metric("Tempo de resolução", f"{resultados['tempo_solucao']:.4f} segundos")
+            except Exception as e:
+                st.error(f"Erro ao processar o arquivo: {str(e)}")
 
     # 6. PROBLEMA DE COBERTURA (já estava implementado!)
     elif problema == "Problema de Cobertura (Set Covering)":
@@ -900,20 +1247,53 @@ def app():
     elif problema == "Problema de Fluxo de Custo Mínimo":
         st.markdown("""
         ### Fluxo de Custo Mínimo
-        CSV: `de,para,custo,capacidade`. Informe origem e destino.
+        
+        Você pode resolver de duas maneiras:
+        
+        1. **Arquivo formatado específico**: 
+           - Primeira linha: comentário
+           - Segunda linha: número de nós, número de arcos
+           - Terceira linha: ofertas/demandas para cada nó (positivo=oferta, negativo=demanda)
+           - Quarta linha: cabeçalho (de,para,custo,capacidade)
+           - Linhas seguintes: dados dos arcos
+        
+        2. **CSV genérico**:
+           - CSV com colunas: `de,para,custo,capacidade`
+           - Informe manualmente nós de origem e destino
         """)
-        up = st.file_uploader("Arquivo de arcos", type=["csv","txt"])
-        origem = st.text_input("Nó origem")
-        destino = st.text_input("Nó destino")
-        if up and origem and destino:
-            df = load_csv_file(up)
-            if st.button("Resolver Fluxo de Custo Mínimo"):
-                with st.spinner("Resolvendo..."):
-                    res = resolver_min_cost_flow(df, origem, destino)
-                    st.success(f"Status: {res['status']}")
-                    st.write("Fluxos ótimos usados:", res["arcos_usados"])
-                    st.metric("Custo total", f"{res['custo_total']:.2f}")
-                    st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
+        
+        opcao = st.radio("Escolha o método de entrada:", ["Arquivo formatado específico", "CSV genérico"])
+        
+        if opcao == "Arquivo formatado específico":
+            up = st.file_uploader("Arquivo de problema", type=["txt"])
+            if up:
+                # Salvar o arquivo temporariamente
+                with open("temp_flow_problem.txt", "wb") as f:
+                    f.write(up.read())
+                
+                if st.button("Resolver Fluxo de Custo Mínimo"):
+                    with st.spinner("Resolvendo..."):
+                        res = resolver_min_cost_flow_from_file("temp_flow_problem.txt")
+                        if res.get("status") == "error":
+                            st.error(res["mensagem"])
+                        else:
+                            st.success(f"Status: {res['status']}")
+                            st.write("Fluxos ótimos usados:", res["arcos_usados"])
+                            st.metric("Custo total", f"{res['custo_total']:.2f}")
+                            st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
+        else:
+            up = st.file_uploader("Arquivo de arcos", type=["csv", "txt"])
+            origem = st.text_input("Nó origem")
+            destino = st.text_input("Nó destino")
+            if up and origem and destino:
+                df = load_csv_file(up)
+                if st.button("Resolver Fluxo de Custo Mínimo"):
+                    with st.spinner("Resolvendo..."):
+                        res = resolver_min_cost_flow(df, origem, destino)
+                        st.success(f"Status: {res['status']}")
+                        st.write("Fluxos ótimos usados:", res["arcos_usados"])
+                        st.metric("Custo total", f"{res['custo_total']:.2f}")
+                        st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
 
     # 9. CAMINHO MÍNIMO    
     elif problema == "Problema do Caminho Mínimo":
@@ -938,20 +1318,53 @@ def app():
     elif problema == "Problema do Fluxo Máximo":
         st.markdown("""
         ### Fluxo Máximo
-        CSV: `de,para,capacidade`. Informe origem e destino.
+        
+        Você pode resolver de duas maneiras:
+        
+        1. **Arquivo formatado específico**: 
+           - Primeira linha: comentário
+           - Segunda linha: número de nós, número de arcos, origem, destino
+           - (Linhas em branco opcionais)
+           - Linha com cabeçalho: de,para,capacidade
+           - Linhas seguintes: dados dos arcos
+           
+        2. **CSV genérico**:
+           - CSV com colunas: `de,para,capacidade`
+           - Informe manualmente nós de origem e destino
         """)
-        up = st.file_uploader("Arquivo de arcos", type=["csv","txt"], key="fm_arcos")
-        origem = st.text_input("Nó origem","",key="fm_origem")
-        destino = st.text_input("Nó destino","",key="fm_destino")
-        if up and origem and destino:
-            df = load_csv_file(up)
-            if st.button("Resolver Fluxo Máximo"):
-                with st.spinner("Resolvendo..."):
-                    res = resolver_max_flow(df, origem, destino)
-                    st.success(f"Status: {res['status']}")
-                    st.metric("Fluxo máximo", f"{res['fluxo_maximo']:.2f}")
-                    st.write("Arcos utilizados:", res["arcos_usados"])
-                    st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
+        
+        opcao = st.radio("Escolha o método de entrada:", ["Arquivo formatado específico", "CSV genérico"], key="fm_opcao")
+        
+        if opcao == "Arquivo formatado específico":
+            up = st.file_uploader("Arquivo de problema", type=["txt"], key="fm_arq_esp")
+            if up:
+                # Salvar o arquivo temporariamente
+                with open("temp_maxflow_problem.txt", "wb") as f:
+                    f.write(up.read())
+                
+                if st.button("Resolver Fluxo Máximo"):
+                    with st.spinner("Resolvendo..."):
+                        res = resolver_max_flow_from_file("temp_maxflow_problem.txt")
+                        if res.get("status") == "error":
+                            st.error(res["mensagem"])
+                        else:
+                            st.success(f"Status: {res['status']}")
+                            st.metric("Fluxo máximo", f"{res['fluxo_maximo']:.2f}")
+                            st.write("Arcos utilizados:", res["arcos_usados"])
+                            st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
+        else:
+            up = st.file_uploader("Arquivo de arcos", type=["csv","txt"], key="fm_arcos")
+            origem = st.text_input("Nó origem","",key="fm_origem")
+            destino = st.text_input("Nó destino","",key="fm_destino")
+            if up and origem and destino:
+                df = load_csv_file(up)
+                if st.button("Resolver Fluxo Máximo"):
+                    with st.spinner("Resolvendo..."):
+                        res = resolver_max_flow(df, origem, destino)
+                        st.success(f"Status: {res['status']}")
+                        st.metric("Fluxo máximo", f"{res['fluxo_maximo']:.2f}")
+                        st.write("Arcos utilizados:", res["arcos_usados"])
+                        st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
 
     # 11. ESCALONAMENTO DE HORÁRIOS
     elif problema == "Problema de Escalonamento de Horários":
@@ -967,7 +1380,103 @@ def app():
                 with st.spinner("Resolvendo..."):
                     res = resolver_nurse_scheduling(df, dias_consec)
                     st.success(f"Status: {res['status']}")
-                    st.write("Escala (enfermeira, dia):", res["escala"])
+                    
+                    # Formatação melhorada da escala
+                    if res["status"] == "Optimal":
+                        # Extrair dados da escala
+                        escala = res["escala"]
+                        
+                        # Criar DataFrame para melhor visualização
+                        df_dias = list(set([dia for _, dia in escala.keys()]))
+                        df_dias.sort() # Ordenar os dias
+                        
+                        df_enf = list(set([enf for enf, _ in escala.keys()]))
+                        df_enf.sort() # Ordenar as enfermeiras
+                        
+                        # Criar matriz de escala
+                        matriz_escala = pd.DataFrame(0, index=df_enf, columns=df_dias)
+                        
+                        for (enf, dia), valor in escala.items():
+                            if valor > 0.5:  # Para considerar arredondamento
+                                matriz_escala.loc[enf, dia] = 1
+                        
+                        # Exibir resumo
+                        st.subheader("Resumo da Escala")
+                        total_turnos = sum(escala.values())
+                        st.write(f"Total de turnos alocados: {total_turnos}")
+                        
+                        # Calcular a demanda total
+                        demanda_total = sum([df.loc[df['dia'] == dia, 'demanda'].values[0] for dia in df_dias])
+                        st.write(f"Demanda total de turnos: {demanda_total}")
+                        
+                        # Utilização de recursos
+                        eficiencia = (total_turnos / (len(df_enf) * len(df_dias))) * 100
+                        st.metric("Eficiência da escala", f"{eficiencia:.2f}%")
+                        
+                        # Exibir tabela de escala
+                        st.subheader("Tabela de Escala")
+                        # Substituir 0 por '-' e 1 por 'X' para melhor visualização
+                        st.dataframe(matriz_escala.replace({0: '-', 1: 'X'}))
+                        
+                        # Exibir visualização gráfica da escala
+                        st.subheader("Visualização da Escala")
+                        fig, ax = plt.subplots(figsize=(10, max(6, len(df_enf) * 0.4)))
+                        
+                        # Criar heatmap da escala
+                        sns_heatmap = None
+                        try:
+                            import seaborn as sns
+                            sns_heatmap = sns.heatmap(matriz_escala, cmap="YlGnBu", 
+                                                    cbar=False, linewidths=.5, 
+                                                    linecolor='gray', ax=ax)
+                            # Adicionar textos
+                            for i in range(len(df_enf)):
+                                for j in range(len(df_dias)):
+                                    if matriz_escala.iloc[i, j] > 0.5:
+                                        ax.text(j + 0.5, i + 0.5, "✓", 
+                                                ha="center", va="center", 
+                                                color="darkgreen", fontweight="bold")
+                        except ImportError:
+                            # Se seaborn não estiver disponível, usar matplotlib
+                            ax.imshow(matriz_escala, cmap='Blues', aspect='auto')
+                            ax.set_xticks(range(len(df_dias)))
+                            ax.set_xticklabels(df_dias)
+                            ax.set_yticks(range(len(df_enf)))
+                            ax.set_yticklabels(df_enf)
+                            for i in range(len(df_enf)):
+                                for j in range(len(df_dias)):
+                                    if matriz_escala.iloc[i, j] > 0.5:
+                                        ax.text(j, i, "✓", ha="center", va="center", 
+                                                color="darkgreen", fontweight="bold")
+                        
+                        ax.set_title('Escala de Trabalho')
+                        ax.set_xlabel('Dias')
+                        ax.set_ylabel('Enfermeiras')
+                        
+                        plt.tight_layout()
+                        st.pyplot(fig)
+                        
+                        # Adicionar métricas por dia
+                        st.subheader("Estatísticas por Dia")
+                        metricas_dia = []
+                        for dia in df_dias:
+                            demanda_dia = df.loc[df['dia'] == dia, 'demanda'].values[0]
+                            alocados_dia = matriz_escala[dia].sum()
+                            metricas_dia.append({
+                                'Dia': dia,
+                                'Demanda': demanda_dia,
+                                'Enfermeiras Alocadas': alocados_dia,
+                                'Diferença': alocados_dia - demanda_dia
+                            })
+                        
+                        st.dataframe(pd.DataFrame(metricas_dia))
+                        
+                        # Exibir o dicionário de escala original (opcional, pode ser ocultado)
+                        with st.expander("Ver dados brutos da escala"):
+                            st.write("Escala (enfermeira, dia):", res["escala"])
+                    else:
+                        st.error(f"Não foi possível encontrar uma solução ótima. Status: {res['status']}")
+                        
                     st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
 
     # 12. CUTTING STOCK
@@ -1035,13 +1544,180 @@ def app():
         up2 = st.file_uploader("Culturas", type=["csv","txt"], key="cp_culturas")
         up3 = st.file_uploader("Restrições", type=["csv","txt"], key="cp_restr")
         if up1 and up2 and up3:
-            df1,df2,df3 = load_csv_file(up1), load_csv_file(up2), load_csv_file(up3)
+            df1, df2, df3 = load_csv_file(up1), load_csv_file(up2), load_csv_file(up3)
+            
+            # Mostrar os dados de entrada
+            if df1 is not None and df2 is not None and df3 is not None:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.write("Fazendas:")
+                    st.dataframe(df1)
+                
+                with col2:
+                    st.write("Culturas:")
+                    st.dataframe(df2)
+                
+                with col3:
+                    st.write("Restrições:")
+                    st.dataframe(df3)
+            
             if st.button("Resolver Plantio"):
                 with st.spinner("Resolvendo..."):
                     res = resolver_crop_planning(df1, df2, df3)
-                    st.success(f"Status: {res['status']}")
-                    st.write("Plano de plantio (fazenda, cultura):", res["plantio"])
-                    st.metric("Lucro total", f"{res['lucro_total']:.2f}")
+                    if res["status"] == "Optimal":
+                        st.success(f"Status: {res['status']}")
+                        
+                        # Preparar dados para visualização
+                        plantio_list = []
+                        fazendas = []
+                        culturas = []
+                        
+                        for (fazenda, cultura), area in res["plantio"].items():
+                            plantio_list.append({
+                                "Fazenda": fazenda,
+                                "Cultura": cultura,
+                                "Área Plantada": float(area)
+                            })
+                            if fazenda not in fazendas:
+                                fazendas.append(fazenda)
+                            if cultura not in culturas:
+                                culturas.append(cultura)
+                        
+                        # Criar DataFrame com os resultados
+                        df_plantio = pd.DataFrame(plantio_list)
+                        
+                        # Mostrar resultados em formato tabular
+                        st.subheader("Plano de Plantio")
+                        st.dataframe(df_plantio.sort_values(by=["Fazenda", "Cultura"]))
+                        
+                        # Mostrar métrica de lucro
+                        st.metric("Lucro total", f"R$ {res['lucro_total']:.2f}")
+                        
+                        # Estatísticas de uso de recursos
+                        st.subheader("Estatísticas de Uso de Recursos")
+                        
+                        # Calcular estatísticas por fazenda
+                        estatisticas_fazenda = []
+                        for fazenda in fazendas:
+                            area_max = float(df1[df1['fazenda'] == fazenda]['area_max'].values[0])
+                            agua_max = float(df1[df1['fazenda'] == fazenda]['agua_max'].values[0])
+                            
+                            # Calcular área utilizada
+                            df_fazenda = df_plantio[df_plantio['Fazenda'] == fazenda]
+                            area_usada = df_fazenda['Área Plantada'].sum()
+                            
+                            # Calcular água utilizada
+                            agua_por_area = {row['cultura']: row['agua_por_area'] for idx, row in df2.iterrows()}
+                            agua_usada = sum(row['Área Plantada'] * agua_por_area[row['Cultura']] 
+                                            for _, row in df_fazenda.iterrows())
+                            
+                            estatisticas_fazenda.append({
+                                "Fazenda": fazenda,
+                                "Área Total": area_max,
+                                "Área Utilizada": area_usada,
+                                "Utilização de Área (%)": (area_usada / area_max) * 100 if area_max > 0 else 0,
+                                "Água Disponível": agua_max,
+                                "Água Utilizada": agua_usada,
+                                "Utilização de Água (%)": (agua_usada / agua_max) * 100 if agua_max > 0 else 0
+                            })
+                        
+                        # Mostrar estatísticas
+                        df_estatisticas = pd.DataFrame(estatisticas_fazenda)
+                        st.dataframe(df_estatisticas)
+                        
+                        # Visualizações gráficas
+                        st.subheader("Visualizações")
+                        
+                        col1, col2 = st.columns(2)
+                        
+                        # Gráfico 1: Distribuição de área por fazenda
+                        with col1:
+                            fig1, ax1 = plt.subplots(figsize=(10, 6))
+                            df_pivot = df_plantio.pivot_table(
+                                values='Área Plantada', 
+                                index='Fazenda', 
+                                columns='Cultura', 
+                                aggfunc='sum'
+                            ).fillna(0)
+                            
+                            df_pivot.plot(kind='bar', stacked=True, ax=ax1, colormap='viridis')
+                            ax1.set_title('Distribuição de Área por Fazenda')
+                            ax1.set_xlabel('Fazenda')
+                            ax1.set_ylabel('Área Plantada')
+                            ax1.legend(title='Cultura', bbox_to_anchor=(1.05, 1), loc='upper left')
+                            plt.tight_layout()
+                            st.pyplot(fig1)
+                        
+                        # Gráfico 2: Comparação de uso de recursos
+                        with col2:
+                            fig2, ax2 = plt.subplots(figsize=(10, 6))
+                            
+                            x = np.arange(len(fazendas))
+                            width = 0.35
+                            
+                            # Extrair dados para o gráfico
+                            uso_area = [row["Utilização de Área (%)"] for row in estatisticas_fazenda]
+                            uso_agua = [row["Utilização de Água (%)"] for row in estatisticas_fazenda]
+                            
+                            # Criar barras
+                            ax2.bar(x - width/2, uso_area, width, label='% Área Utilizada', color='skyblue')
+                            ax2.bar(x + width/2, uso_agua, width, label='% Água Utilizada', color='salmon')
+                            
+                            # Personalizar gráfico
+                            ax2.set_ylim(0, 105)  # Limitar a 105% para visualizar melhor
+                            ax2.set_ylabel('Porcentagem de Utilização')
+                            ax2.set_title('Utilização de Recursos por Fazenda')
+                            ax2.set_xticks(x)
+                            ax2.set_xticklabels(fazendas)
+                            ax2.legend()
+                            
+                            # Adicionar rótulos de porcentagem acima das barras
+                            for i, v in enumerate(uso_area):
+                                ax2.text(i - width/2, v + 3, f'{v:.1f}%', ha='center', va='bottom')
+                            for i, v in enumerate(uso_agua):
+                                ax2.text(i + width/2, v + 3, f'{v:.1f}%', ha='center', va='bottom')
+                            
+                            plt.tight_layout()
+                            st.pyplot(fig2)
+                        
+                        # Gráfico 3: Distribuição do lucro por cultura
+                        fig3, ax3 = plt.subplots(figsize=(10, 6))
+                        
+                        # Calcular lucro por cultura
+                        lucro_por_cultura = {}
+                        lucros = {row['cultura']: row['lucro'] for idx, row in df2.iterrows()}
+                        for _, row in df_plantio.iterrows():
+                            cultura = row['Cultura']
+                            area = row['Área Plantada']
+                            lucro_cultura = area * lucros[cultura]
+                            if cultura in lucro_por_cultura:
+                                lucro_por_cultura[cultura] += lucro_cultura
+                            else:
+                                lucro_por_cultura[cultura] = lucro_cultura
+                        
+                        # Criar gráfico de pizza
+                        culturas_list = list(lucro_por_cultura.keys())
+                        valores = list(lucro_por_cultura.values())
+                        
+                        # Destacar a fatia maior
+                        explode = [0.1 if v == max(valores) else 0 for v in valores]
+                        
+                        ax3.pie(valores, labels=culturas_list, autopct='%1.1f%%', 
+                                startangle=90, shadow=True, explode=explode)
+                        ax3.axis('equal')  # Garantir que o gráfico seja um círculo
+                        ax3.set_title('Distribuição do Lucro por Cultura')
+                        
+                        # Adicionar legenda com os valores
+                        legenda = [f'{c}: R$ {v:.2f}' for c, v in zip(culturas_list, valores)]
+                        ax3.legend(legenda, loc='best', bbox_to_anchor=(1.0, 1))
+                        
+                        plt.tight_layout()
+                        st.pyplot(fig3)
+                        
+                    else:
+                        st.error(f"Não foi possível encontrar uma solução ótima. Status: {res['status']}")
+                    
                     st.metric("Tempo de resolução", f"{res['tempo_solucao']:.3f}s")
 
     # 16. TINTAS
