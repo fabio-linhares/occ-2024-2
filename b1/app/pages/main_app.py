@@ -2,6 +2,11 @@
 import datetime
 import os
 import time
+import math
+import sys
+
+# Adicionando o caminho base ao sys.path para importações absolutas
+sys.path.append("/home/zerocopia/Projetos/occ-2024-2/b1")
 
 # Third‑party libraries
 import matplotlib.pyplot as plt
@@ -11,8 +16,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-# Local application imports
-from bin_packing import *
+# Local application imports - usando caminho absoluto
+from app.bin_packing import executar_heuristica, verificar_viabilidade_inicial
 
 
 def app():
@@ -50,7 +55,7 @@ def app():
     """)
     
     # Formulação Matemática com layout aprimorado e fórmulas em estilo LaTeX para artigos científicos
-    st.markdown("""
+    st.markdown(r"""
     ### Formulação Matemática
     
     O Bin Packing pode ser formulado como um problema de programação linear inteira:
@@ -60,7 +65,7 @@ def app():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
+        st.markdown(r"""
         <div style="border-radius: 10px; padding: 15px; background-color: rgba(109, 40, 217, 0.2);">
             <h4 style="font-weight: bold; margin-top: 0;">Variáveis de decisão:</h4>
             <ul style="margin-bottom: 0;">
@@ -71,11 +76,11 @@ def app():
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("""
+        st.markdown(r"""
         <div style="border-radius: 10px; padding: 15px; background-color: rgba(59, 130, 246, 0.2);">
             <h4 style="font-weight: bold; margin-top: 0;">Função objetivo:</h4>
             <div style="text-align: center; font-size: 1.2em; padding: 10px;">
-            $$\\min \\sum_{j \\in J} y_j$$
+            $$\min \sum_{j \in J} y_j$$
             </div>
             <p style="font-style: italic; margin-top: 5px; text-align: center; font-size: 0.9em;">
             Minimizar o número total de bins utilizados
@@ -83,7 +88,7 @@ def app():
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("""
+    st.markdown(r"""
     <div style="border-radius: 10px; padding: 15px; background-color: rgba(16, 185, 129, 0.2); margin-top: 15px;">
         <h4 style="font-weight: bold; margin-top: 0;">Restrições:</h4>
         <ol>
@@ -109,7 +114,7 @@ def app():
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("""
+    st.markdown(r"""
     <div style="margin-top: 15px;">
         <strong>Onde:</strong>
         <ul>
@@ -183,285 +188,6 @@ def app():
     """)
 
 
- 
-    # Seção para carregar instâncias
-    st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>🔢 Configurar Instância</h2>", unsafe_allow_html=True)
-    
-    # Caminhos para os diretórios relevantes
-    app_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    instances_dir = os.path.join(app_dir, "data", "instances")
-    os.makedirs(instances_dir, exist_ok=True)
-    
-    # Modo de instância (arquivo ou geração aleatória)
-    instance_mode = st.radio(
-        "Selecione o modo de instância:",
-        ["Carregar de arquivo", "Gerar aleatoriamente"]
-    )
-    
-    items = []
-    instance_name = ""
-    
-    if instance_mode == "Carregar de arquivo":
-        # Lista de instâncias disponíveis
-        instance_files = [f for f in os.listdir(instances_dir) if f.endswith('.txt')] if os.path.exists(instances_dir) else []
-        
-        if not instance_files:
-            st.warning("Nenhuma instância encontrada no diretório 'data/instances'. Por favor, adicione arquivos .txt para proceder.")
-        else:
-            # Mostrar as instâncias disponíveis
-            selected_instance = st.selectbox("Selecione uma instância:", instance_files)
-            instance_name = os.path.splitext(selected_instance)[0]
-            
-            # Botão para carregar a instância
-            if st.button("📂 Carregar Instância", key="load_instance"):
-                with st.spinner("Carregando instância..."):
-                    instance_path = os.path.join(instances_dir, selected_instance)
-                    try:
-                        items = read_instance(instance_path)
-                        st.success(f"Instância '{selected_instance}' carregada com {len(items)} itens.")
-                        st.session_state.items = items
-                        st.session_state.instance_name = instance_name
-                    except Exception as e:
-                        st.error(f"Erro ao carregar instância: {str(e)}")
-    else:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            n_items = st.slider("Número de itens:", 10, 500, 50)
-        
-        with col2:
-            min_size = st.slider("Tamanho mínimo (0-1):", 0.0, 0.5, 0.1, 0.01)
-            max_size = st.slider("Tamanho máximo (0-1):", min_size, 1.0, 0.7, 0.01)
-        
-        instance_name = f"random_{n_items}_{min_size:.2f}_{max_size:.2f}"
-        
-        if st.button("🎲 Gerar Instância Aleatória", key="generate_instance"):
-            with st.spinner("Gerando instância aleatória..."):
-                try:
-                    items = generate_random_instance(n_items, min_size, max_size)
-                    st.success(f"Instância aleatória gerada com {len(items)} itens.")
-                    st.session_state.items = items
-                    st.session_state.instance_name = instance_name
-                except Exception as e:
-                    st.error(f"Erro ao gerar instância: {str(e)}")
-    
-    # Usar instância salva na session_state se disponível
-    if not items and 'items' in st.session_state:
-        items = st.session_state.items
-        instance_name = st.session_state.instance_name if 'instance_name' in st.session_state else instance_name
-    
-    # Se temos itens, mostrar informações e opções da meta-heurística
-    if items:
-        # Visualização dos dados
-        st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>📊 Dados da Instância</h2>", unsafe_allow_html=True)
-        
-        # Transformar os itens em um DataFrame para visualização
-        items_df = pd.DataFrame({
-            "ID": [item.id for item in items],
-            "Tamanho": [item.size for item in items]
-        })
-        
-        col1, col2 = st.columns([2, 3])
-        
-        with col1:
-            # Estatísticas básicas
-            total_size = sum(item.size for item in items)
-            avg_size = np.mean([item.size for item in items])
-            min_bins = int(np.ceil(total_size))
-            
-            st.markdown("""
-            <div class="info-box blue">
-                <h3>Estatísticas da Instância</h3>
-                <ul>
-                    <li><strong>Total de itens:</strong> {}</li>
-                    <li><strong>Tamanho médio:</strong> {:.4f}</li>
-                    <li><strong>Soma dos tamanhos:</strong> {:.4f}</li>
-                    <li><strong>Bins necessários (limite inferior teórico):</strong> {}</li>
-                </ul>
-            </div>
-            """.format(len(items), avg_size, total_size, min_bins), unsafe_allow_html=True)
-            
-            # Amostra dos dados
-            st.markdown("### Amostra dos dados:")
-            st.dataframe(items_df.head(10), height=300)
-        
-        with col2:
-            # Histograma dos tamanhos
-            fig, ax = plt.subplots(figsize=(10, 6))
-            
-            bins_hist = np.linspace(0, 1, 21)  # 20 bins de 0 a 1
-            
-            ax.hist([item.size for item in items], bins=bins_hist, color='#6D28D9', alpha=0.7, edgecolor='black')
-            ax.set_xlabel('Tamanho do Item', fontsize=12)
-            ax.set_ylabel('Frequência', fontsize=12)
-            ax.set_title('Distribuição dos Tamanhos dos Itens', fontsize=14)
-            ax.grid(alpha=0.3)
-            
-            # Adicionar estatísticas ao gráfico
-            props = dict(boxstyle='round', facecolor='#1F2937', alpha=0.5)
-            textstr = f"Total: {len(items)}\nMédia: {avg_size:.4f}\nMín: {min([item.size for item in items]):.4f}\nMáx: {max([item.size for item in items]):.4f}"
-            ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=10,
-                   verticalalignment='top', bbox=props)
-            
-            # Melhorar a aparência
-            fig.tight_layout()
-            st.pyplot(fig)
-        
-        # Parâmetros da meta-heurística
-        st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>⚙️ Parâmetros da Meta-heurística</h2>", unsafe_allow_html=True)
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            time_limit = st.slider("Tempo limite (segundos):", 1, 300, 60)
-        
-        with col2:
-            alpha = st.slider("Parâmetro α (balanceamento):", 0.0, 1.0, 0.1, 0.01)
-        
-        # Executar meta-heurística
-        st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>🚀 Execução</h2>", unsafe_allow_html=True)
-        st.write("Clique no botão abaixo para executar a meta-heurística de busca local.")
-        
-        # Botão centralizado
-        col_button = st.columns(3)
-        with col_button[1]:
-            run_meta = st.button("🚀 Executar Meta-heurística", use_container_width=True, type="primary")
-        
-        # Se o botão foi clicado, executar a meta-heurística
-        if run_meta:
-            with st.spinner("Executando meta-heurística..."):
-                # Iniciar temporizador
-                start_time = time.time()
-                
-                # Mostrar barra de progresso
-                progress = st.progress(0)
-                status_text = st.empty()
-                
-                # Construir solução inicial com FFD
-                status_text.text("Construindo solução inicial com First Fit Decreasing...")
-                progress.progress(20)
-                initial_solution = first_fit_decreasing(items)
-                
-                # Atualizar progresso
-                time.sleep(0.5)  # Pequena pausa para visualização da barra
-                progress.progress(40)
-                status_text.text("Solução inicial construída. Iniciando busca local...")
-                
-                # Instanciar busca local com tempo limite e alpha
-                local_search = LocalSearch(time_limit, alpha)
-                
-                # Executar busca local
-                best_solution, history = local_search.run(initial_solution)
-                
-                # Atualizar progresso
-                progress.progress(90)
-                status_text.text("Busca local concluída. Gerando visualizações...")
-                
-                # Calcular tempo total
-                end_time = time.time()
-                total_time = end_time - start_time
-                
-                # Completar a barra de progresso
-                progress.progress(100)
-                status_text.empty()
-                
-                st.success(f"Meta-heurística executada com sucesso! Tempo total: {total_time:.2f} segundos.")
-                
-                # Salvar resultados na sessão
-                st.session_state.initial_solution = initial_solution
-                st.session_state.best_solution = best_solution
-                st.session_state.solution_history = history
-                
-                # Exibir resultados
-                st.markdown("""
-                <div style="border-top: 1px solid rgba(49, 51, 63, 0.2); margin: 1em 0;"></div>
-                <h2 style="text-align: center; margin-bottom: 1em; color: #E5E7EB;">🔍 Resultados</h2>
-                """, unsafe_allow_html=True)
-                
-                # Criar tabs para solução inicial e final
-                tab1, tab2 = st.tabs(["Solução Inicial (First Fit Decreasing)", "Solução Final (Busca Local)"])
-                
-                with tab1:
-                    display_solution(initial_solution)
-                
-                with tab2:
-                    display_solution(best_solution, history)
-                
-                # Comparação das soluções
-                st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>📈 Comparação das Soluções</h2>", unsafe_allow_html=True)
-                
-                col1, col2 = st.columns(2)
-                
-                initial_bins = len(initial_solution.bins)
-                final_bins = len(best_solution.bins)
-                initial_eval = initial_solution.evaluate()
-                final_eval = best_solution.evaluate()
-                
-                with col1:
-                    # Gráfico comparativo de número de bins
-                    fig, ax = plt.subplots(figsize=(8, 5))
-                    
-                    solutions = ['Inicial (FFD)', 'Final (Busca Local)']
-                    bin_counts = [initial_bins, final_bins]
-                    
-                    ax.bar(solutions, bin_counts, color=['#3B82F6', '#6D28D9'])
-                    ax.set_ylabel('Número de Bins', fontsize=12)
-                    ax.set_title('Comparação do Número de Bins', fontsize=14)
-                    
-                    for i, count in enumerate(bin_counts):
-                        ax.text(i, count + 0.1, str(count), ha='center', fontsize=12)
-                    
-                    improvement = ((initial_bins - final_bins) / initial_bins) * 100 if initial_bins > 0 and initial_bins > final_bins else 0
-                    plt.figtext(0.5, 0.01, f"Melhoria: {improvement:.2f}%", ha="center", fontsize=12)
-                    
-                    st.pyplot(fig)
-                
-                with col2:
-                    # Gráfico comparativo de avaliação
-                    fig, ax = plt.subplots(figsize=(8, 5))
-                    
-                    evals = [initial_eval, final_eval]
-                    
-                    ax.bar(solutions, evals, color=['#3B82F6', '#6D28D9'])
-                    ax.set_ylabel('Valor da Função de Avaliação', fontsize=12)
-                    ax.set_title('Comparação da Função Objetivo', fontsize=14)
-                    
-                    for i, eval_val in enumerate(evals):
-                        ax.text(i, eval_val + 0.01, f"{eval_val:.4f}", ha='center', fontsize=12)
-                    
-                    eval_improvement = ((initial_eval - final_eval) / initial_eval) * 100 if initial_eval > 0 and initial_eval > final_eval else 0
-                    plt.figtext(0.5, 0.01, f"Melhoria: {eval_improvement:.2f}%", ha="center", fontsize=12)
-                    
-                    st.pyplot(fig)
-                
-                # Salvar solução
-                st.markdown("<h2 style='color: #E5E7EB; margin-top: 2rem;'>💾 Salvar Resultados</h2>", unsafe_allow_html=True)
-                
-                # Criar diretório de resultados se não existir
-                results_dir = os.path.join(app_dir, "results")
-                os.makedirs(results_dir, exist_ok=True)
-                
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                solution_filename = f"{instance_name}_{time_limit}s_{timestamp}.txt"
-                solution_path = os.path.join(results_dir, solution_filename)
-                
-                save_solution(best_solution, instance_name, time_limit, solution_path)
-                
-                st.success(f"Solução salva em: {solution_filename}")
-                
-                # Exibir detalhes do arquivo salvo como expander
-                with st.expander("📄 Detalhes do arquivo salvo", expanded=False):
-                    try:
-                        with open(solution_path, "r") as f:
-                            solution_content = f.read()
-                        
-                        st.code(solution_content, language="text")
-                    except Exception as e:
-                        st.error(f"Erro ao ler o arquivo salvo: {str(e)}")
-    
-    # Se não há itens carregados, exibir instruções
-    else:
-        st.info("Selecione ou gere uma instância para começar.")
     
     # Footer
     st.markdown("---")

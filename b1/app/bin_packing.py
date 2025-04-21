@@ -8,6 +8,7 @@ o problema de Bin Packing usando uma meta-heurística de busca local.
 
 import random
 import time
+import math
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Set, Dict, Tuple, Optional
@@ -454,3 +455,131 @@ def generate_random_instance(n: int, min_size: float = 0.1, max_size: float = 0.
         items.append(Item(i, size))
     
     return items
+
+
+def verificar_viabilidade_inicial(itens, capacidade, num_bins):
+    """Verifica se o número de bins é suficiente para uma solução viável."""
+    soma_total = sum(itens)
+    min_bins_teorico = math.ceil(soma_total / capacidade)
+    
+    if num_bins < min_bins_teorico:
+        return False, min_bins_teorico
+    return True, min_bins_teorico
+
+def first_fit(itens, capacidade, num_bins):
+    """
+    Implementa o algoritmo First Fit para bin packing.
+    Aloca cada item no primeiro bin onde ele cabe.
+    """
+    bins = [0] * num_bins  # Inicializa os bins vazios
+    alocacao = [-1] * len(itens)  # Para cada item, guarda o bin onde foi alocado
+    
+    for i, item in enumerate(itens):
+        alocado = False
+        for j in range(num_bins):
+            if bins[j] + item <= capacidade:
+                bins[j] += item
+                alocacao[i] = j
+                alocado = True
+                break
+        
+        if not alocado:
+            return None, None  # Não foi possível alocar todos os itens
+    
+    return bins, alocacao
+
+def best_fit(itens, capacidade, num_bins):
+    """
+    Implementa o algoritmo Best Fit para bin packing.
+    Aloca cada item no bin mais cheio onde ele ainda cabe.
+    """
+    bins = [0] * num_bins  # Inicializa os bins vazios
+    alocacao = [-1] * len(itens)  # Para cada item, guarda o bin onde foi alocado
+    
+    for i, item in enumerate(itens):
+        best_bin = -1
+        min_espaco_restante = float('inf')
+        
+        for j in range(num_bins):
+            espaco_restante = capacidade - bins[j]
+            if item <= espaco_restante < min_espaco_restante:
+                best_bin = j
+                min_espaco_restante = espaco_restante
+        
+        if best_bin == -1:
+            return None, None  # Não foi possível alocar todos os itens
+        
+        bins[best_bin] += item
+        alocacao[i] = best_bin
+    
+    return bins, alocacao
+
+def worst_fit(itens, capacidade, num_bins):
+    """
+    Implementa o algoritmo Worst Fit para bin packing.
+    Aloca cada item no bin mais vazio.
+    """
+    bins = [0] * num_bins  # Inicializa os bins vazios
+    alocacao = [-1] * len(itens)  # Para cada item, guarda o bin onde foi alocado
+    
+    for i, item in enumerate(itens):
+        worst_bin = -1
+        max_espaco_restante = -1
+        
+        for j in range(num_bins):
+            espaco_restante = capacidade - bins[j]
+            if item <= espaco_restante and espaco_restante > max_espaco_restante:
+                worst_bin = j
+                max_espaco_restante = espaco_restante
+        
+        if worst_bin == -1:
+            return None, None  # Não foi possível alocar todos os itens
+        
+        bins[worst_bin] += item
+        alocacao[i] = worst_bin
+    
+    return bins, alocacao
+
+def executar_heuristica(itens, capacidade, num_bins, estrategia):
+    """
+    Executa a heurística selecionada para resolver o problema de bin packing.
+    """
+    # Verificar viabilidade antes de executar
+    viavel, min_bins = verificar_viabilidade_inicial(itens, capacidade, num_bins)
+    
+    if not viavel:
+        return {
+            "sucesso": False,
+            "mensagem": f"Número de bins insuficiente. Com base na soma dos itens, são necessários pelo menos {min_bins} bins."
+        }
+    
+    # Selecionar o algoritmo apropriado
+    if estrategia == "First Fit":
+        bins, alocacao = first_fit(itens, capacidade, num_bins)
+    elif estrategia == "Best Fit":
+        bins, alocacao = best_fit(itens, capacidade, num_bins)
+    elif estrategia == "Worst Fit":
+        bins, alocacao = worst_fit(itens, capacidade, num_bins)
+    else:
+        return {
+            "sucesso": False,
+            "mensagem": f"Estratégia '{estrategia}' não implementada."
+        }
+    
+    # Verificar se a solução é válida
+    if bins is None or alocacao is None:
+        return {
+            "sucesso": False,
+            "mensagem": "Não foi possível encontrar uma solução com o número de bins fornecido."
+        }
+    
+    # Contar quantos bins foram realmente usados
+    bins_usados = sum(1 for bin_uso in bins if bin_uso > 0)
+    
+    return {
+        "sucesso": True,
+        "mensagem": f"Solução encontrada usando {bins_usados} de {num_bins} bins.",
+        "bins": bins,
+        "alocacao": alocacao,
+        "bins_usados": bins_usados
+    }
