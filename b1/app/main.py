@@ -175,7 +175,9 @@ def main():
     
     with tabs_main[0]:  # Aba Apresentação (era Introdução)
         apresentacao.app()
-        
+    
+    ###################################
+    # Aba Heurísticas - Solução
     with tabs_main[1]:  # Aba Heurísticas
         st.title("Heurísticas para Bin Packing")
         # Sub-abas dentro da aba Heurísticas
@@ -366,8 +368,6 @@ def main():
             
             main_app.app()
 
-    ###################################
-    # Aba Heurísticas - Solução
     with subtabs_heuristica[1]:  # Sub-aba Solução
         st.header("Meta-heurística de Solução Única para Bin Packing")
         st.markdown("""
@@ -393,7 +393,7 @@ def main():
                                     help="Define o número máximo de bins disponíveis. O algoritmo tentará usar o mínimo possível.")
 
         def generate_color_palette(num_items):
-            """Gera uma paleta de cores única para cada item"""
+            """Gera uma paleta de cores para os itens"""
             # Usar uma combinação de paletas coloridas para ter mais cores distintas
             base_colors = list(plt.cm.tab20.colors) + list(plt.cm.tab20b.colors) + list(plt.cm.tab20c.colors)
             
@@ -623,8 +623,9 @@ def main():
                     st.exception(e)  # Mostra stack trace do erro para depuração
         else:
             st.info("Carregue um arquivo de instância para começar.")
+    
     ###################################
-        
+    # Aba PLI - Programação Linear Inteira    
     with tabs_main[2]:  # Aba PLI
         st.title("Programação Linear Inteira")
         subtabs_pli = st.tabs(["Apresentação", "Solução"])
@@ -640,12 +641,16 @@ def main():
             """)
             
         with subtabs_pli[1]:  # Sub-aba Solução
-            # Chamar a implementação do módulo ilp
             ilp.app()
     
+    ###################################
+    # Aba Sobre 
     with tabs_main[3]:  # Aba Sobre
         about.app()
     
+
+    ###################################
+    # Footer  
     st.sidebar.markdown("---")
     st.sidebar.info("""
     **Desenvolvido por:** Fábio Linhares  
