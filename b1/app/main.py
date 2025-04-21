@@ -171,7 +171,7 @@ def main():
         subtabs_heuristica = st.tabs(["Apresentação", "Solução"])
         
         with subtabs_heuristica[0]:  # Sub-aba Apresentação
-            st.markdown("""
+            st.markdown(r"""
             # Meta-heurísticas para o Problema de Bin Packing
 
             ## Fundamentação Teórica
@@ -215,7 +215,7 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("""
+                st.markdown(r"""
                 ### Heurísticas Construtivas Clássicas
                 
                 1. **First Fit (FF)**
@@ -238,7 +238,7 @@ def main():
                 """)
                 
             with col2:
-                st.markdown("""
+                st.markdown(r"""
                 ### Meta-heurísticas Avançadas
                 
                 1. **Busca Local**
@@ -259,7 +259,7 @@ def main():
                    - Crossover, mutação e seleção para evolução da população
                 """)
             
-            st.markdown("""
+            st.markdown(r"""
             ## Nossa Abordagem: Meta-heurística Híbrida
             
             Implementamos uma meta-heurística híbrida que combina elementos de diferentes abordagens para obter um algoritmo 
@@ -283,7 +283,7 @@ def main():
             col1, col2 = st.columns(2)
             
             with col1:
-                st.markdown("""
+                st.markdown(r"""
                 ### Tipos de Perturbação Implementados
                 
                 1. **Move**
@@ -304,7 +304,7 @@ def main():
                 """)
                 
             with col2:
-                st.markdown("""
+                st.markdown(r"""
                 ### Esquema de Resfriamento (SA)
                 
                 A temperatura do Simulated Annealing é controlada pela fórmula:
@@ -327,7 +327,7 @@ def main():
             st.image("https://www.mecs-press.org/ijieeb/ijieeb-v4-n2/IJIEEB-V4-N2-2_files/image002.jpg", 
                  caption="Exemplo de empacotamento de itens em bins", width=500)
             
-            st.markdown("""
+            st.markdown(r"""
             ## Comparação Teórica de Desempenho
 
             Para instâncias com $n$ itens, as complexidades teóricas são:
