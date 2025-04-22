@@ -1,0 +1,5 @@
+ingrediente,min,max
+Ingrediente1,200,300
+Ingrediente2,150,250
+Ingrediente3,350,500
+Ingrediente4,100,200

@@ -1,0 +1,7 @@
+# Problema do Plantio - Formato: número de culturas, área disponível, lucro por hectare, área mínima, área máxima, consumo de água, disponibilidade de água
+4 100
+1200 1500 1800 1000
+10 5 8 15
+40 30 25 35
+5 8 6 4
+450

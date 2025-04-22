@@ -1,0 +1,5 @@
+cultura,lucro,agua_por_area
+Milho,1200,5
+Soja,1500,8
+Trigo,1800,6
+Algodao,1000,4

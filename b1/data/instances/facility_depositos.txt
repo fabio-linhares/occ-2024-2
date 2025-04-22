@@ -1,0 +1,5 @@
+facility,fixo
+Deposito1,100
+Deposito2,150
+Deposito3,120
+Deposito4,200
