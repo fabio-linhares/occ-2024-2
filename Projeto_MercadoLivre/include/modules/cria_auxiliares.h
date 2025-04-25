@@ -7,147 +7,94 @@
 #include <iostream>
 #include <vector>
 #include <unordered_set>
-#include <unordered_map>
-#include <bitset>
-#include <algorithm>
-#include <set>
-#include <mutex>
 #include <numeric>
-#include <iomanip>  // Para std::fixed e std::setprecision
+#include <algorithm>
+#include <iomanip>
+#include <bitset>
+#include <map>
+#include <string>
+#include <sstream>
+#include <utility>
+#include <cmath>
+#include <iomanip>
+#include <unordered_map>
+#include <set>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <future>
+#include <atomic>
+#include <functional>
 
-// Tamanho máximo para bitsets (ajuste conforme necessário)
-constexpr size_t MAX_ITEMS = 15000;
-constexpr size_t MAX_CORRIDORS = 500;
+// Constantes para tamanhos máximos
+const int MAX_ITEMS = 100000;
+const int MAX_CORRIDORS = 10000;
 
-// Métricas de peso para análise avançada
+// Estrutura de métricas de peso
 struct WeightMetrics {
-    // Métricas para pedidos
-    std::vector<double> orderContributionScore;     // Contribuição estimada de cada pedido para a função objetivo
-    std::vector<double> orderEfficiencyRatio;       // Razão itens/corredores para cada pedido
-    std::vector<double> orderUnitDensity;           // Unidades por corredor para cada pedido
-    std::vector<int> orderRank;                     // Ranking dos pedidos por eficiência
-    
-    // Métricas para itens
-    std::vector<double> itemLeverageScore;          // Importância estratégica de cada item (presença em pedidos eficientes)
-    std::vector<double> itemScarcityScore;          // Quão escasso é o item (demanda vs. disponibilidade)
-    std::vector<int> itemFrequency;                 // Número de pedidos que solicita cada item
-    
-    // Métricas para corredores
-    std::vector<double> corridorUtilityScore;       // Utilidade de cada corredor (cobertura de itens importantes)
-    std::vector<double> corridorDensityScore;       // Densidade de itens por corredor
-    std::vector<int> corridorRank;                  // Ranking dos corredores por utilidade
-    
-    // Métricas específicas para os limites LB/UB
-    double targetItemsPerCorridor;                  // Razão ideal de itens/corredores baseada nos limites LB/UB
-    std::vector<bool> isWithinLimits;               // Para cada pedido, indica se está dentro dos limites LB/UB
-    
-    // Métricas combinadas para sugestão de trocas
-    std::vector<std::vector<double>> swapImpactMatrix;  // Impacto estimado de trocar um pedido por outro
+    std::vector<double> orderContributionScore;
+    std::vector<double> orderEfficiencyRatio;
+    std::vector<double> orderUnitDensity;
+    std::vector<int> orderRank;
+    std::vector<double> itemLeverageScore;
+    std::vector<double> itemScarcityScore;
+    std::vector<int> itemFrequency;
 };
 
-// Estruturas auxiliares que serão armazenadas na solução
+// Estrutura para execução paralela
+struct ParallelExecutionData {
+    unsigned int numThreads;
+};
+
+// Estrutura auxiliar principal
 struct AuxiliaryStructures {
-    // Conjuntos básicos
-    std::vector<int> allOrders;           // O: Conjunto de todos os pedidos
-    std::unordered_set<int> allItems;     // I: Conjunto de todos os itens
-    std::unordered_set<int> allCorridors; // A: Conjunto de todos os corredores
-    
-    // Mapeamentos de pedidos para itens
-    std::vector<std::unordered_set<int>> itemsInOrder;    // I(o): Itens em cada pedido
-    std::vector<std::unordered_map<int, int>> orderQuantities; // u(oi): Quantidade de cada item por pedido
-    
-    // Mapeamentos de itens para corredores
-    std::vector<std::unordered_set<int>> corridorsWithItem; // A(i): Corredores que contêm cada item
-    std::vector<std::unordered_map<int, int>> corridorQuantities; // u(ai): Quantidade de cada item por corredor
-    
-    // Eficiência dos pedidos (itens/corredores necessários)
-    std::vector<std::pair<int, double>> orderEfficiency;
-    
-    // Bitsets para operações rápidas de conjunto
-    std::vector<std::bitset<MAX_ITEMS>> orderItemsBitset;      // Para cada pedido, quais itens contém
-    std::vector<std::bitset<MAX_CORRIDORS>> itemCorridorsBitset; // Para cada item, quais corredores contém
-    
-    // Matriz de cobertura: se corridorCoverageMatrix[i][j] = true, então o corredor j contém pelo menos um item do pedido i
+    // Tipos aninhados
+    struct OrderStatistics {
+        double meanEfficiency;
+        double stdDevEfficiency;
+        double coefficientOfVariation;
+        double medianEfficiency;
+        std::vector<double> efficiencyQuantiles;
+        std::vector<double> efficiencyBins;
+        std::vector<int> efficiencyDistribution;
+    };
+
+    struct ItemStatistics {
+        double meanScarcity;
+        double stdDevScarcity;
+        double medianScarcity;
+        double meanFrequency;
+        double stdDevFrequency;
+        std::vector<int> highScarcityItems;
+        std::vector<int> statSignificantItems;
+    };
+
+    // Variáveis membro
+    std::vector<int> allOrders;
+    std::unordered_set<int> allItems;
+    std::unordered_set<int> allCorridors;
+    std::vector<std::unordered_set<int>> itemsInOrder;
+    std::vector<std::unordered_map<int, int>> orderQuantities;
+    std::vector<int> totalItemsPerOrder;
+    std::vector<int> numDiffItemsPerOrder;
+    std::vector<std::bitset<MAX_ITEMS>> orderItemsBitset;
     std::vector<std::bitset<MAX_CORRIDORS>> orderCorridorCoverage;
-    
-    // Estatísticas úteis
-    std::vector<int> totalItemsPerOrder;  // Número total de unidades por pedido
-    std::vector<int> numDiffItemsPerOrder; // Número de itens diferentes por pedido
-    std::vector<int> numCorridorsNeededPerOrder; // Número mínimo de corredores necessários por pedido
-
-    // Pré-filtragem de pedidos
-    std::vector<int> feasibleOrders;                 // Pedidos que são viáveis (podem ser atendidos)
-    std::vector<int> infeasibleOrders;               // Pedidos que não podem ser atendidos
-    std::unordered_map<int, std::set<int>> itemsLackingInventory;  // Para cada item, quais pedidos não podem ser atendidos devido a estoque insuficiente
-
-    // Métricas de peso para análise avançada
+    std::vector<std::unordered_set<int>> corridorsWithItem;
+    std::vector<std::unordered_map<int, int>> corridorQuantities;
+    std::vector<std::bitset<MAX_CORRIDORS>> itemCorridorsBitset;
+    std::vector<int> numCorridorsNeededPerOrder;
+    std::vector<std::pair<int, double>> orderEfficiency;
     WeightMetrics weights;
 };
 
-// Matriz esparsa para o problema de set covering
-// Cada linha representa um item, cada coluna um corredor
-// Útil para algoritmos de programação inteira ou heurísticas gulosas
-struct SetCoveringStructure {
-    std::vector<std::vector<int>> itemToCorridor;  // Para cada item, quais corredores têm estoque
-    std::vector<std::vector<int>> corridorToItem;  // Para cada corredor, quais itens contém
-    std::vector<double> corridorWeights;           // Pesos de cada corredor (pode ser baseado no número de itens)
-};
+// Protótipo da função principal
+inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution);
 
-// Clustering de pedidos e corredores
-struct ClusteringData {
-    // Mede a similaridade entre pedidos (quanto mais itens em comum, maior a similaridade)
-    std::vector<std::vector<double>> orderSimilarityMatrix;
-    
-    // Agrupamentos de pedidos que compartilham muitos corredores
-    std::vector<std::vector<int>> orderClusters;
-    
-    // Agrupamentos de corredores que atendem grupos similares de pedidos
-    std::vector<std::vector<int>> corridorClusters;
-};
+// Protótipos das funções de estatística - use inline para evitar múltiplas definições
+inline void calculateOrderStatistics(AuxiliaryStructures& aux, AuxiliaryStructures::OrderStatistics& stats);
+inline void calculateItemStatistics(AuxiliaryStructures& aux, AuxiliaryStructures::ItemStatistics& stats);
 
-// Para algoritmos gulosos que adicionam pedidos/corredores incrementalmente
-struct IncrementalStructures {
-    // Acompanha o estado atual da solução
-    std::unordered_set<int> selectedOrders;
-    std::unordered_set<int> selectedCorridors;
-    
-    // Rastreia o impacto de adicionar cada pedido/corredor à solução atual
-    std::vector<double> orderMarginalValue;  // Valor marginal de adicionar cada pedido
-    std::vector<double> corridorMarginalValue; // Valor marginal de adicionar cada corredor
-    
-    // Rastreia pedidos cobertos parcialmente
-    std::unordered_map<int, std::unordered_set<int>> orderCoveredItems; // Itens já cobertos por pedido
-};
-
-// Estruturas para paralelização
-struct ParallelExecutionData {
-    size_t numThreads;
-    std::vector<std::thread> workers;
-    std::mutex solutionMutex;  // Para proteger acessos à solução
-    
-    // Divisão de trabalho
-    std::vector<std::vector<int>> orderPartitions;  // Divisão de pedidos entre threads
-    std::vector<std::vector<int>> corridorPartitions;  // Divisão de corredores entre threads
-};
-
-// Estrutura para Busca Tabu (definição mantida, mas implementação será em outro arquivo)
-struct TabuStructures {
-    // Lista tabu (movimentos proibidos)
-    std::vector<std::pair<int, int>> tabuList;      // (pedido removido, pedido adicionado)
-    std::vector<int> tabuTenure;                    // Por quantas iterações o movimento está proibido
-    
-    // Memória de frequência (para diversificação)
-    std::vector<int> selectionFrequency;            // Frequência com que cada pedido foi selecionado
-    std::vector<int> removalFrequency;              // Frequência com que cada pedido foi removido
-    
-    // Melhores soluções encontradas
-    std::vector<std::vector<int>> eliteSolutions;   // Armazena as N melhores soluções encontradas
-    std::vector<double> eliteSolutionValues;        // Valores da função objetivo para as soluções de elite
-    
-    // Critérios de aspiração
-    double aspirationThreshold;                     // Valor mínimo para aceitar um movimento tabu
-};
-
+// Implementações...
 inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     std::cout << "    Construindo estruturas de dados auxiliares..." << std::endl;
     
@@ -380,6 +327,163 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     }
     
     return true;
+}
+
+// Implementação das funções de estatística (como definimos antes)
+void calculateOrderStatistics(AuxiliaryStructures& aux, AuxiliaryStructures::OrderStatistics& stats) {
+    std::vector<double> efficiencies;
+    for (const auto& [orderIdx, efficiency] : aux.orderEfficiency) {
+        if (efficiency > 0) {
+            efficiencies.push_back(efficiency);
+        }
+    }
+    
+    if (efficiencies.empty()) return;
+    
+    // Média
+    stats.meanEfficiency = std::accumulate(efficiencies.begin(), efficiencies.end(), 0.0) / efficiencies.size();
+    
+    // Desvio padrão
+    double sumSq = 0.0;
+    for (double eff : efficiencies) {
+        sumSq += (eff - stats.meanEfficiency) * (eff - stats.meanEfficiency);
+    }
+    stats.stdDevEfficiency = std::sqrt(sumSq / efficiencies.size());
+    
+    // Coeficiente de variação
+    stats.coefficientOfVariation = stats.stdDevEfficiency / stats.meanEfficiency;
+    
+    // Mediana (requer ordenação)
+    std::vector<double> sortedEfficiencies = efficiencies;
+    std::sort(sortedEfficiencies.begin(), sortedEfficiencies.end());
+    
+    size_t mid = sortedEfficiencies.size() / 2;
+    if (sortedEfficiencies.size() % 2 == 0) {
+        stats.medianEfficiency = (sortedEfficiencies[mid-1] + sortedEfficiencies[mid]) / 2.0;
+    } else {
+        stats.medianEfficiency = sortedEfficiencies[mid];
+    }
+    
+    // Quantis (quartis)
+    stats.efficiencyQuantiles.resize(3);
+    stats.efficiencyQuantiles[0] = sortedEfficiencies[sortedEfficiencies.size() / 4]; // 25%
+    stats.efficiencyQuantiles[1] = stats.medianEfficiency;                            // 50%
+    stats.efficiencyQuantiles[2] = sortedEfficiencies[3 * sortedEfficiencies.size() / 4]; // 75%
+    
+    // Distribuição para histograma (10 bins)
+    double minEff = sortedEfficiencies.front();
+    double maxEff = sortedEfficiencies.back();
+    double range = maxEff - minEff;
+    
+    int numBins = 10;
+    stats.efficiencyDistribution.resize(numBins, 0);
+    stats.efficiencyBins.resize(numBins + 1);
+    
+    for (int i = 0; i <= numBins; i++) {
+        stats.efficiencyBins[i] = minEff + (range * i) / numBins;
+    }
+    
+    for (double eff : efficiencies) {
+        int bin = std::min(numBins - 1, static_cast<int>((eff - minEff) / range * numBins));
+        stats.efficiencyDistribution[bin]++;
+    }
+}
+
+void calculateItemStatistics(AuxiliaryStructures& aux, AuxiliaryStructures::ItemStatistics& stats) {
+    std::vector<double> scarcities;
+    std::vector<int> frequencies;
+    std::vector<double> leverages;
+    
+    for (int itemId : aux.allItems) {
+        if (aux.weights.itemScarcityScore[itemId] > 0) {
+            scarcities.push_back(aux.weights.itemScarcityScore[itemId]);
+            frequencies.push_back(aux.weights.itemFrequency[itemId]);
+            leverages.push_back(aux.weights.itemLeverageScore[itemId]);
+        }
+    }
+    
+    if (scarcities.empty()) return;
+    
+    // Calcular estatísticas de escassez
+    stats.meanScarcity = std::accumulate(scarcities.begin(), scarcities.end(), 0.0) / scarcities.size();
+    
+    double sumSq = 0.0;
+    for (double s : scarcities) {
+        sumSq += (s - stats.meanScarcity) * (s - stats.meanScarcity);
+    }
+    stats.stdDevScarcity = std::sqrt(sumSq / scarcities.size());
+    
+    // Mediana de escassez
+    std::vector<double> sortedScarcities = scarcities;
+    std::sort(sortedScarcities.begin(), sortedScarcities.end());
+    
+    size_t mid = sortedScarcities.size() / 2;
+    if (sortedScarcities.size() % 2 == 0) {
+        stats.medianScarcity = (sortedScarcities[mid-1] + sortedScarcities[mid]) / 2.0;
+    } else {
+        stats.medianScarcity = sortedScarcities[mid];
+    }
+    
+    // Calcular estatísticas de frequência
+    stats.meanFrequency = std::accumulate(frequencies.begin(), frequencies.end(), 0.0) / frequencies.size();
+    
+    sumSq = 0.0;
+    for (int f : frequencies) {
+        sumSq += (f - stats.meanFrequency) * (f - stats.meanFrequency);
+    }
+    stats.stdDevFrequency = std::sqrt(sumSq / frequencies.size());
+    
+    // Calcular estatísticas de leverage (ADICIONADO)
+    double meanLeverage = std::accumulate(leverages.begin(), leverages.end(), 0.0) / leverages.size();
+    
+    sumSq = 0.0;
+    for (double l : leverages) {
+        sumSq += (l - meanLeverage) * (l - meanLeverage);
+    }
+    double stdDevLeverage = std::sqrt(sumSq / leverages.size());
+    
+    // Identificar itens com alta escassez (acima de um desvio padrão da média)
+    double scarcityThreshold = stats.meanScarcity + stats.stdDevScarcity;
+    
+    for (int itemId : aux.allItems) {
+        if (aux.weights.itemScarcityScore[itemId] > scarcityThreshold) {
+            stats.highScarcityItems.push_back(itemId);
+        }
+    }
+    
+    // Ordenar itens de alta escassez por escassez decrescente
+    std::sort(stats.highScarcityItems.begin(), stats.highScarcityItems.end(),
+              [&aux](int a, int b) {
+                  return aux.weights.itemScarcityScore[a] > aux.weights.itemScarcityScore[b];
+              });
+              
+    // Identificar itens estatisticamente significativos (alta frequência e leverage)
+    // Utilizamos um cálculo de Z-score combinado
+    std::vector<std::pair<int, double>> itemScores;
+    
+    for (int itemId : aux.allItems) {
+        double freqZScore = (aux.weights.itemFrequency[itemId] - stats.meanFrequency) / stats.stdDevFrequency;
+        // Correção do cálculo do Z-score do leverage
+        double leverageZScore = (aux.weights.itemLeverageScore[itemId] - meanLeverage) / stdDevLeverage;
+        
+        double combinedScore = (freqZScore + leverageZScore) / 2.0;
+        
+        if (combinedScore > 1.0) { // Um desvio padrão acima da média
+            itemScores.push_back({itemId, combinedScore});
+        }
+    }
+    
+    // Ordenar por score combinado
+    std::sort(itemScores.begin(), itemScores.end(),
+              [](const auto& a, const auto& b) {
+                  return a.second > b.second;
+              });
+              
+    // Pegar os top N itens significativos (limite em 20)
+    int maxSignificantItems = std::min(20, static_cast<int>(itemScores.size()));
+    for (int i = 0; i < maxSignificantItems; i++) {
+        stats.statSignificantItems.push_back(itemScores[i].first);
+    }
 }
 
 #endif // CRIA_AUXILIARES_H
