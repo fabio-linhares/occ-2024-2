@@ -14,6 +14,7 @@
 #include "modules/preprocess.h"
 #include "modules/process.h"
 #include "modules/postprocess.h"
+#include "report/report_generator.h"
 
 namespace fs = std::filesystem;
 
@@ -25,7 +26,6 @@ int AppController::run() {
     
     std::cout << "====== Otimizador de Wave para Mercado Livre ======\n\n";
     
-    // Fluxo principal do programa
     if (!requestConfigFiles()) {
         return 1;
     }
@@ -40,22 +40,38 @@ int AppController::run() {
     
     displayConfiguration();
     
-    if (!requestConfirmation("Iniciar processamento com esta configuração?")) {
-        std::cout << "Processamento cancelado pelo usuário.\n";
-        return 0;
+    while (true) {
+        std::cout << "\n===== MENU PRINCIPAL =====\n";
+        std::cout << "1. Processar instâncias\n";
+        std::cout << "2. Gerar relatório HTML\n";
+        std::cout << "0. Sair\n";
+        std::cout << "Selecione uma opção: ";
+        
+        int option;
+        std::cin >> option;
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        switch (option) {
+            case 0:
+                return 0;
+            case 1:
+                if (!processInstances()) {
+                    std::cerr << "Falha ao processar instâncias.\n";
+                    return 1;
+                }
+                break;
+            case 2:
+                showReportMenu();
+                break;
+            default:
+                std::cout << "Opção inválida.\n";
+                break;
+        }
     }
-    
-    if (!processInstances()) {
-        return 1;
-    }
-    
-    // Exibir tempo total
-    auto endTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = endTime - startTime;
-    std::cout << "\nProcessamento concluído em " << elapsed.count() << " segundos.\n";
     
     return 0;
 }
+
 bool AppController::requestConfigFiles() {
     // 1. Solicitar arquivo de função objetivo
     while (true) {
@@ -359,4 +375,55 @@ bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& s
 bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution) {
     // Chamar a implementação do módulo postprocess
     return postprocess(warehouse, solution);
+}
+
+bool AppController::showReportMenu() {
+    std::cout << "\n===== GERAÇÃO DE RELATÓRIO =====\n";
+    
+    // Verificar se temos instâncias descobertas
+    if (instanceFiles.empty()) {
+        if (!discoverInstances()) {
+            return false;
+        }
+    }
+    
+    // Mostrar instâncias disponíveis
+    std::cout << "Instâncias disponíveis:\n";
+    for (size_t i = 0; i < instanceFiles.size(); i++) {
+        std::cout << "  " << (i+1) << ". " << instanceFiles[i] << "\n";
+    }
+    std::cout << "\n";
+    
+    // Pedir ao usuário para selecionar uma instância
+    int selection;
+    std::cout << "Selecione o número da instância para gerar o relatório (0 para voltar): ";
+    std::cin >> selection;
+    
+    if (selection == 0) {
+        return true;
+    }
+    
+    if (selection < 1 || selection > (int)instanceFiles.size()) {
+        std::cout << "Seleção inválida.\n";
+        return false;
+    }
+    
+    std::string selectedInstance = instanceFiles[selection - 1];
+    
+    // Definir pasta para salvar o relatório
+    std::string reportPath = "reports";
+    if (!fs::exists(reportPath)) {
+        fs::create_directories(reportPath);
+    }
+    
+    // Gerar o relatório
+    bool success = ReportGenerator::generateReport(selectedInstance, reportPath);
+    
+    if (success) {
+        std::cout << "Relatório gerado com sucesso na pasta '" << reportPath << "'.\n";
+    } else {
+        std::cout << "Falha ao gerar o relatório.\n";
+    }
+    
+    return success;
 }

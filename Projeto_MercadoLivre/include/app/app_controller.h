@@ -12,7 +12,22 @@ public:
     // Método principal que executa o fluxo do programa
     int run();
     
+    // Método para exibir o menu de relatórios
+    bool showReportMenu();
+    
 private:
+    // Configuration
+    std::string objectiveFunctionFile;
+    std::string constraintsFile;
+    std::string instancesPath;
+    std::string outputPath;
+    int timeLimit;
+    
+    // Data structures
+    std::vector<std::string> instanceFiles;
+    ObjectiveFunction objectiveFunction;
+    ConstraintsManager constraintsManager;
+
     // Métodos existentes
     bool requestConfigFiles();
     bool loadConfigFiles();
@@ -28,15 +43,5 @@ private:
     bool executeModulePreprocess(const Warehouse& warehouse, Solution& solution);
     bool executeModuleProcess(const Warehouse& warehouse, Solution& solution);
     bool executeModulePostprocess(const Warehouse& warehouse, Solution& solution);
-    
-    // Atributos existentes
-    std::string objectiveFunctionFile;
-    std::string constraintsFile;
-    std::string instancesPath;
-    std::string outputPath;
-    int timeLimit;
-    std::vector<std::string> instanceFiles;
-    ObjectiveFunction objectiveFunction;
-    ConstraintsManager constraintsManager;
 };
 
