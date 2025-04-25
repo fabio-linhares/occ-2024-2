@@ -1,1 +1,0 @@
-// # Header para validator.cpp
