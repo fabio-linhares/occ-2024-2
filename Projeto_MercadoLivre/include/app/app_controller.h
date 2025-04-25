@@ -23,7 +23,7 @@ private:
     std::vector<std::string> readConfigFile(const std::string& filePath);
     bool requestConfirmation(const std::string& message);
     
-    // Novos métodos para execução modular
+    // Métodos para processamento modular
     bool executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution);
     bool executeModulePreprocess(const Warehouse& warehouse, Solution& solution);
     bool executeModuleProcess(const Warehouse& warehouse, Solution& solution);

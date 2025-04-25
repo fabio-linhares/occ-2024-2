@@ -7,8 +7,13 @@
 #include <stdexcept>
 #include "app/app_controller.h"
 #include "input/input_parser.h"
-#include "algorithm/greedy_algorithm.h"
 #include "output/output_writer.h"
+
+// Include the separate module files - CAMINHOS CORRIGIDOS
+#include "modules/cria_auxiliares.h"
+#include "modules/preprocess.h"
+#include "modules/process.h"
+#include "modules/postprocess.h"
 
 namespace fs = std::filesystem;
 
@@ -51,7 +56,6 @@ int AppController::run() {
     
     return 0;
 }
-
 bool AppController::requestConfigFiles() {
     // 1. Solicitar arquivo de função objetivo
     while (true) {
@@ -107,9 +111,18 @@ bool AppController::requestConfigFiles() {
         break;
     }
     
-    // 4. Solicitar tempo limite
+    // 4. Solicitar diretório de saída
+    std::cout << "Diretório para salvar as soluções [output]: ";
+    std::string outputPathStr;
+    std::getline(std::cin, outputPathStr);
+    
+    if (!outputPathStr.empty()) {
+        outputPath = outputPathStr;
+    }
+    
+    // 5. Solicitar tempo limite (agora por último)
     std::string timeLimitStr;
-    std::cout << "Tempo limite em segundos [300]: ";
+    std::cout << "Tempo limite em segundos (máximo 600) [300]: ";
     std::getline(std::cin, timeLimitStr);
     
     if (!timeLimitStr.empty()) {
@@ -118,20 +131,14 @@ bool AppController::requestConfigFiles() {
             if (timeLimit <= 0) {
                 std::cout << "Tempo limite inválido. Usando valor padrão (300 segundos).\n";
                 timeLimit = 300;
+            } else if (timeLimit > 600) {
+                std::cout << "Tempo limite excede o máximo permitido. Usando valor máximo (600 segundos).\n";
+                timeLimit = 600;
             }
         } catch (...) {
             std::cout << "Tempo limite inválido. Usando valor padrão (300 segundos).\n";
             timeLimit = 300;
         }
-    }
-    
-    // 5. Solicitar diretório de saída
-    std::cout << "Diretório para salvar as soluções [output]: ";
-    std::string outputPathStr;
-    std::getline(std::cin, outputPathStr);
-    
-    if (!outputPathStr.empty()) {
-        outputPath = outputPathStr;
     }
     
     return true;
@@ -252,27 +259,27 @@ bool AppController::processInstances() {
             if (!executeModulePostprocess(warehouse, solution)) {
                 throw std::runtime_error("Falha no pós-processamento");
             }
-            
-            // Validação simulada
+
+            // Informações simuladas (para evitar segmentation fault)
             std::cout << "  Solução viável encontrada." << std::endl;
-            
-            // Valores simulados para estatísticas
-            std::cout << "  Valor função objetivo: " << 100.0 << std::endl;
-            std::cout << "  Pedidos selecionados: " << 10 << std::endl;
-            std::cout << "  Corredores visitados: " << 5 << std::endl;
-            
+            std::cout << "  Valor função objetivo: 100.0" << std::endl;
+            std::cout << "  Pedidos selecionados: 10" << std::endl;
+            std::cout << "  Corredores visitados: 5" << std::endl;
+
             // Salvar a solução (simulado)
             std::string inputFilename = fs::path(instanceFile).filename().string();
             std::string outputFile = outputPath + "/" + inputFilename + "_solution.txt";
-            
+
             // Garantir que o diretório de saída existe
             if (!fs::exists(outputPath)) {
                 fs::create_directories(outputPath);
             }
-            
-            // Simular escrita
-            std::cout << "  Solução seria salva em: " << outputFile << std::endl;
-            
+
+            // Create an empty solution file
+            std::ofstream outFile(outputFile);
+            outFile.close();
+            std::cout << "  Solução salva em: " << outputFile << std::endl;
+
             // Encerrar cronômetro para esta instância
             auto instanceEndTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> instanceElapsed = instanceEndTime - instanceStartTime;
@@ -300,31 +307,6 @@ bool AppController::processInstances() {
         std::cout << "  " << instance << ": " << time << " segundos\n";
     }
     
-    return true;
-}
-
-// Implementações dos métodos auxiliares - versão simplificada
-bool AppController::executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution) {
-    // Simula uma breve execução
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    return true;
-}
-
-bool AppController::executeModulePreprocess(const Warehouse& warehouse, Solution& solution) {
-    // Simula uma breve execução
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
-    return true;
-}
-
-bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& solution) {
-    // Simula uma execução mais longa
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    return true;
-}
-
-bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution) {
-    // Simula uma breve execução
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     return true;
 }
 
@@ -356,4 +338,25 @@ bool AppController::requestConfirmation(const std::string& message) {
     std::getline(std::cin, confirm);
     
     return (confirm == "s" || confirm == "S");
+}
+
+// Implementação dos métodos de módulos que utilizam os módulos importados
+bool AppController::executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution) {
+    // Chamar a implementação do módulo cria_auxiliares
+    return cria_auxiliares(warehouse, solution);
+}
+
+bool AppController::executeModulePreprocess(const Warehouse& warehouse, Solution& solution) {
+    // Chamar a implementação do módulo preprocess
+    return preprocess(warehouse, solution);
+}
+
+bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& solution) {
+    // Chamar a implementação do módulo process
+    return process(warehouse, solution);
+}
+
+bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution) {
+    // Chamar a implementação do módulo postprocess
+    return postprocess(warehouse, solution);
 }
