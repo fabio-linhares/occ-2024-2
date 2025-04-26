@@ -5,139 +5,267 @@
 #include <iostream>
 #include <thread>
 #include <vector>
-#include <execution>  // C++17 ou posterior
+#include <execution>
+#include <future>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <functional>
+
+// Implementação de ThreadPool para reutilização de threads
+class ThreadPool {
+public:
+    ThreadPool(size_t numThreads) : stop(false) {
+        for (size_t i = 0; i < numThreads; ++i) {
+            workers.emplace_back([this] {
+                while (true) {
+                    std::function<void()> task;
+                    {
+                        std::unique_lock<std::mutex> lock(queueMutex);
+                        condition.wait(lock, [this] { return stop || !tasks.empty(); });
+                        if (stop && tasks.empty()) return;
+                        task = std::move(tasks.front());
+                        tasks.pop();
+                    }
+                    task();
+                }
+            });
+        }
+    }
+
+    template<class F, class... Args>
+    auto enqueue(F&& f, Args&&... args) -> std::future<typename std::invoke_result<F, Args...>::type> {
+        using return_type = typename std::invoke_result<F, Args...>::type;
+        
+        auto task = std::make_shared<std::packaged_task<return_type()>>(
+            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
+        
+        std::future<return_type> res = task->get_future();
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            if (stop) throw std::runtime_error("enqueue on stopped ThreadPool");
+            tasks.emplace([task]() { (*task)(); });
+        }
+        condition.notify_one();
+        return res;
+    }
+
+    ~ThreadPool() {
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            stop = true;
+        }
+        condition.notify_all();
+        for (std::thread &worker : workers) {
+            worker.join();
+        }
+    }
+
+private:
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
+    std::mutex queueMutex;
+    std::condition_variable condition;
+    bool stop;
+};
 
 bool gerarSolucaoInicial(const Warehouse& warehouse, Solution& solution) {
-    std::cout << "Construindo solução inicial..." << std::endl;
+    std::cout << "Construindo solução inicial com paralelismo otimizado..." << std::endl;
     
-    // Obter estruturas auxiliares
     AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
-    
-    // Inicializar contadores
     int totalItemsAtual = 0;
     
-    // Implementar redução paralela para encontrar valores máximos
+    // Configurar ThreadPool para o número de núcleos disponíveis
     unsigned int numThreads = std::thread::hardware_concurrency();
-    std::vector<double> maxEfficiencyPerThread(numThreads, 0.0);
-    std::vector<double> maxDensityPerThread(numThreads, 0.0);
-
-    auto findMaxValues = [&](int threadId, int start, int end) {
-        for (int i = start; i < end; i++) {
-            maxEfficiencyPerThread[threadId] = std::max(
-                maxEfficiencyPerThread[threadId], 
-                aux.weights.orderEfficiencyRatio[i]
-            );
-            maxDensityPerThread[threadId] = std::max(
-                maxDensityPerThread[threadId], 
-                aux.weights.orderUnitDensity[i]
-            );
-        }
-    };
-
-    // Executar em paralelo e combinar resultados
-    std::vector<std::thread> threads;
-    int batchSize = warehouse.numOrders / numThreads;
-
-    for (unsigned int t = 0; t < numThreads; t++) {
-        int start = t * batchSize;
-        int end = (t == numThreads - 1) ? warehouse.numOrders : (t + 1) * batchSize;
-        threads.push_back(std::thread(findMaxValues, t, start, end));
-    }
-
-    for (auto& t : threads) {
-        t.join();
-    }
-
-    double maxEfficiency = *std::max_element(maxEfficiencyPerThread.begin(), maxEfficiencyPerThread.end());
-    double maxDensity = *std::max_element(maxDensityPerThread.begin(), maxDensityPerThread.end());
+    if (numThreads == 0) numThreads = 4; // Fallback
+    std::cout << "Utilizando " << numThreads << " threads no pool" << std::endl;
     
-    // Calcular scores combinados
-    std::vector<std::pair<int, double>> combinedScores(warehouse.numOrders);
-
-    // Função para processar um lote de pedidos
-    auto processOrders = [&](int start, int end) {
-        for (int i = start; i < end; i++) {
-            double normEfficiency = maxEfficiency > 0 ? 
-                aux.weights.orderEfficiencyRatio[i] / maxEfficiency : 0;
-            double normDensity = maxDensity > 0 ? 
-                aux.weights.orderUnitDensity[i] / maxDensity : 0;
-            
-            double score = 0.7 * normEfficiency + 0.3 * normDensity;
-            combinedScores[i] = {i, score};
-        }
-    };
-
-    // Dividir o trabalho entre threads
-    threads.clear();
-    for (unsigned int t = 0; t < numThreads; t++) {
-        int start = t * batchSize;
-        int end = (t == numThreads - 1) ? warehouse.numOrders : (t + 1) * batchSize;
-        threads.push_back(std::thread(processOrders, start, end));
+    ThreadPool pool(numThreads);
+    
+    // 1. BUSCA PARALELA DE MÁXIMOS COM WORK STEALING
+    std::vector<std::atomic<double>> maxEfficiencyPerThread(numThreads);
+    std::vector<std::atomic<double>> maxDensityPerThread(numThreads);
+    
+    for (unsigned int i = 0; i < numThreads; i++) {
+        maxEfficiencyPerThread[i] = 0.0;
+        maxDensityPerThread[i] = 0.0;
     }
+    
+    // Estratégia de work stealing para melhor balanceamento
+    int chunkSize = std::max<int>(1, warehouse.numOrders / (numThreads * 4)); // Chunks menores para balanceamento
+    std::atomic<int> nextChunkStart(0);
 
+    std::vector<std::future<void>> maxFutures;
+    
+    for (unsigned int t = 0; t < numThreads; t++) {
+        maxFutures.push_back(pool.enqueue([&, t]() {
+            while (true) {
+                // Work stealing: pegar próximo chunk disponível
+                int start = nextChunkStart.fetch_add(chunkSize);
+                if (start >= warehouse.numOrders) break;
+                
+                int end = std::min(start + chunkSize, warehouse.numOrders);
+                
+                double threadMaxEff = maxEfficiencyPerThread[t];
+                double threadMaxDen = maxDensityPerThread[t];
+                
+                for (int i = start; i < end; i++) {
+                    threadMaxEff = std::max(threadMaxEff, aux.weights.orderEfficiencyRatio[i]);
+                    threadMaxDen = std::max(threadMaxDen, aux.weights.orderUnitDensity[i]);
+                }
+                
+                maxEfficiencyPerThread[t] = threadMaxEff;
+                maxDensityPerThread[t] = threadMaxDen;
+            }
+        }));
+    }
+    
     // Aguardar conclusão
-    for (auto& t : threads) {
-        t.join();
+    for (auto& future : maxFutures) {
+        future.get();
     }
     
-    // Ordenar por score combinado (do maior para o menor)
-    std::sort(std::execution::par, combinedScores.begin(), combinedScores.end(),
+    // Combinar resultados
+    double maxEfficiency = 0.0;
+    double maxDensity = 0.0;
+    
+    for (unsigned int i = 0; i < numThreads; i++) {
+        maxEfficiency = std::max(maxEfficiency, static_cast<double>(maxEfficiencyPerThread[i]));
+        maxDensity = std::max(maxDensity, static_cast<double>(maxDensityPerThread[i]));
+    }
+    
+    // 2. CÁLCULO PARALELO DE SCORES COM BALANCEAMENTO DINÂMICO
+    std::vector<std::pair<int, double>> combinedScores(warehouse.numOrders);
+    std::atomic<int> nextScoreChunk(0);
+    
+    std::vector<std::future<void>> scoreFutures;
+    
+    for (unsigned int t = 0; t < numThreads; t++) {
+        scoreFutures.push_back(pool.enqueue([&]() {
+            while (true) {
+                int start = nextScoreChunk.fetch_add(chunkSize);
+                if (start >= warehouse.numOrders) break;
+                
+                int end = std::min(start + chunkSize, warehouse.numOrders);
+                
+                for (int i = start; i < end; i++) {
+                    double normEfficiency = maxEfficiency > 0 ? 
+                        aux.weights.orderEfficiencyRatio[i] / maxEfficiency : 0;
+                    double normDensity = maxDensity > 0 ? 
+                        aux.weights.orderUnitDensity[i] / maxDensity : 0;
+                    
+                    // Balanceamento entre eficiência e quantidade (ajustável)
+                    double score = 0.7 * normEfficiency + 0.3 * normDensity;
+                    combinedScores[i] = {i, score};
+                }
+            }
+        }));
+    }
+    
+    for (auto& future : scoreFutures) {
+        future.get();
+    }
+    
+    // Ordenação paralela
+    std::sort(std::execution::par_unseq, combinedScores.begin(), combinedScores.end(),
         [](const auto& a, const auto& b) { return a.second > b.second; });
     
-    // Primeira fase: adicionar pedidos mais eficientes até atingir LB
+    // 3. PRIMEIRA FASE: PEDIDOS EFICIENTES (SEQUENCIAL - DIFÍCIL PARALELIZAR DEVIDO DEPENDÊNCIAS)
     std::cout << "Fase 1: Adicionando pedidos eficientes..." << std::endl;
-    for (const auto& [orderIdx, score] : combinedScores) {
-        // Pular pedidos com score zero
+    for (const auto& orderScore : combinedScores) {
+        int orderIdx = orderScore.first;
+        double score = orderScore.second;
+        
         if (score <= 0) continue;
         
-        // Verificar se adicionar este pedido não ultrapassa UB
         int novoTotal = totalItemsAtual + aux.totalItemsPerOrder[orderIdx];
         if (novoTotal <= warehouse.UB) {
             solution.addOrder(orderIdx, warehouse);
             totalItemsAtual = solution.getTotalItems();
             
-            std::cout << "  Adicionado pedido #" << orderIdx 
-                      << " (Score: " << score << ", Total: " << totalItemsAtual << ")" << std::endl;
+            //std::cout << "  Adicionado pedido #" << orderIdx 
+            //          << " (Score: " << score << ", Total: " << totalItemsAtual << ")" << std::endl;
         }
         
-        // Verificar se atingimos LB
         if (totalItemsAtual >= warehouse.LB)
             break;
     }
     
-    // Segunda fase (opcional): se não atingimos LB, usar estratégia de diversidade
+    // 4. SEGUNDA FASE: DIVERSIDADE DE ITENS COM PARALELISMO
     if (totalItemsAtual < warehouse.LB) {
         std::cout << "Fase 2: Adicionando pedidos para aumentar diversidade..." << std::endl;
         
-        // Monitorar itens já cobertos
+        // Coletar itens já cobertos
         std::unordered_set<int> coveredItems;
+        std::mutex coveredMutex;
+        
         for (int orderIdx : solution.getSelectedOrders()) {
             for (int itemId : aux.itemsInOrder[orderIdx]) {
                 coveredItems.insert(itemId);
             }
         }
         
-        // Processar pedidos restantes, priorizando os que adicionam mais itens novos
-        for (int orderIdx = 0; orderIdx < warehouse.numOrders; orderIdx++) {
-            // Pular pedidos já incluídos
-            if (std::find(solution.getSelectedOrders().begin(), 
-                         solution.getSelectedOrders().end(), orderIdx) != solution.getSelectedOrders().end())
-                continue;
-            
-            // Contar novos itens
-            int novosItens = 0;
-            for (int itemId : aux.itemsInOrder[orderIdx]) {
-                if (coveredItems.count(itemId) == 0) novosItens++;
-            }
-            
-            // Adicionar se traz novos itens e respeita UB
-            if (novosItens > 0 && 
-                totalItemsAtual + aux.totalItemsPerOrder[orderIdx] <= warehouse.UB) {
+        // Calcular score de diversidade para todos os pedidos em paralelo
+        std::vector<std::pair<int, int>> diversityScores;
+        std::mutex scoresMutex;
+        std::atomic<int> nextDiversityChunk(0);
+        
+        std::vector<std::future<void>> diversityFutures;
+        
+        for (unsigned int t = 0; t < numThreads; t++) {
+            diversityFutures.push_back(pool.enqueue([&]() {
+                std::vector<std::pair<int, int>> localScores;
                 
+                while (true) {
+                    int start = nextDiversityChunk.fetch_add(chunkSize);
+                    if (start >= warehouse.numOrders) break;
+                    
+                    int end = std::min(start + chunkSize, warehouse.numOrders);
+                    
+                    for (int orderIdx = start; orderIdx < end; orderIdx++) {
+                        // Pular pedidos já incluídos
+                        if (std::find(solution.getSelectedOrders().begin(), 
+                                    solution.getSelectedOrders().end(), orderIdx) != solution.getSelectedOrders().end())
+                            continue;
+                        
+                        // Contar novos itens
+                        int novosItens = 0;
+                        for (int itemId : aux.itemsInOrder[orderIdx]) {
+                            std::lock_guard<std::mutex> lock(coveredMutex);
+                            if (coveredItems.count(itemId) == 0) novosItens++;
+                        }
+                        
+                        if (novosItens > 0) {
+                            localScores.push_back({orderIdx, novosItens});
+                        }
+                    }
+                }
+                
+                // Mesclar resultados locais com o vetor global
+                if (!localScores.empty()) {
+                    std::lock_guard<std::mutex> lock(scoresMutex);
+                    diversityScores.insert(diversityScores.end(), localScores.begin(), localScores.end());
+                }
+            }));
+        }
+        
+        for (auto& future : diversityFutures) {
+            future.get();
+        }
+        
+        // Ordenar por novidade (mais itens novos primeiro)
+        std::sort(std::execution::par, diversityScores.begin(), diversityScores.end(),
+            [](const auto& a, const auto& b) { return a.second > b.second; });
+        
+        // Adicionar pedidos por diversidade
+        for (const auto& [orderIdx, novosItens] : diversityScores) {
+            if (totalItemsAtual + aux.totalItemsPerOrder[orderIdx] <= warehouse.UB) {
                 solution.addOrder(orderIdx, warehouse);
                 totalItemsAtual = solution.getTotalItems();
                 
-                // Atualizar itens cobertos
+                // Atualizar itens cobertos (não precisa de mutex aqui, já estamos sequenciais)
                 for (int itemId : aux.itemsInOrder[orderIdx]) {
                     coveredItems.insert(itemId);
                 }
@@ -146,7 +274,6 @@ bool gerarSolucaoInicial(const Warehouse& warehouse, Solution& solution) {
                           << " (Novos itens: " << novosItens << ", Total: " << totalItemsAtual << ")" << std::endl;
             }
             
-            // Verificar se atingimos LB
             if (totalItemsAtual >= warehouse.LB)
                 break;
         }
