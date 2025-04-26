@@ -24,6 +24,10 @@ AppController::AppController() : timeLimit(300), outputPath("output") {
 int AppController::run() {
     auto startTime = std::chrono::high_resolution_clock::now();
     
+    unsigned int numThreads = std::thread::hardware_concurrency();
+    if (numThreads == 0) numThreads = 4; // Fallback
+    std::cout << "Executando com " << numThreads << " threads" << std::endl;
+
     std::cout << "====== Otimizador de Wave para Mercado Livre ======\n\n";
     
     if (!requestConfigFiles()) {
@@ -73,6 +77,84 @@ int AppController::run() {
 }
 
 bool AppController::requestConfigFiles() {
+    // Valores padrão
+    std::string defaultObjectiveFunctionFile = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/config/funcao_objetivo.txt";
+    std::string defaultConstraintsFile = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/config/restricoes.txt";
+    std::string defaultInstancesPath = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input";
+    std::string defaultOutputPath = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output";
+    
+    // Perguntar se o usuário quer usar valores padrão
+    std::cout << "Deseja usar as configurações padrão? (s/n): ";
+    std::string useDefault;
+    std::getline(std::cin, useDefault);
+    
+    bool useDefaultValues = (useDefault == "s" || useDefault == "S");
+    
+    if (useDefaultValues) {
+        // Usar valores padrão
+        std::cout << "\nUtilizando configurações padrão:\n";
+        
+        objectiveFunctionFile = defaultObjectiveFunctionFile;
+        std::cout << "Função objetivo: " << objectiveFunctionFile << std::endl;
+        
+        constraintsFile = defaultConstraintsFile;
+        std::cout << "Restrições: " << constraintsFile << std::endl;
+        
+        instancesPath = defaultInstancesPath;
+        std::cout << "Diretório de instâncias: " << instancesPath << std::endl;
+        
+        outputPath = defaultOutputPath;
+        std::cout << "Diretório de saída: " << outputPath << std::endl;
+        
+        // Verificar se os arquivos e diretórios padrão existem
+        bool allFilesExist = true;
+        
+        if (!fileExists(objectiveFunctionFile)) {
+            std::cerr << "ERRO: Arquivo de função objetivo padrão não encontrado.\n";
+            allFilesExist = false;
+        }
+        
+        if (!fileExists(constraintsFile)) {
+            std::cerr << "ERRO: Arquivo de restrições padrão não encontrado.\n";
+            allFilesExist = false;
+        }
+        
+        if (!fs::exists(instancesPath) || !fs::is_directory(instancesPath)) {
+            std::cerr << "ERRO: Diretório de instâncias padrão não encontrado.\n";
+            allFilesExist = false;
+        }
+        
+        if (!allFilesExist) {
+            std::cout << "\nAlguns arquivos ou diretórios padrão não existem. Por favor, informe os caminhos manualmente.\n\n";
+            useDefaultValues = false;
+        } else {
+            // Solicitar apenas o tempo limite
+            std::string timeLimitStr;
+            std::cout << "\nTempo limite em segundos (máximo 600) [300]: ";
+            std::getline(std::cin, timeLimitStr);
+            
+            if (!timeLimitStr.empty()) {
+                try {
+                    timeLimit = std::stoi(timeLimitStr);
+                    if (timeLimit <= 0) {
+                        std::cout << "Tempo limite inválido. Usando valor padrão (300 segundos).\n";
+                        timeLimit = 300;
+                    } else if (timeLimit > 600) {
+                        std::cout << "Tempo limite excede o máximo permitido. Usando valor máximo (600 segundos).\n";
+                        timeLimit = 600;
+                    }
+                } catch (...) {
+                    std::cout << "Tempo limite inválido. Usando valor padrão (300 segundos).\n";
+                    timeLimit = 300;
+                }
+            }
+            
+            return true;
+        }
+    }
+    
+    // Se não usar valores padrão ou algum arquivo padrão não existe, continue com o fluxo normal
+    
     // 1. Solicitar arquivo de função objetivo
     while (true) {
         std::cout << "Caminho do arquivo de função objetivo: ";
@@ -222,6 +304,9 @@ void AppController::displayConfiguration() {
     std::cout << "\n";
 }
 
+//#################################################################################################
+//                                   Processamento das instâncias
+//#################################################################################################
 bool AppController::processInstances() {
     std::cout << "\nIniciando processamento das instâncias...\n";
     
@@ -237,7 +322,7 @@ bool AppController::processInstances() {
         std::cout << "\n[" << (i+1) << "/" << instanceFiles.size() << "] Processando: " << instanceFile << std::endl;
         
         try {
-            // Iniciar cronômetro para esta instância
+            // Iniciar cronômetro global para esta instância
             auto instanceStartTime = std::chrono::high_resolution_clock::now();
             
             // Ler a instância e armazenar dados básicos
@@ -249,60 +334,117 @@ bool AppController::processInstances() {
             std::cout << "  Número de corredores: " << warehouse.numCorridors << std::endl;
             std::cout << "  LB: " << warehouse.LB << ", UB: " << warehouse.UB << std::endl;
             
-            // Preparar solução que será construída pelos módulos
+            // Calcular tempo restante antes de cada módulo
+            auto getCurrentRemainingTime = [&]() -> double {
+                auto currentTime = std::chrono::high_resolution_clock::now();
+                double elapsedSecs = std::chrono::duration<double>(currentTime - instanceStartTime).count();
+                return std::max(0.0, timeLimit - elapsedSecs);
+            };
+            
+            // Preparar solução
             Solution solution;
             
-            // ETAPA 1: Criar estruturas auxiliares
-            std::cout << "  Executando: criação de estruturas auxiliares..." << std::endl;
+            // ETAPA 1: Estruturas auxiliares
+            double remainingTime = getCurrentRemainingTime();
+            if (remainingTime <= 0) {
+                std::cout << "  Tempo limite excedido antes de iniciar processamento" << std::endl;
+                throw std::runtime_error("Tempo limite excedido");
+            }
+            
             if (!executeModuleCriaAuxiliares(warehouse, solution)) {
                 throw std::runtime_error("Falha na criação de estruturas auxiliares");
             }
             
             // ETAPA 2: Pré-processamento
-            std::cout << "  Executando: pré-processamento..." << std::endl;
+            remainingTime = getCurrentRemainingTime();
+            if (remainingTime <= 0) {
+                std::cout << "  Tempo limite excedido após criação de estruturas" << std::endl;
+                throw std::runtime_error("Tempo limite excedido");
+            }
+            
+            std::cout << "----------------------------------" << std::endl;
+            std::cout << "  Executando: pré-processamento (tempo restante: " 
+                      << remainingTime << "s)..." << std::endl;
+            std::cout << "----------------------------------" << std::endl;
+            
             if (!executeModulePreprocess(warehouse, solution)) {
                 throw std::runtime_error("Falha no pré-processamento");
             }
             
             // ETAPA 3: Processamento principal
-            std::cout << "  Executando: processamento principal..." << std::endl;
-            if (!executeModuleProcess(warehouse, solution)) {
+            remainingTime = getCurrentRemainingTime();
+            if (remainingTime <= 0) {
+                std::cout << "  Tempo limite excedido após pré-processamento" << std::endl;
+                // Se temos solução viável, salvamos mesmo assim
+                if (solution.isFeasible()) {
+                    goto save_solution;
+                }
+                throw std::runtime_error("Tempo limite excedido sem solução viável");
+            }
+            
+            std::cout << "----------------------------------------" << std::endl;
+            std::cout << "  Executando: processamento principal (tempo restante: " 
+                      << remainingTime << "s)..." << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+            
+            // Passar o tempo restante para o módulo
+            if (!executeModuleProcess(warehouse, solution, remainingTime)) {
+                // Verificar se falhou por tempo ou outro motivo
+                if (getCurrentRemainingTime() <= 0) {
+                    std::cout << "  Tempo limite atingido durante processamento" << std::endl;
+                    // Se temos solução viável, seguimos para salvar
+                    if (solution.isFeasible()) {
+                        goto save_solution;
+                    }
+                    throw std::runtime_error("Tempo limite excedido sem solução viável");
+                }
                 throw std::runtime_error("Falha no processamento principal");
             }
             
-            // ETAPA 4: Pós-processamento
-            std::cout << "  Executando: pós-processamento..." << std::endl;
-            if (!executeModulePostprocess(warehouse, solution)) {
-                throw std::runtime_error("Falha no pós-processamento");
+            // ETAPA 4: Pós-processamento (apenas se houver tempo)
+            remainingTime = getCurrentRemainingTime();
+            if (remainingTime > 0) {
+                std::cout << "----------------------------------" << std::endl;
+                std::cout << "  Executando: pós-processamento (tempo restante: " 
+                          << remainingTime << "s)..." << std::endl;
+                std::cout << "----------------------------------" << std::endl;
+                
+                if (!executeModulePostprocess(warehouse, solution, remainingTime)) {
+                    std::cout << "  Aviso: pós-processamento não completado" << std::endl;
+                }
+            } else {
+                std::cout << "  Pulando pós-processamento (tempo esgotado)" << std::endl;
             }
-
-            // Informações simuladas (para evitar segmentation fault)
-            std::cout << "  Solução viável encontrada." << std::endl;
-            std::cout << "  Valor função objetivo: 100.0" << std::endl;
-            std::cout << "  Pedidos selecionados: 10" << std::endl;
-            std::cout << "  Corredores visitados: 5" << std::endl;
-
-            // Salvar a solução (simulado)
-            std::string inputFilename = fs::path(instanceFile).filename().string();
-            std::string outputFile = outputPath + "/" + inputFilename + "_solution.txt";
-
-            // Garantir que o diretório de saída existe
-            if (!fs::exists(outputPath)) {
-                fs::create_directories(outputPath);
+            
+        save_solution:
+            // Salvar a solução se for viável
+            if (solution.isFeasible()) {
+                std::string inputFilename = fs::path(instanceFile).filename().string();
+                std::string outputFile = outputPath + "/" + inputFilename + "_solution.txt";
+                
+                // Garantir que o diretório de saída existe
+                if (!fs::exists(outputPath)) {
+                    fs::create_directories(outputPath);
+                }
+                
+                // Salvar solução usando formato correto
+                OutputWriter writer;
+                if (writer.writeSolution(solution, outputFile)) {
+                    std::cout << "  Solução salva em: " << outputFile << std::endl;
+                } else {
+                    std::cout << "  ERRO: Falha ao salvar solução" << std::endl;
+                }
+            } else {
+                std::cout << "  AVISO: Nenhuma solução viável encontrada para salvar" << std::endl;
             }
-
-            // Create an empty solution file
-            std::ofstream outFile(outputFile);
-            outFile.close();
-            std::cout << "  Solução salva em: " << outputFile << std::endl;
-
+            
             // Encerrar cronômetro para esta instância
             auto instanceEndTime = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> instanceElapsed = instanceEndTime - instanceStartTime;
             std::cout << "  Tempo de processamento: " << instanceElapsed.count() << " segundos" << std::endl;
             
             // Armazenar tempo para estatísticas
-            instanceTimes.push_back({inputFilename, instanceElapsed.count()});
+            instanceTimes.push_back({fs::path(instanceFile).filename().string(), instanceElapsed.count()});
             
         } catch (const std::exception& e) {
             std::cerr << "  ERRO: " << e.what() << std::endl;
@@ -314,11 +456,12 @@ bool AppController::processInstances() {
     std::chrono::duration<double> globalElapsed = globalEndTime - globalStartTime;
     
     // Exibir resumo
+
     std::cout << "\n===== RESUMO DO PROCESSAMENTO =====\n";
     std::cout << "Total de instâncias processadas: " << instanceTimes.size() << "/" << instanceFiles.size() << std::endl;
     std::cout << "Tempo total de processamento: " << globalElapsed.count() << " segundos\n\n";
-    
     std::cout << "Tempos por instância:\n";
+    
     for (const auto& [instance, time] : instanceTimes) {
         std::cout << "  " << instance << ": " << time << " segundos\n";
     }
@@ -357,22 +500,23 @@ bool AppController::requestConfirmation(const std::string& message) {
 }
 
 // Implementação dos métodos de módulos que utilizam os módulos importados
-bool AppController::executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution) {
+bool AppController::executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution, double remainingTime) {
     // Chamar a implementação do módulo cria_auxiliares
+    // Create auxiliary data structures needed before building the solution
     return cria_auxiliares(warehouse, solution);
 }
 
-bool AppController::executeModulePreprocess(const Warehouse& warehouse, Solution& solution) {
+bool AppController::executeModulePreprocess(const Warehouse& warehouse, Solution& solution, double remainingTime) {
     // Chamar a implementação do módulo preprocess
     return preprocess(warehouse, solution);
 }
 
-bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& solution) {
-    // Chamar a implementação do módulo process
+bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& solution, double remainingTime) {
+    // Corrigir chamada da função passando o tempo restante
     return process(warehouse, solution);
 }
 
-bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution) {
+bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution, double remainingTime) {
     // Chamar a implementação do módulo postprocess
     return postprocess(warehouse, solution);
 }
@@ -426,4 +570,11 @@ bool AppController::showReportMenu() {
     }
     
     return success;
+}
+
+// Adicionar uma função para verificar se o tempo expirou
+bool isTimeExpired(const std::chrono::time_point<std::chrono::high_resolution_clock>& startTime, double timeLimit) {
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = currentTime - startTime;
+    return elapsed.count() >= timeLimit;
 }

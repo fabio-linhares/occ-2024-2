@@ -3,11 +3,12 @@
 # Script para compilar e testar o projeto Mercado Livre
 # Autor: GitHub Copilot
 # Data: 25 de abril de 2025
-# Uso: ./compila.sh [limpar] [testar] [executar] [ajuda]
+# Uso: ./compila.sh [limpar] [testar] [executar] [ajuda] [paralelo=N]
 # - limpar: Remove o diretório build antes de compilar
 # - testar: Executa os testes após a compilação
 # - executar: Executa o programa principal após a compilação
 # - ajuda: Mostra esta mensagem de ajuda
+# - paralelo=N: Define o nível de paralelismo para a compilação (0 = auto-detectar)
 
 set -e  # Encerra o script se qualquer comando falhar
 
@@ -24,6 +25,7 @@ BUILD_DIR="${PROJECT_DIR}/build"
 
 # Parâmetros configuráveis
 NUM_THREADS=$(nproc)
+PARALLEL_LEVEL=0  # 0 = auto-detectar
 
 # Função para exibir mensagens
 print_msg() {
@@ -38,11 +40,12 @@ error_msg() {
 
 # Função para exibir ajuda
 show_help() {
-    echo "Uso: ./compila.sh [limpar] [testar] [executar] [ajuda]"
+    echo "Uso: ./compila.sh [limpar] [testar] [executar] [ajuda] [paralelo=N]"
     echo "  limpar: Remove o diretório build antes de compilar"
     echo "  testar: Executa os testes após a compilação"
     echo "  executar: Executa o programa principal após a compilação"
     echo "  ajuda: Mostra esta mensagem de ajuda"
+    echo "  paralelo=N: Define o nível de paralelismo para a compilação (0 = auto-detectar)"
 }
 
 # Parâmetros
@@ -66,6 +69,9 @@ do
         ajuda)
             show_help
             exit 0
+            ;;
+        paralelo=*)
+            PARALLEL_LEVEL="${arg#*=}"
             ;;
         *)
             echo "Argumento desconhecido: $arg"
@@ -127,8 +133,12 @@ build_project() {
     cmake ..
     
     # Compilar
-    print_msg "Compilando projeto usando $NUM_THREADS threads..."
-    cmake --build . -- -j$NUM_THREADS
+    if [ "$PARALLEL_LEVEL" -eq 0 ]; then
+        PARALLEL_LEVEL=$NUM_THREADS
+    fi
+    
+    print_msg "Compilando projeto usando $PARALLEL_LEVEL threads..."
+    cmake --build . -- -j$PARALLEL_LEVEL
     
     print_msg "Compilação concluída com sucesso!" "$GREEN"
 }

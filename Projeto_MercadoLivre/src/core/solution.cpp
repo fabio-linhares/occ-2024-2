@@ -65,47 +65,72 @@ void Solution::updateCorridors(const Warehouse& warehouse) {
     std::map<int, int> requiredItems;
     for (int orderId : selectedOrders) {
         for (const auto& itemPair : warehouse.orders[orderId]) {
-            int itemId = itemPair.first;
-            int quantity = itemPair.second;
-            requiredItems[itemId] += quantity;
+            requiredItems[itemPair.first] += itemPair.second;
         }
     }
     
-    // 2. Encontrar quais corredores precisamos visitar
-    // (Esta é uma implementação simples - pode ser otimizada para minimizar o número de corredores)
-    std::set<int> corridorSet;
-    
-    for (const auto& entry : requiredItems) {
-        int itemId = entry.first;
-        int requiredQty = entry.second;
-        int remainingQty = requiredQty;
+    // 2. Criar um mapa de corredores com sua utilidade
+    // (utilidade = quantos itens diferentes/quantidade podemos obter do corredor)
+    std::vector<std::pair<int, double>> corridorUtility;
+    for (size_t corridorId = 0; corridorId < warehouse.corridors.size(); corridorId++) {
+        int uniqueItemsCovered = 0;
+        int totalQuantityCovered = 0;
         
-        // Procurar o item em todos os corredores
-        for (size_t corridorId = 0; corridorId < warehouse.corridors.size(); corridorId++) {
-            // Se este corredor já está selecionado, pule
-            if (corridorSet.find(corridorId) != corridorSet.end()) {
-                continue;
+        for (const auto& itemPair : warehouse.corridors[corridorId]) {
+            auto it = requiredItems.find(itemPair.first);
+            if (it != requiredItems.end() && it->second > 0) {
+                uniqueItemsCovered++;
+                totalQuantityCovered += std::min(it->second, itemPair.second);
             }
+        }
+        
+        // Calcular utilidade combinando itens únicos e quantidade
+        double utility = uniqueItemsCovered * 100.0 + totalQuantityCovered;
+        if (utility > 0) {
+            corridorUtility.push_back({corridorId, utility});
+        }
+    }
+    
+    // 3. Ordenar corredores por utilidade decrescente
+    std::sort(corridorUtility.begin(), corridorUtility.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    // 4. Selecionar corredores até satisfazer todos os itens
+    std::set<int> corridorSet;
+    std::map<int, int> collectedItems;
+    
+    for (const auto& [corridorId, utility] : corridorUtility) {
+        bool usefulCorridor = false;
+        
+        for (const auto& itemPair : warehouse.corridors[corridorId]) {
+            int itemId = itemPair.first;
+            int availableQty = itemPair.second;
             
-            // Verificar se o corredor tem o item
-            const auto& corridor = warehouse.corridors[corridorId];
-            for (const auto& itemPair : corridor) {
-                if (itemPair.first == itemId) {
-                    corridorSet.insert(corridorId);
-                    remainingQty -= itemPair.second;
-                    
-                    // Se já satisfizemos a demanda deste item, podemos parar
-                    if (remainingQty <= 0) {
-                        break;
-                    }
+            auto it = requiredItems.find(itemId);
+            if (it != requiredItems.end()) {
+                int neededQty = it->second - collectedItems[itemId];
+                if (neededQty > 0) {
+                    int takeQty = std::min(neededQty, availableQty);
+                    collectedItems[itemId] += takeQty;
+                    usefulCorridor = true;
                 }
             }
-            
-            // Se já satisfizemos a demanda deste item, podemos passar para o próximo
-            if (remainingQty <= 0) {
+        }
+        
+        if (usefulCorridor) {
+            corridorSet.insert(corridorId);
+        }
+        
+        // Verificar se já coletamos todos os itens necessários
+        bool allSatisfied = true;
+        for (const auto& [itemId, requiredQty] : requiredItems) {
+            if (collectedItems[itemId] < requiredQty) {
+                allSatisfied = false;
                 break;
             }
         }
+        
+        if (allSatisfied) break;
     }
     
     // Converter set para vector

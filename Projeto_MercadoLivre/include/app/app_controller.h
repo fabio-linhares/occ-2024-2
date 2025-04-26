@@ -39,9 +39,9 @@ private:
     bool requestConfirmation(const std::string& message);
     
     // Métodos para processamento modular
-    bool executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution);
-    bool executeModulePreprocess(const Warehouse& warehouse, Solution& solution);
-    bool executeModuleProcess(const Warehouse& warehouse, Solution& solution);
-    bool executeModulePostprocess(const Warehouse& warehouse, Solution& solution);
+    bool executeModuleCriaAuxiliares(const Warehouse& warehouse, Solution& solution, double remainingTime = 0);
+    bool executeModulePreprocess(const Warehouse& warehouse, Solution& solution, double remainingTime = 0);
+    bool executeModuleProcess(const Warehouse& warehouse, Solution& solution, double remainingTime);
+    bool executeModulePostprocess(const Warehouse& warehouse, Solution& solution, double remainingTime = 0);
 };
 

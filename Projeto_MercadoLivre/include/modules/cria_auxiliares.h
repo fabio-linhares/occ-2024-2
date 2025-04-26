@@ -96,13 +96,13 @@ inline void calculateItemStatistics(AuxiliaryStructures& aux, AuxiliaryStructure
 
 // Implementações...
 inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
-    std::cout << "    Construindo estruturas de dados auxiliares..." << std::endl;
+    //std::cout << "    Construindo estruturas de dados auxiliares..." << std::endl;
     
     // Determinar o número de threads disponíveis
     unsigned int numThreads = std::thread::hardware_concurrency();
     if (numThreads == 0) numThreads = 4;  // Padrão se não for detectado
 
-    std::cout << "    Utilizando " << numThreads << " threads para processamento paralelo" << std::endl;
+    std::cout << "    Threads utilizadas: " << numThreads << std::endl;
 
     // Criar estruturas para a paralelização
     ParallelExecutionData parallelData;
@@ -112,7 +112,7 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     AuxiliaryStructures aux;
     
     // 1. Criar conjuntos básicos
-    std::cout << "    Criando conjuntos básicos..." << std::endl;
+    // std::cout << "    Criando conjuntos básicos..." << std::endl;
     
     // Conjunto de pedidos
     for (int i = 0; i < warehouse.numOrders; i++) {
@@ -128,7 +128,7 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     aux.orderCorridorCoverage.resize(warehouse.numOrders);
     
     // 2. Processar pedidos e mapear itens
-    std::cout << "    Processando " << warehouse.numOrders << " pedidos..." << std::endl;
+    // std::cout << "    Processando " << warehouse.numOrders << " pedidos..." << std::endl;
     
     for (int orderIdx = 0; orderIdx < warehouse.numOrders; orderIdx++) {
         for (const auto& [itemId, quantity] : warehouse.orders[orderIdx]) {
@@ -151,8 +151,8 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     }
     
     // 3. Inicializar estruturas de itens
-    std::cout << "    Mapeando " << aux.allItems.size() << " itens em " 
-              << warehouse.numCorridors << " corredores..." << std::endl;
+    // std::cout << "    Mapeando " << aux.allItems.size() << " itens em " 
+    //          << warehouse.numCorridors << " corredores..." << std::endl;
     
     int maxItemId = 0;
     for (int itemId : aux.allItems) {
@@ -180,7 +180,7 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     }
     
     // 5. Calcular cobertura de corredores por pedido
-    std::cout << "    Calculando coberturas de corredores por pedido..." << std::endl;
+    // std::cout << "    Calculando coberturas de corredores por pedido..." << std::endl;
     
     for (int orderIdx = 0; orderIdx < warehouse.numOrders; orderIdx++) {
         std::bitset<MAX_CORRIDORS> orderCorridors;
@@ -311,20 +311,20 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     solution.setAuxiliaryData("structures", aux);
     
     // Exibir algumas estatísticas
-    std::cout << "    Estruturas auxiliares criadas com sucesso:" << std::endl;
-    std::cout << "      - " << warehouse.numOrders << " pedidos" << std::endl;
-    std::cout << "      - " << aux.allItems.size() << " itens únicos" << std::endl;
-    std::cout << "      - " << warehouse.numCorridors << " corredores" << std::endl;
+    std::cout << "    Estruturas auxiliares criadas com sucesso." << std::endl;
+    //std::cout << "      - " << warehouse.numOrders << " pedidos" << std::endl;
+    //std::cout << "      - " << aux.allItems.size() << " itens únicos" << std::endl;
+    //std::cout << "      - " << warehouse.numCorridors << " corredores" << std::endl;
     
     // Top 5 pedidos mais eficientes
-    std::cout << "      - Top 5 pedidos mais eficientes:" << std::endl;
-    for (int i = 0; i < std::min(5, (int)aux.orderEfficiency.size()); i++) {
-        if (aux.orderEfficiency[i].second > 0) {
-            std::cout << "        #" << aux.orderEfficiency[i].first 
-                      << ": " << std::fixed << std::setprecision(2) 
-                      << aux.orderEfficiency[i].second << " itens/corredor" << std::endl;
-        }
-    }
+    //std::cout << "      - Top 5 pedidos mais eficientes:" << std::endl;
+    //for (int i = 0; i < std::min(5, (int)aux.orderEfficiency.size()); i++) {
+    //    if (aux.orderEfficiency[i].second > 0) {
+    //        std::cout << "        #" << aux.orderEfficiency[i].first 
+    //                  << ": " << std::fixed << std::setprecision(2) 
+    //                  << aux.orderEfficiency[i].second << " itens/corredor" << std::endl;
+    //    }
+    //}
     
     return true;
 }

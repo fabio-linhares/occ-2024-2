@@ -72,7 +72,7 @@ private:
 };
 
 bool gerarSolucaoInicial(const Warehouse& warehouse, Solution& solution) {
-    std::cout << "Construindo solução inicial com paralelismo otimizado..." << std::endl;
+    std::cout << "    Construindo solução inicial com paralelismo otimizado..." << std::endl;
     
     AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
     int totalItemsAtual = 0;
@@ -172,21 +172,81 @@ bool gerarSolucaoInicial(const Warehouse& warehouse, Solution& solution) {
     std::sort(std::execution::par_unseq, combinedScores.begin(), combinedScores.end(),
         [](const auto& a, const auto& b) { return a.second > b.second; });
     
-    // 3. PRIMEIRA FASE: PEDIDOS EFICIENTES (SEQUENCIAL - DIFÍCIL PARALELIZAR DEVIDO DEPENDÊNCIAS)
-    std::cout << "Fase 1: Adicionando pedidos eficientes..." << std::endl;
-    for (const auto& orderScore : combinedScores) {
-        int orderIdx = orderScore.first;
-        double score = orderScore.second;
-        
-        if (score <= 0) continue;
-        
-        int novoTotal = totalItemsAtual + aux.totalItemsPerOrder[orderIdx];
-        if (novoTotal <= warehouse.UB) {
+    // 3. PRIMEIRA FASE: PEDIDOS EFICIENTES (OTIMIZADA COM PARALELISMO)
+    std::cout << "Fase 1: Adicionando pedidos eficientes com simulação paralela..." << std::endl;
+
+    // 3.1 Simulação paralela para identificar candidatos viáveis
+    std::vector<std::pair<int, int>> candidateOrders;
+    std::mutex candidatesMutex;
+    std::atomic<int> totalSimulatedItems(0);
+    const int batchSize = 100; // Ajustar conforme tamanho do problema
+
+    // Dividir os pedidos ordenados em chunks para processamento paralelo
+    int numBatches = (combinedScores.size() + batchSize - 1) / batchSize;
+    std::vector<std::future<void>> simulationFutures;
+
+    for (int b = 0; b < numBatches && totalSimulatedItems < warehouse.LB; b++) {
+        simulationFutures.push_back(pool.enqueue([&, b]() {
+            // Copiar estado local para simulação
+            int localTotalItems = totalItemsAtual;
+            std::vector<std::pair<int, int>> localCandidates; // orderIdx, addedItems
+            
+            // Determinar intervalo do lote
+            int start = b * batchSize;
+            int end = std::min(start + batchSize, static_cast<int>(combinedScores.size()));
+            
+            // Simular adição de pedidos neste lote
+            for (int i = start; i < end; i++) {
+                int orderIdx = combinedScores[i].first;
+                double score = combinedScores[i].second;
+                
+                if (score <= 0) continue;
+                
+                // Se este pedido ainda cabe no limite superior
+                int orderItems = aux.totalItemsPerOrder[orderIdx];
+                if (localTotalItems + orderItems <= warehouse.UB) {
+                    localCandidates.push_back({orderIdx, orderItems});
+                    localTotalItems += orderItems;
+                }
+                
+                // Se simulação local já atingiu LB, parar
+                if (localTotalItems >= warehouse.LB) break;
+            }
+            
+            // Adicionar candidatos locais ao pool global
+            if (!localCandidates.empty()) {
+                std::lock_guard<std::mutex> lock(candidatesMutex);
+                candidateOrders.insert(candidateOrders.end(), localCandidates.begin(), localCandidates.end());
+                // Atualizar contador atômico do simulado total
+                totalSimulatedItems.fetch_add(localTotalItems - totalItemsAtual);
+            }
+        }));
+    }
+
+    // Aguardar simulações terminarem
+    for (auto& future : simulationFutures) {
+        future.get();
+    }
+
+    // 3.2 Ordenar candidatos por score (manter ordem original dos scores)
+    std::sort(candidateOrders.begin(), candidateOrders.end(), 
+        [&combinedScores](const auto& a, const auto& b) {
+            // Encontrar posições nos scores originais
+            auto posA = std::find_if(combinedScores.begin(), combinedScores.end(), 
+                [&a](const auto& p) { return p.first == a.first; });
+            auto posB = std::find_if(combinedScores.begin(), combinedScores.end(), 
+                [&b](const auto& p) { return p.first == b.first; });
+            return std::distance(combinedScores.begin(), posA) < std::distance(combinedScores.begin(), posB);
+        });
+
+    // 3.3 Aplicar candidatos até atingir limite
+    for (const auto& [orderIdx, orderItems] : candidateOrders) {
+        if (totalItemsAtual + orderItems <= warehouse.UB) {
             solution.addOrder(orderIdx, warehouse);
             totalItemsAtual = solution.getTotalItems();
             
             //std::cout << "  Adicionado pedido #" << orderIdx 
-            //          << " (Score: " << score << ", Total: " << totalItemsAtual << ")" << std::endl;
+            //          << " (Items: " << orderItems << ", Total: " << totalItemsAtual << ")" << std::endl;
         }
         
         if (totalItemsAtual >= warehouse.LB)
