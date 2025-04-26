@@ -246,6 +246,63 @@ std::string ReportGenerator::generateOrdersSection(
     ss << "        </div>\n";
     ss << createBarChart("efficiencyDistChart", "Distribuição de Eficiência", labels, values);
     
+    // Gráfico de dispersão: Itens vs Corredores
+    ss << "        <h3>Relação entre Itens Diferentes e Corredores por Pedido</h3>\n";
+    ss << "        <div class=\"chart-container\">\n";
+    ss << "            <canvas id=\"itemsCorridorsScatter\"></canvas>\n";
+    ss << "        </div>\n";
+    
+    // Preparar dados para o gráfico de dispersão
+    std::vector<std::pair<double, double>> scatterPoints;
+    for (int orderIdx = 0; orderIdx < warehouse.numOrders; orderIdx++) {
+        scatterPoints.push_back({
+            (double)aux.numDiffItemsPerOrder[orderIdx],
+            (double)aux.numCorridorsNeededPerOrder[orderIdx]
+        });
+    }
+    
+    ss << createScatterPlot("itemsCorridorsScatter", 
+                           "Relação Itens vs Corredores",
+                           scatterPoints,
+                           "Número de Itens Diferentes", 
+                           "Número de Corredores");
+    
+    // Gráfico de pizza para distribuição de pedidos por eficiência
+    ss << "        <h3>Distribuição de Pedidos por Faixa de Eficiência</h3>\n";
+    ss << "        <div class=\"chart-container\">\n";
+    ss << "            <canvas id=\"efficiencyPieChart\"></canvas>\n";
+    ss << "        </div>\n";
+    
+    // Categorias para o gráfico de pizza
+    std::vector<std::string> pieLabels = {
+        "Muito Baixa (<" + std::to_string(orderStats.efficiencyQuantiles[0]) + ")",
+        "Baixa (Q1-Q2)",
+        "Média (Q2-Q3)",
+        "Alta (>Q3)"
+    };
+    
+    std::vector<double> pieValues = {0, 0, 0, 0};
+    
+    // Calcular distribuição
+    for (const auto& [orderIdx, eff] : aux.orderEfficiency) {
+        if (eff <= 0) continue;
+        
+        if (eff < orderStats.efficiencyQuantiles[0]) {
+            pieValues[0]++;
+        } else if (eff < orderStats.efficiencyQuantiles[1]) {
+            pieValues[1]++;
+        } else if (eff < orderStats.efficiencyQuantiles[2]) {
+            pieValues[2]++;
+        } else {
+            pieValues[3]++;
+        }
+    }
+    
+    ss << createPieChart("efficiencyPieChart", 
+                        "Distribuição de Pedidos por Eficiência",
+                        pieLabels, 
+                        pieValues);
+    
     ss << "    </div>\n";
     
     return ss.str();
@@ -316,6 +373,98 @@ std::string ReportGenerator::generateItemsSection(const Warehouse& warehouse, co
     ss << "            <canvas id=\"itemScarcityChart\"></canvas>\n";
     ss << "        </div>\n";
     ss << createBarChart("itemScarcityChart", "Escassez dos Itens", labels, values);
+    
+    // Gráfico de linha para frequência de itens
+    std::vector<std::pair<int, int>> itemsByFrequency;
+    for (int itemId : aux.allItems) {
+        itemsByFrequency.push_back({itemId, aux.weights.itemFrequency[itemId]});
+    }
+    
+    std::sort(itemsByFrequency.begin(), itemsByFrequency.end(), 
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    std::vector<std::string> freqLabels;
+    std::vector<double> freqValues;
+    
+    int maxFreqItems = std::min(20, (int)itemsByFrequency.size());
+    for (int i = 0; i < maxFreqItems; i++) {
+        freqLabels.push_back("Item " + std::to_string(itemsByFrequency[i].first));
+        freqValues.push_back(itemsByFrequency[i].second);
+    }
+    
+    ss << "        <h3>Tendência de Frequência dos Itens Mais Comuns</h3>\n";
+    ss << "        <div class=\"chart-container\">\n";
+    ss << "            <canvas id=\"itemFrequencyChart\"></canvas>\n";
+    ss << "        </div>\n";
+    ss << createLineChart("itemFrequencyChart", "Frequência dos Itens Mais Comuns", freqLabels, freqValues);
+    
+    // Adicione um gráfico de comparação entre leverage e escassez
+    ss << "        <h3>Comparação entre Leverage Score e Escassez dos Itens</h3>\n";
+    ss << "        <div class=\"chart-container\">\n";
+    ss << "            <canvas id=\"leverageScarcityCompChart\"></canvas>\n";
+    ss << "        </div>\n";
+    
+    // Código para gerar o gráfico de barras agrupadas
+    ss << "<script>\n"
+       << "    document.addEventListener('DOMContentLoaded', function() {\n"
+       << "        const ctx = document.getElementById('leverageScarcityCompChart').getContext('2d');\n"
+       << "        new Chart(ctx, {\n"
+       << "            type: 'bar',\n"
+       << "            data: {\n"
+       << "                labels: [";
+    
+    for (int i = 0; i < 10 && i < (int)itemsByLeverage.size(); i++) {
+        ss << "'Item " << itemsByLeverage[i].first << "'";
+        if (i < 9 && i < (int)itemsByLeverage.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                datasets: [{\n"
+       << "                    label: 'Leverage Score',\n"
+       << "                    data: [";
+    
+    for (int i = 0; i < 10 && i < (int)itemsByLeverage.size(); i++) {
+        ss << aux.weights.itemLeverageScore[itemsByLeverage[i].first];
+        if (i < 9 && i < (int)itemsByLeverage.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                    backgroundColor: 'rgba(54, 162, 235, 0.7)',\n"
+       << "                    borderColor: 'rgba(54, 162, 235, 1)',\n"
+       << "                    borderWidth: 1\n"
+       << "                }, {\n"
+       << "                    label: 'Escassez',\n"
+       << "                    data: [";
+    
+    for (int i = 0; i < 10 && i < (int)itemsByLeverage.size(); i++) {
+        ss << aux.weights.itemScarcityScore[itemsByLeverage[i].first];
+        if (i < 9 && i < (int)itemsByLeverage.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                    backgroundColor: 'rgba(255, 99, 132, 0.7)',\n"
+       << "                    borderColor: 'rgba(255, 99, 132, 1)',\n"
+       << "                    borderWidth: 1\n"
+       << "                }]\n"
+       << "            },\n"
+       << "            options: {\n"
+       << "                responsive: true,\n"
+       << "                maintainAspectRatio: false,\n"
+       << "                scales: {\n"
+       << "                    y: {\n"
+       << "                        beginAtZero: true\n"
+       << "                    }\n"
+       << "                },\n"
+       << "                plugins: {\n"
+       << "                    title: {\n"
+       << "                        display: true,\n"
+       << "                        text: 'Comparação entre Leverage Score e Escassez dos Itens'\n"
+       << "                    }\n"
+       << "                }\n"
+       << "            }\n"
+       << "        });\n"
+       << "    });\n"
+       << "</script>";
     
     ss << "    </div>\n";
     
@@ -438,6 +587,190 @@ std::string ReportGenerator::createBarChart(const std::string& chartId,
        << "                    backgroundColor: 'rgba(54, 162, 235, 0.5)',\n"
        << "                    borderColor: 'rgba(54, 162, 235, 1)',\n"
        << "                    borderWidth: 1\n"
+       << "                }]\n"
+       << "            },\n"
+       << "            options: {\n"
+       << "                responsive: true,\n"
+       << "                maintainAspectRatio: false,\n"
+       << "                scales: {\n"
+       << "                    y: {\n"
+       << "                        beginAtZero: true\n"
+       << "                    }\n"
+       << "                },\n"
+       << "                plugins: {\n"
+       << "                    title: {\n"
+       << "                        display: true,\n"
+       << "                        text: '" << title << "'\n"
+       << "                    }\n"
+       << "                }\n"
+       << "            }\n"
+       << "        });\n"
+       << "    });\n"
+       << "</script>";
+    
+    return ss.str();
+}
+
+std::string ReportGenerator::createScatterPlot(const std::string& chartId,
+                                           const std::string& title,
+                                           const std::vector<std::pair<double, double>>& points,
+                                           const std::string& xAxisLabel,
+                                           const std::string& yAxisLabel) {
+    std::stringstream ss;
+    
+    ss << "<script>\n"
+       << "    document.addEventListener('DOMContentLoaded', function() {\n"
+       << "        const ctx = document.getElementById('" << chartId << "').getContext('2d');\n"
+       << "        new Chart(ctx, {\n"
+       << "            type: 'scatter',\n"
+       << "            data: {\n"
+       << "                datasets: [{\n"
+       << "                    label: '" << title << "',\n"
+       << "                    data: [";
+    
+    // Adiciona os pontos no formato {x: valor, y: valor}
+    for (size_t i = 0; i < points.size(); i++) {
+        ss << "{x: " << points[i].first << ", y: " << points[i].second << "}";
+        if (i < points.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                    backgroundColor: 'rgba(75, 192, 192, 0.6)',\n"
+       << "                    borderColor: 'rgba(75, 192, 192, 1)',\n"
+       << "                    pointRadius: 5,\n"
+       << "                    pointHoverRadius: 7\n"
+       << "                }]\n"
+       << "            },\n"
+       << "            options: {\n"
+       << "                responsive: true,\n"
+       << "                maintainAspectRatio: false,\n"
+       << "                scales: {\n"
+       << "                    x: {\n"
+       << "                        title: {\n"
+       << "                            display: true,\n"
+       << "                            text: '" << xAxisLabel << "'\n"
+       << "                        }\n"
+       << "                    },\n"
+       << "                    y: {\n"
+       << "                        title: {\n"
+       << "                            display: true,\n"
+       << "                            text: '" << yAxisLabel << "'\n"
+       << "                        }\n"
+       << "                    }\n"
+       << "                },\n"
+       << "                plugins: {\n"
+       << "                    title: {\n"
+       << "                        display: true,\n"
+       << "                        text: '" << title << "'\n"
+       << "                    }\n"
+       << "                }\n"
+       << "            }\n"
+       << "        });\n"
+       << "    });\n"
+       << "</script>";
+    
+    return ss.str();
+}
+
+std::string ReportGenerator::createPieChart(const std::string& chartId,
+                                        const std::string& title,
+                                        const std::vector<std::string>& labels,
+                                        const std::vector<double>& values) {
+    std::stringstream ss;
+    
+    ss << "<script>\n"
+       << "    document.addEventListener('DOMContentLoaded', function() {\n"
+       << "        const ctx = document.getElementById('" << chartId << "').getContext('2d');\n"
+       << "        new Chart(ctx, {\n"
+       << "            type: 'pie',\n"
+       << "            data: {\n"
+       << "                labels: [";
+    
+    for (size_t i = 0; i < labels.size(); i++) {
+        ss << "'" << labels[i] << "'";
+        if (i < labels.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                datasets: [{\n"
+       << "                    data: [";
+    
+    for (size_t i = 0; i < values.size(); i++) {
+        ss << values[i];
+        if (i < values.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                    backgroundColor: [\n"
+       << "                        'rgba(255, 99, 132, 0.7)',\n"
+       << "                        'rgba(54, 162, 235, 0.7)',\n"
+       << "                        'rgba(255, 206, 86, 0.7)',\n"
+       << "                        'rgba(75, 192, 192, 0.7)',\n"
+       << "                        'rgba(153, 102, 255, 0.7)',\n"
+       << "                        'rgba(255, 159, 64, 0.7)',\n"
+       << "                        'rgba(199, 199, 199, 0.7)',\n"
+       << "                        'rgba(83, 102, 255, 0.7)',\n"
+       << "                        'rgba(40, 159, 64, 0.7)',\n"
+       << "                        'rgba(210, 199, 199, 0.7)'\n"
+       << "                    ],\n"
+       << "                    borderWidth: 1\n"
+       << "                }]\n"
+       << "            },\n"
+       << "            options: {\n"
+       << "                responsive: true,\n"
+       << "                maintainAspectRatio: false,\n"
+       << "                plugins: {\n"
+       << "                    title: {\n"
+       << "                        display: true,\n"
+       << "                        text: '" << title << "'\n"
+       << "                    },\n"
+       << "                    legend: {\n"
+       << "                        position: 'right'\n"
+       << "                    }\n"
+       << "                }\n"
+       << "            }\n"
+       << "        });\n"
+       << "    });\n"
+       << "</script>";
+    
+    return ss.str();
+}
+
+std::string ReportGenerator::createLineChart(const std::string& chartId,
+                                         const std::string& title,
+                                         const std::vector<std::string>& labels,
+                                         const std::vector<double>& values) {
+    std::stringstream ss;
+    
+    ss << "<script>\n"
+       << "    document.addEventListener('DOMContentLoaded', function() {\n"
+       << "        const ctx = document.getElementById('" << chartId << "').getContext('2d');\n"
+       << "        new Chart(ctx, {\n"
+       << "            type: 'line',\n"
+       << "            data: {\n"
+       << "                labels: [";
+    
+    for (size_t i = 0; i < labels.size(); i++) {
+        ss << "'" << labels[i] << "'";
+        if (i < labels.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                datasets: [{\n"
+       << "                    label: '" << title << "',\n"
+       << "                    data: [";
+    
+    for (size_t i = 0; i < values.size(); i++) {
+        ss << values[i];
+        if (i < values.size() - 1) ss << ", ";
+    }
+    
+    ss << "],\n"
+       << "                    borderColor: 'rgba(75, 192, 192, 1)',\n"
+       << "                    backgroundColor: 'rgba(75, 192, 192, 0.2)',\n"
+       << "                    borderWidth: 2,\n"
+       << "                    fill: true,\n"
+       << "                    tension: 0.1\n"
        << "                }]\n"
        << "            },\n"
        << "            options: {\n"

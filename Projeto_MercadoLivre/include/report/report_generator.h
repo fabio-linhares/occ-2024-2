@@ -48,6 +48,23 @@ private:
                                    const std::string& title,
                                    const std::vector<std::string>& labels, 
                                    const std::vector<double>& values);
+    
+    // Novos métodos de geração de gráficos
+    static std::string createScatterPlot(const std::string& chartId, 
+                                     const std::string& title,
+                                     const std::vector<std::pair<double, double>>& points,
+                                     const std::string& xAxisLabel,
+                                     const std::string& yAxisLabel);
+    
+    static std::string createPieChart(const std::string& chartId, 
+                                  const std::string& title,
+                                  const std::vector<std::string>& labels, 
+                                  const std::vector<double>& values);
+    
+    static std::string createLineChart(const std::string& chartId, 
+                                   const std::string& title,
+                                   const std::vector<std::string>& labels, 
+                                   const std::vector<double>& values);
 };
 
 #endif // REPORT_GENERATOR_H
