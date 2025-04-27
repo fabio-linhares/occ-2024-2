@@ -1,14 +1,9 @@
 #include "modules/process.h"
 #include "modules/solucao_inicial.h"
 #include "algorithm/dinkelbach_algorithm.h"
+#include "utils/time_utils.h" // Novo include
 #include <iostream>
 #include <chrono>
-
-bool isTimeExpired(const std::chrono::high_resolution_clock::time_point& startTime, double timeLimit) {
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-    return elapsedTime >= timeLimit;
-}
 
 bool process(const Warehouse& warehouse, Solution& solution, double timeLimit) {
     auto startTime = std::chrono::high_resolution_clock::now();

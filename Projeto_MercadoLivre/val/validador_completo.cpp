@@ -791,13 +791,22 @@ if __name__ == "__main__":
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Uso: " << argv[0] << " <pasta_instancias> <pasta_saida>" << std::endl;
+    // Definir caminhos padrão para instâncias e resultados
+    std::string pasta_instancias = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input";
+    std::string pasta_saida = "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output";
+    
+    // Permitir substituição por linha de comando se necessário
+    if (argc == 3) {
+        pasta_instancias = argv[1];
+        pasta_saida = argv[2];
+    } 
+    else if (argc != 1) {
+        std::cerr << "Uso: " << argv[0] << " [pasta_instancias] [pasta_saida]" << std::endl;
+        std::cerr << "Se os argumentos não forem fornecidos, serão usados os padrões:" << std::endl;
+        std::cerr << "  pasta_instancias: " << pasta_instancias << std::endl;
+        std::cerr << "  pasta_saida: " << pasta_saida << std::endl;
         return 1;
     }
-
-    std::string pasta_instancias = argv[1];
-    std::string pasta_saida = argv[2];
     
     // Diretórios para relatórios e gráficos
     std::string diretorio_relatorios = "relatorios";
@@ -806,21 +815,31 @@ int main(int argc, char* argv[]) {
     
     std::filesystem::create_directories(diretorio_relatorios);
     
+    std::cout << "Validando soluções..." << std::endl;
+    std::cout << "Diretório de instâncias: " << pasta_instancias << std::endl;
+    std::cout << "Diretório de soluções: " << pasta_saida << std::endl;
+    
+    int total_instancias = 0;
+    int instancias_validas = 0;
+    
+    // Modificar o loop de validação:
     for (const auto& entry : std::filesystem::directory_iterator(pasta_instancias)) {
         if (entry.path().extension() == ".txt" && entry.path().filename().string().find("instance_") == 0) {
+            total_instancias++;
             std::string nome_arquivo = entry.path().filename().string();
             std::string caminho_instancia = entry.path().string();
-            std::string nome_instancia = nome_arquivo.substr(0, nome_arquivo.size() - 4);
-            std::string caminho_solucao = pasta_saida + "/" + nome_instancia + "_out.txt";
+            
+            // Modificação da convenção de nomeação dos arquivos de solução
+            std::string caminho_solucao = pasta_saida + "/" + nome_arquivo + "_solution.txt";
 
-            std::cout << "\nInstancia: " << nome_instancia << std::endl;
+            std::cout << "\nInstancia: " << nome_arquivo << std::endl;
             
             Instancia instancia = lerInstancia(caminho_instancia);
             
             // Verificar se o arquivo de solução existe
             std::ifstream file_test(caminho_solucao);
             if (!file_test.good()) {
-                std::cout << "  - Arquivo de solução não encontrado!" << std::endl;
+                std::cout << "  - Arquivo de solução não encontrado: " << caminho_solucao << std::endl;
                 continue;
             }
             file_test.close();
@@ -833,27 +852,40 @@ int main(int argc, char* argv[]) {
             std::cout << "  - Limite Inferior: " << (resultado.lb_ok ? "OK" : "FALHA") << std::endl;
             std::cout << "  - Limite Superior: " << (resultado.ub_ok ? "OK" : "FALHA") << std::endl;
             std::cout << "  - Disponibilidade de Itens: " << (resultado.disponibilidade_ok ? "OK" : "FALHA") << std::endl;
+            std::cout << "  - IDs Válidos: " << (resultado.ids_validos ? "OK" : "FALHA") << std::endl;
             std::cout << "  - Total de Itens Coletados: " << resultado.totalItensColetados << std::endl;
             std::cout << "  - Numero de Corredores Visitados: " << resultado.numCorredoresVisitados << std::endl;
             std::cout << "  - Limites (LB, UB): (" << instancia.LB << ", " << instancia.UB << ")" << std::endl;
             
             // Verificar IDs inválidos
             if (!resultado.ids_validos && !resultado.ids_invalidos.empty()) {
-                std::cout << "Erro: ID de pedido invalido (";
+                std::cout << "  - Erro: ID inválido encontrado (";
                 for (size_t i = 0; i < resultado.ids_invalidos.size(); ++i) {
                     if (i > 0) std::cout << ", ";
                     std::cout << resultado.ids_invalidos[i];
                 }
-                std::cout << ") no arquivo de solucao: " << caminho_solucao << std::endl;
+                std::cout << ") no arquivo de solução" << std::endl;
+            }
+            
+            // Contabilizar soluções válidas
+            if (resultado.lb_ok && resultado.ub_ok && resultado.disponibilidade_ok && resultado.ids_validos) {
+                instancias_validas++;
             }
             
             // Gerar relatório detalhado
-            gerarRelatorio(nome_instancia, resultado, instancia, diretorio_relatorios);
+            gerarRelatorio(nome_arquivo, resultado, instancia, diretorio_relatorios);
             
             // Salvar dados para análise comparativa
-            salvarDadosIncrementais(nome_instancia, resultado, instancia, arquivo_csv);
+            salvarDadosIncrementais(nome_arquivo, resultado, instancia, arquivo_csv);
         }
     }
+    
+    // Resumo final
+    std::cout << "\n=== RESUMO DA VALIDAÇÃO ===" << std::endl;
+    std::cout << "Total de instâncias: " << total_instancias << std::endl;
+    std::cout << "Instâncias com solução válida: " << instancias_validas << " (" 
+              << (total_instancias > 0 ? (instancias_validas * 100.0 / total_instancias) : 0) 
+              << "%)" << std::endl;
     
     // Gerar script Python para análise dos dados
     gerarScriptPython(arquivo_csv, diretorio_graficos);

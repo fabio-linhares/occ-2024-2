@@ -69,6 +69,34 @@ struct AuxiliaryStructures {
         std::vector<int> statSignificantItems;
     };
 
+    // Estruturas otimizadas para o algoritmo aprimorado
+    struct ItemInfo {
+        int id;
+        int frequencia = 0;                      
+        int disponibilidade_total = 0;           
+        double escassez = 0.0;                     
+        std::vector<std::pair<int, int>> corredores;  
+        std::vector<int> pedidos_contendo;        
+    };
+
+    struct PedidoInfo {
+        int id;
+        int total_itens = 0;                    
+        int num_itens_distintos = 0;            
+        std::vector<std::pair<int, int>> itens;  
+        std::vector<int> corredores_necessarios; 
+        double eficiencia_base = 0.0;            
+        double prioridade = 0.0;                
+    };
+
+    struct CorredorInfo {
+        int id;
+        std::vector<std::pair<int, int>> itens;  
+        int total_itens_disponiveis = 0;        
+        int num_itens_distintos = 0;            
+        std::vector<int> pedidos_dependentes;    
+    };
+
     // Variáveis membro
     std::vector<int> allOrders;
     std::unordered_set<int> allItems;
@@ -85,6 +113,9 @@ struct AuxiliaryStructures {
     std::vector<int> numCorridorsNeededPerOrder;
     std::vector<std::pair<int, double>> orderEfficiency;
     WeightMetrics weights;
+    std::vector<ItemInfo> itens_aprimorado;
+    std::vector<PedidoInfo> pedidos_aprimorado;
+    std::vector<CorredorInfo> corredores_aprimorado;
 };
 
 // Protótipo da função principal
@@ -484,6 +515,189 @@ void calculateItemStatistics(AuxiliaryStructures& aux, AuxiliaryStructures::Item
     for (int i = 0; i < maxSignificantItems; i++) {
         stats.statSignificantItems.push_back(itemScores[i].first);
     }
+}
+
+inline void inicializarEstruturasAprimoradas(AuxiliaryStructures& aux, const Warehouse& warehouse) {
+    // Redimensionar estruturas
+    aux.itens_aprimorado.resize(warehouse.numItems);
+    aux.pedidos_aprimorado.resize(warehouse.numOrders);
+    aux.corredores_aprimorado.resize(warehouse.numCorridors);
+    
+    std::cout << "    Inicializando estruturas aprimoradas..." << std::endl;
+    
+    // Inicializar IDs
+    for (int i = 0; i < warehouse.numItems; i++) {
+        aux.itens_aprimorado[i].id = i;
+    }
+    
+    for (int p = 0; p < warehouse.numOrders; p++) {
+        aux.pedidos_aprimorado[p].id = p;
+    }
+    
+    for (int c = 0; c < warehouse.numCorridors; c++) {
+        aux.corredores_aprimorado[c].id = c;
+    }
+    
+    // Passar os dados dos pedidos para a nova estrutura
+    for (int p = 0; p < warehouse.numOrders; p++) {
+        auto& pedido = aux.pedidos_aprimorado[p];
+        
+        for (const auto& item_pair : warehouse.orders[p]) {
+            int item_id = item_pair.first;
+            int quantidade = item_pair.second;
+            
+            // Atualizar pedido
+            pedido.itens.push_back(item_pair);
+            pedido.total_itens += quantidade;
+            
+            // Atualizar item (se estiver dentro dos limites)
+            if (item_id < warehouse.numItems) {
+                aux.itens_aprimorado[item_id].pedidos_contendo.push_back(p);
+                aux.itens_aprimorado[item_id].frequencia++;
+            }
+        }
+        
+        pedido.num_itens_distintos = pedido.itens.size();
+    }
+    
+    // Inicializar dados de corredores
+    for (int c = 0; c < warehouse.numCorridors; c++) {
+        auto& corredor = aux.corredores_aprimorado[c];
+        
+        for (const auto& item_pair : warehouse.corridors[c]) {
+            int item_id = item_pair.first;
+            int quantidade = item_pair.second;
+            
+            // Atualizar corredor
+            corredor.itens.push_back(item_pair);
+            corredor.total_itens_disponiveis += quantidade;
+            
+            // Atualizar item (se estiver dentro dos limites)
+            if (item_id < warehouse.numItems) {
+                aux.itens_aprimorado[item_id].corredores.push_back({c, quantidade});
+                aux.itens_aprimorado[item_id].disponibilidade_total += quantidade;
+            }
+        }
+        
+        corredor.num_itens_distintos = corredor.itens.size();
+    }
+    
+    std::cout << "    Estruturas básicas inicializadas." << std::endl;
+}
+
+inline void calcularMetricasAvancadas(AuxiliaryStructures& aux) {
+    std::cout << "    Calculando métricas avançadas..." << std::endl;
+    
+    // 1. Mapear corredores necessários por pedido
+    for (size_t p = 0; p < aux.pedidos_aprimorado.size(); p++) {
+        std::set<int> corredores_necessarios;
+        
+        for (const auto& item_pair : aux.pedidos_aprimorado[p].itens) {
+            int item_id = item_pair.first;
+            
+            // Verificar se item_id está nos limites
+            if (item_id < aux.itens_aprimorado.size()) {
+                for (const auto& corredor_pair : aux.itens_aprimorado[item_id].corredores) {
+                    corredores_necessarios.insert(corredor_pair.first);
+                }
+            }
+        }
+        
+        aux.pedidos_aprimorado[p].corredores_necessarios.assign(
+            corredores_necessarios.begin(), 
+            corredores_necessarios.end()
+        );
+    }
+    
+    // 2. Calcular eficiência base de cada pedido
+    for (size_t p = 0; p < aux.pedidos_aprimorado.size(); p++) {
+        auto& pedido = aux.pedidos_aprimorado[p];
+        if (!pedido.corredores_necessarios.empty()) {
+            pedido.eficiencia_base = static_cast<double>(pedido.total_itens) / 
+                                     pedido.corredores_necessarios.size();
+        }
+    }
+    
+    // 3. Calcular escassez de itens
+    double max_escassez = 0.0;
+    for (auto& item : aux.itens_aprimorado) {
+        if (item.disponibilidade_total > 0) {
+            item.escassez = 1.0 / item.disponibilidade_total;
+        } else {
+            item.escassez = 10.0; // Valor alto para itens indisponíveis
+        }
+        max_escassez = std::max(max_escassez, item.escassez);
+    }
+    
+    // 4. Normalizar valores de escassez
+    if (max_escassez > 0) {
+        for (size_t i = 0; i < aux.itens_aprimorado.size(); i++) {
+            aux.itens_aprimorado[i].escassez /= max_escassez;
+        }
+    }
+    
+    // 5. Calcular pedidos dependentes por corredor
+    for (size_t i = 0; i < aux.itens_aprimorado.size(); i++) {
+        for (int pedido_id : aux.itens_aprimorado[i].pedidos_contendo) {
+            for (const auto& corredor_pair : aux.itens_aprimorado[i].corredores) {
+                int corredor_id = corredor_pair.first;
+                // Verificar se corredor_id está nos limites
+                if (corredor_id < aux.corredores_aprimorado.size()) {
+                    // Verificar se este pedido já está na lista
+                    auto& deps = aux.corredores_aprimorado[corredor_id].pedidos_dependentes;
+                    if (std::find(deps.begin(), deps.end(), pedido_id) == deps.end()) {
+                        deps.push_back(pedido_id);
+                    }
+                }
+            }
+        }
+    }
+    
+    std::cout << "    Métricas avançadas calculadas." << std::endl;
+}
+
+inline void calcularPrioridadePedidos(AuxiliaryStructures& aux, 
+                                     std::vector<std::pair<int, double>>& pedidos_priorizados) {
+    std::cout << "    Calculando prioridade dos pedidos..." << std::endl;
+    
+    pedidos_priorizados.clear();
+    
+    for (const auto& pedido : aux.pedidos_aprimorado) {
+        // Pular pedidos sem corredores ou itens (inviáveis)
+        if (pedido.corredores_necessarios.empty() || pedido.itens.empty()) {
+            continue;
+        }
+        
+        // Calcular fator de raridade
+        double fator_raridade = 0.0;
+        for (const auto& item_pair : pedido.itens) {
+            int item_id = item_pair.first;
+            int quantidade = item_pair.second;
+            // Verificar se item_id está nos limites
+            if (item_id < aux.itens_aprimorado.size()) {
+                fator_raridade += aux.itens_aprimorado[item_id].escassez * quantidade;
+            }
+        }
+        
+        if (!pedido.itens.empty()) {
+            fator_raridade /= pedido.itens.size();
+        }
+        
+        // Prioridade combinando eficiência base e raridade
+        double prioridade = pedido.eficiencia_base * (1.0 + 0.5 * fator_raridade);
+        
+        // Armazenar prioridade calculada
+        aux.pedidos_aprimorado[pedido.id].prioridade = prioridade;
+        
+        // Adicionar ao vetor de prioridades
+        pedidos_priorizados.push_back({pedido.id, prioridade});
+    }
+    
+    // Ordenar por prioridade decrescente
+    std::sort(pedidos_priorizados.begin(), pedidos_priorizados.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    std::cout << "    Priorização de pedidos concluída." << std::endl;
 }
 
 #endif // CRIA_AUXILIARES_H

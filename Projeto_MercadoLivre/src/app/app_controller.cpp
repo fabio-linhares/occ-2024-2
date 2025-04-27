@@ -15,6 +15,7 @@
 #include "modules/process.h"
 #include "modules/postprocess.h"
 #include "report/report_generator.h"
+#include "utils/time_utils.h"
 
 namespace fs = std::filesystem;
 
@@ -513,7 +514,7 @@ bool AppController::executeModulePreprocess(const Warehouse& warehouse, Solution
 
 bool AppController::executeModuleProcess(const Warehouse& warehouse, Solution& solution, double remainingTime) {
     // Corrigir chamada da função passando o tempo restante
-    return process(warehouse, solution);
+    return process(warehouse, solution, remainingTime);
 }
 
 bool AppController::executeModulePostprocess(const Warehouse& warehouse, Solution& solution, double remainingTime) {
@@ -570,11 +571,4 @@ bool AppController::showReportMenu() {
     }
     
     return success;
-}
-
-// Adicionar uma função para verificar se o tempo expirou
-bool isTimeExpired(const std::chrono::time_point<std::chrono::high_resolution_clock>& startTime, double timeLimit) {
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = currentTime - startTime;
-    return elapsed.count() >= timeLimit;
 }
