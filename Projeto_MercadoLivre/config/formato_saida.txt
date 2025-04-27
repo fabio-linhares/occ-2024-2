@@ -1,0 +1,10 @@
+# Formato do arquivo de saída:
+delimitador = quebra_linha
+# Linha 1: Número de pedidos na wave
+num_pedidos_wave = len(pedidos_selecionados)
+# Próximas linhas: Índices dos pedidos na wave
+pedidos_wave = indices_pedidos(pedidos_selecionados)
+# Linha seguinte: Número de corredores visitados
+num_corredores_visitados = len(corredores_visitados)
+# Próximas linhas: Índices dos corredores visitados
+corredores_visitados = indices_corredores(corredores_visitados)

@@ -1,0 +1,17 @@
+# Função Objetivo para o Desafio SBPO 2025
+# Comentários começam com #
+
+# Nome da função objetivo
+NOME: Produtividade de Coleta
+
+# Descrição da função objetivo
+DESCRICAO: Maximizar a relação entre o número de itens coletados e o número de corredores visitados
+
+# Expressão matemática
+EXPRESSAO: max ∑(o∈O') ∑(i∈I(o)) u(oi) / |A'|
+
+# Tipo de otimização (MAX ou MIN)
+TIPO: MAX
+
+# Implementação a ser usada (se várias forem disponíveis)
+IMPLEMENTACAO: DEFAULT
