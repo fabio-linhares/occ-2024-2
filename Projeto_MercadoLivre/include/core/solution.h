@@ -1,63 +1,83 @@
-#pragma once
+#ifndef SOLUTION_H
+#define SOLUTION_H
+
 #include <vector>
-#include <set>
-#include <any>
-#include <unordered_map>
 #include <string>
-#include <stdexcept>  // Adicionado para std::runtime_error
+#include <any>
+#include <map>
+#include <algorithm>
 #include "core/warehouse.h"
 
 class Solution {
 private:
-    std::vector<int> selectedOrders;
-    std::vector<int> visitedCorridors;
-    double objectiveValue;
-    bool feasible;
-    int totalItems;
+    std::vector<int> selectedOrders;  // IDs dos pedidos selecionados
+    std::vector<int> visitedCorridors; // IDs dos corredores visitados
+    int totalItems;                   // Total de itens coletados
+    double objectiveValue;            // Valor da função objetivo
+    bool feasible;                    // Indica se a solução é viável
     
-    // Mapa para armazenar dados auxiliares genéricos
-    std::unordered_map<std::string, std::any> auxiliaryData;
+    // Alteração principal: usar um mapa para dados auxiliares
+    std::map<std::string, std::any> auxiliaryDataMap;
 
 public:
-    Solution();
+    // Construtor
+    Solution(); // Apenas declaração, sem implementação
     
-    // Adiciona um pedido à solução
+    // Métodos de acesso
+    std::vector<int> getSelectedOrders() const { return selectedOrders; }
+    std::vector<int> getVisitedCorridors() const { return visitedCorridors; }
+    int getTotalItems() const { return totalItems; }
+    double getObjectiveValue() const { return objectiveValue; }
+    bool isFeasible() const { return feasible; }
+    
+    // Métodos de modificação
     void addOrder(int orderId, const Warehouse& warehouse);
-    
-    // Remove um pedido da solução
     void removeOrder(int orderId, const Warehouse& warehouse);
+    void addVisitedCorridor(int corridorId);
+    void setFeasible(bool value) { feasible = value; }
     
-    // Atualiza os corredores necessários com base nos pedidos selecionados
-    void updateCorridors(const Warehouse& warehouse);
+    // Métodos atualizados para dados auxiliares
+    void setAuxiliaryData(const std::string& key, const std::any& data) { 
+        auxiliaryDataMap[key] = data;
+    }
     
-    // Calcula o valor da função objetivo (itens/corredores)
+    std::any getAuxiliaryData(const std::string& key) const {
+        auto it = auxiliaryDataMap.find(key);
+        if (it != auxiliaryDataMap.end()) {
+            return it->second;
+        }
+        return std::any();
+    }
+    
+    // Manter o método original para compatibilidade
+    void setAuxiliaryData(const std::any& data) { 
+        auxiliaryDataMap["default"] = data;
+    }
+    
+    std::any getAuxiliaryData() const { 
+        auto it = auxiliaryDataMap.find("default");
+        if (it != auxiliaryDataMap.end()) {
+            return it->second;
+        }
+        return std::any();
+    }
+    
+    // Cálculo da função objetivo - Agora retorna double
     double calculateObjectiveValue(const Warehouse& warehouse);
     
-    // Getters
-    const std::vector<int>& getSelectedOrders() const;
-    const std::vector<int>& getVisitedCorridors() const;
-    double getObjectiveValue() const;
-    bool isFeasible() const;
-    int getTotalItems() const;
+    // Utilitários
+    bool isOrderSelected(int orderId) const;
+    void clear(); // Limpa a solução (remove todos os pedidos e corredores)
     
-    // Setters
-    void setFeasible(bool value);
+    // Validação da solução
+    bool isValid(const Warehouse& warehouse) const;
     
-    // Métodos para gerenciar dados auxiliares
-    template<typename T>
-    void setAuxiliaryData(const std::string& key, const T& value) {
-        auxiliaryData[key] = value;
-    }
+    // Exportação/Importação
+    bool saveToFile(const std::string& filename) const;
+    bool loadFromFile(const std::string& filename, const Warehouse& warehouse);
     
-    template<typename T>
-    T getAuxiliaryData(const std::string& key) const {
-        if (auxiliaryData.find(key) == auxiliaryData.end()) {
-            throw std::runtime_error("Chave não encontrada nos dados auxiliares: " + key);
-        }
-        return std::any_cast<T>(auxiliaryData.at(key));
-    }
-    
-    bool hasAuxiliaryData(const std::string& key) const {
-        return auxiliaryData.find(key) != auxiliaryData.end();
-    }
+    // Atualiza corredores baseado nos pedidos selecionados
+    void updateCorridors(const Warehouse& warehouse);
 };
+
+#endif // SOLUTION_H

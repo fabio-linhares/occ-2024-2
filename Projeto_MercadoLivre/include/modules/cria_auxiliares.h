@@ -339,7 +339,7 @@ inline bool cria_auxiliares(const Warehouse& warehouse, Solution& solution) {
     aux.weights = weights;
 
     // 7. Armazenar as estruturas auxiliares na solução
-    solution.setAuxiliaryData("structures", aux);
+    solution.setAuxiliaryData("structures", std::any(aux));
     
     // Exibir algumas estatísticas
     std::cout << "    Estruturas auxiliares criadas com sucesso." << std::endl;

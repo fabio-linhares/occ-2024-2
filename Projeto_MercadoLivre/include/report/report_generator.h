@@ -20,6 +20,11 @@ public:
                                                const Solution& solution,
                                                const std::string& outputPath);
 
+    // Novo método para trabalhar com soluções existentes
+    static bool generateReportFromSolution(const Warehouse& warehouse, 
+                                           const Solution& solution,
+                                           const std::string& outputPath);
+
 private:
     // Métodos auxiliares para geração do relatório
     static std::string generateHtmlHeader(const Warehouse& warehouse);

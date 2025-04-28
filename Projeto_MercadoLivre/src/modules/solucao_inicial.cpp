@@ -8,70 +8,237 @@
 #include <iostream>
 #include <chrono>
 #include <stdexcept>
+#include <set>
+#include <algorithm>
+
+// Função para validar ID de pedido
+bool isValidOrderId(int orderId, const Warehouse& warehouse) {
+    return orderId >= 0 && orderId < warehouse.numOrders;
+}
 
 // Implementação da função principal
 bool gerarSolucaoInicial(const Warehouse& warehouse, Solution& solution) {
-    auto inicio_total = std::chrono::high_resolution_clock::now();
-    std::cout << "    Construindo solução inicial com algoritmo otimizado..." << std::endl;
+    std::cout << "    Gerando solução inicial otimizada..." << std::endl;
     
-    // Obter o número de threads disponíveis
-    unsigned int numThreads = std::thread::hardware_concurrency();
-    if (numThreads == 0) numThreads = 4;
+    // Certifique-se de que este conjunto seja definido no início da função gerarSolucaoInicial
+    std::set<int> corredoresVisitados;
+
+    // Inicializar estruturas necessárias
+    solution.clear();
     
-    std::cout << "    Utilizando " << numThreads << " threads para processamento paralelo" << std::endl;
-    
-    try {
-        // Criar estruturas auxiliares diretamente aqui, sem tentar recuperá-las da solução
-        AuxiliaryStructures aux;
-        
-        // Verificar se já temos estruturas auxiliares na solução
-        // Se não tivermos, criamos novas
-        if (!cria_auxiliares(warehouse, solution)) {
-            std::cerr << "Erro ao criar estruturas auxiliares" << std::endl;
-            return false;
+    // Inicializar estoque disponível
+    std::vector<int> estoqueDisponivel(warehouse.numItems, 0);
+    for (int c = 0; c < warehouse.numCorridors; c++) {
+        for (const auto& item : warehouse.corridors[c]) {
+            estoqueDisponivel[item.first] += item.second;
         }
-        
-        // A partir daqui, vamos usar nossas próprias estruturas em vez de tentar recuperar da solução
-        
-        // Inicializar estruturas otimizadas
-        inicializarEstruturasAprimoradas(aux, warehouse);
-        
-        // Calcular métricas avançadas
-        calcularMetricasAvancadas(aux);
-        
-        // Criar nova solução a partir do zero (para evitar problemas de estado)
-        solution = Solution();
-        
-        // Aplicar seleção otimizada com as estruturas que acabamos de criar
-        std::vector<std::pair<int, double>> pedidos_priorizados;
-        calcularPrioridadePedidos(aux, pedidos_priorizados);
-        
-        // Realizar a seleção de pedidos com base nas estruturas criadas
-        bool atingiuLB = selecionarPedidosOtimizado(warehouse, aux, solution);
-        
-        // Complementar se necessário para atingir LB
-        if (!atingiuLB) {
-            selecionarPedidosComplementares(warehouse, aux, solution);
-        }
-        
-        // Atualizar métricas da solução
-        solution.calculateObjectiveValue(warehouse);
-        
-        // Exibir resultados
-        std::cout << "    Solução inicial construída com sucesso:" << std::endl;
-        std::cout << "      - Pedidos selecionados: " << solution.getSelectedOrders().size() << std::endl;
-        std::cout << "      - Corredores visitados: " << solution.getVisitedCorridors().size() << std::endl;
-        std::cout << "      - Total de itens: " << solution.getTotalItems() << std::endl;
-        std::cout << "      - Valor objetivo: " << solution.getObjectiveValue() << std::endl;
-        
-        auto fim_total = std::chrono::high_resolution_clock::now();
-        auto duracao_total = std::chrono::duration_cast<std::chrono::milliseconds>(fim_total - inicio_total).count();
-        std::cout << "    Tempo total de construção da solução: " << duracao_total << "ms" << std::endl;
-        
-        return true;
-        
-    } catch (const std::exception& e) {
-        std::cerr << "Erro durante a geração da solução inicial: " << e.what() << std::endl;
-        return false;
     }
+    
+    // Mapear quais corredores contêm cada item
+    std::vector<std::vector<int>> corredoresPorItem(warehouse.numItems);
+    for (int c = 0; c < warehouse.numCorridors; c++) {
+        for (const auto& item : warehouse.corridors[c]) {
+            corredoresPorItem[item.first].push_back(c);
+        }
+    }
+    
+    // Calcular eficiência dos pedidos (itens / corredores necessários)
+    std::vector<std::pair<int, double>> pedidosPriorizados;
+    for (int p = 0; p < warehouse.numOrders; p++) {
+        // Verificar se ID é válido
+        if (!isValidOrderId(p, warehouse)) {
+            continue;
+        }
+        
+        // Contar itens totais no pedido
+        int totalItens = 0;
+        for (const auto& item : warehouse.orders[p]) {
+            totalItens += item.second;
+        }
+        
+        // Identificar corredores necessários
+        std::set<int> corredoresNecessarios;
+        for (const auto& item : warehouse.orders[p]) {
+            for (int corredor : corredoresPorItem[item.first]) {
+                corredoresNecessarios.insert(corredor);
+            }
+        }
+        
+        // Calcular eficiência
+        double eficiencia = corredoresNecessarios.empty() ? 0 : 
+                           static_cast<double>(totalItens) / corredoresNecessarios.size();
+        
+        pedidosPriorizados.push_back({p, eficiencia});
+    }
+    
+    // Ordenar pedidos por eficiência (maior para menor)
+    std::sort(pedidosPriorizados.begin(), pedidosPriorizados.end(),
+             [](const auto& a, const auto& b) {
+                 return a.second > b.second;
+             });
+    
+    std::cout << "    Fase 1: Seleção de pedidos prioritários (limite: LB=" << warehouse.LB 
+              << ", UB=" << warehouse.UB << ")..." << std::endl;
+    
+    std::vector<int> estoqueAtual = estoqueDisponivel;
+    int totalItensAdicionados = 0;
+    
+    for (const auto& candidato : pedidosPriorizados) {
+        int orderId = candidato.first;
+        double eficiencia = candidato.second;
+        
+        // Verificar se ID é válido
+        if (!isValidOrderId(orderId, warehouse)) {
+            std::cerr << "    AVISO: ID inválido ignorado: " << orderId << std::endl;
+            continue;
+        }
+        
+        // Calcular itens no pedido
+        int itensPedido = 0;
+        for (const auto& item : warehouse.orders[orderId]) {
+            itensPedido += item.second;
+        }
+        
+        // Verificar limite superior
+        if (totalItensAdicionados + itensPedido > warehouse.UB) {
+            continue;
+        }
+        
+        // Verificar disponibilidade de estoque
+        bool estoqueOk = true;
+        for (const auto& item : warehouse.orders[orderId]) {
+            if (estoqueAtual[item.first] < item.second) {
+                estoqueOk = false;
+                break;
+            }
+        }
+        
+        if (!estoqueOk) {
+            continue;
+        }
+        
+        // Adicionar pedido à solução
+        solution.addOrder(orderId, warehouse);
+        
+        // Atualizar estoque
+        for (const auto& item : warehouse.orders[orderId]) {
+            estoqueAtual[item.first] -= item.second;
+        }
+        
+        // Identificar e adicionar corredores necessários
+        for (const auto& item : warehouse.orders[orderId]) {
+            for (int corredor : corredoresPorItem[item.first]) {
+                corredoresVisitados.insert(corredor);
+            }
+        }
+        
+        totalItensAdicionados += itensPedido;
+        
+        // Se atingimos LB, podemos parar
+        if (totalItensAdicionados >= warehouse.LB) {
+            break;
+        }
+    }
+    
+    // Se não atingimos LB, tentar adicionar mais pedidos
+    if (totalItensAdicionados < warehouse.LB) {
+        std::cout << "    AVISO: Não foi possível atingir LB=" << warehouse.LB 
+                 << " (atual: " << totalItensAdicionados << ")" << std::endl;
+        
+        // Tentar adicionar mais pedidos, mesmo que não sejam tão eficientes
+        for (int p = 0; p < warehouse.numOrders; p++) {
+            // Pular pedidos já adicionados
+            if (std::find(solution.getSelectedOrders().begin(),
+                         solution.getSelectedOrders().end(), p) != solution.getSelectedOrders().end()) {
+                continue;
+            }
+            
+            // Verificar se ID é válido
+            if (!isValidOrderId(p, warehouse)) {
+                continue;
+            }
+            
+            // Calcular itens no pedido
+            int itensPedido = 0;
+            for (const auto& item : warehouse.orders[p]) {
+                itensPedido += item.second;
+            }
+            
+            // Verificar limite superior
+            if (totalItensAdicionados + itensPedido > warehouse.UB) {
+                continue;
+            }
+            
+            // Verificar disponibilidade de estoque
+            bool estoqueOk = true;
+            for (const auto& item : warehouse.orders[p]) {
+                if (estoqueAtual[item.first] < item.second) {
+                    estoqueOk = false;
+                    break;
+                }
+            }
+            
+            if (!estoqueOk) {
+                continue;
+            }
+            
+            // Adicionar pedido à solução
+            solution.addOrder(p, warehouse);
+            
+            // Atualizar estoque
+            for (const auto& item : warehouse.orders[p]) {
+                estoqueAtual[item.first] -= item.second;
+            }
+            
+            // Identificar e adicionar corredores necessários
+            for (const auto& item : warehouse.orders[p]) {
+                for (int corredor : corredoresPorItem[item.first]) {
+                    corredoresVisitados.insert(corredor);
+                }
+            }
+            
+            totalItensAdicionados += itensPedido;
+            
+            // Se atingimos LB, podemos parar
+            if (totalItensAdicionados >= warehouse.LB) {
+                break;
+            }
+        }
+    }
+    
+    // Limpar apenas os corredores, preservando os pedidos
+    // Assumindo que visitedCorridors é um membro público ou há um método para modificá-lo
+    std::vector<int> pedidosSelecionados = solution.getSelectedOrders();
+    solution.clear();  // Isso remove tudo, incluindo pedidos e corredores
+
+    // Readicionar os pedidos
+    for (int orderId : pedidosSelecionados) {
+        solution.addOrder(orderId, warehouse);
+    }
+
+    // Quando precisar adicionar corredores visitados
+    for (int corredor : corredoresVisitados) {
+        solution.addVisitedCorridor(corredor);
+    }
+
+    // Ao invés de atualizar corredores manualmente, use o método da classe
+    solution.updateCorridors(warehouse);
+
+    // Calcular função objetivo
+    solution.calculateObjectiveValue(warehouse);
+    
+    // Mostrar estatísticas da solução
+    std::cout << "    Solução inicial gerada:" << std::endl;
+    std::cout << "      - Total de itens: " << solution.getTotalItems() << std::endl;
+    std::cout << "      - Pedidos selecionados: " << solution.getSelectedOrders().size() << std::endl;
+    std::cout << "      - Corredores visitados: " << solution.getVisitedCorridors().size() << std::endl;
+    std::cout << "      - Função objetivo: " << solution.getObjectiveValue() << std::endl;
+    
+    // Verificar viabilidade final
+    bool viavel = solution.getTotalItems() >= warehouse.LB && 
+                  solution.getTotalItems() <= warehouse.UB;
+    
+    solution.setFeasible(viavel);
+    
+    return viavel;
 }

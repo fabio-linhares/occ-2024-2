@@ -111,7 +111,15 @@ bool DinkelbachAlgorithm::iterativeDinkelbach(const Warehouse& warehouse, Soluti
 
 bool DinkelbachAlgorithm::localSearch(const Warehouse& warehouse, Solution& solution, double currentRatio) {
     bool improved = false;
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        // Criar novas estruturas se necessário
+        cria_auxiliares(warehouse, solution);
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    }
     
     // 1. Tentar trocar pedidos (swap)
     const auto& selectedOrders = solution.getSelectedOrders();
@@ -189,7 +197,20 @@ bool DinkelbachAlgorithm::localSearch(const Warehouse& warehouse, Solution& solu
 double DinkelbachAlgorithm::simulateMovementImpact(const Warehouse& warehouse, 
                                                  const Solution& solution,
                                                  int orderToRemove, int orderToAdd) {
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        
+        // Problema: não podemos modificar solution por ser constante
+        // cria_auxiliares(warehouse, solution); // <-- ERRO AQUI
+        
+        // Solução: criar uma cópia da solução para usar em cria_auxiliares
+        Solution solutionCopy = solution;
+        cria_auxiliares(warehouse, solutionCopy);
+        aux = std::any_cast<AuxiliaryStructures>(solutionCopy.getAuxiliaryData("structures"));
+    }
     
     int currentItems = solution.getTotalItems();
     int currentCorridors = solution.getVisitedCorridors().size();
@@ -241,7 +262,16 @@ double DinkelbachAlgorithm::simulateMovementImpact(const Warehouse& warehouse,
 void DinkelbachAlgorithm::perturbSolution(const Warehouse& warehouse, 
                                         Solution& solution, 
                                         double temperature) {
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        // Criar novas estruturas se necessário
+        cria_auxiliares(warehouse, solution);
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    }
+    
     const auto& selectedOrders = solution.getSelectedOrders();
     
     // Não perturbar se há poucos pedidos
@@ -300,7 +330,16 @@ bool DinkelbachAlgorithm::trySwapOrders(const Warehouse& warehouse,
     solution.addOrder(orderToAdd, warehouse);
     
     // 4. Verificar factibilidade
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        // Criar novas estruturas se necessário
+        cria_auxiliares(warehouse, solution);
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    }
+    
     int totalItems = solution.getTotalItems();
     
     if (totalItems < warehouse.LB || totalItems > warehouse.UB) {
@@ -323,7 +362,15 @@ bool DinkelbachAlgorithm::tryAddOrder(const Warehouse& warehouse,
     }
     
     // 2. Obter dados auxiliares
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        // Criar novas estruturas se necessário
+        cria_auxiliares(warehouse, solution);
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    }
     
     // 3. Verificar se adicionar este pedido mantém a factibilidade
     int currentItems = solution.getTotalItems();
@@ -349,7 +396,15 @@ bool DinkelbachAlgorithm::tryRemoveOrder(const Warehouse& warehouse,
     }
     
     // 2. Obter dados auxiliares
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        // Criar novas estruturas se necessário
+        cria_auxiliares(warehouse, solution);
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    }
     
     // 3. Verificar se remover este pedido mantém a factibilidade
     int currentItems = solution.getTotalItems();

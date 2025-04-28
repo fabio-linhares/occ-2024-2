@@ -1,146 +1,90 @@
 #include "core/solution.h"
-
+#include <fstream>
+#include <iostream>
 #include <algorithm>
 #include <set>
-#include <map>
 
-Solution::Solution() : objectiveValue(0.0), feasible(true), totalItems(0) {
+// Implementação do construtor (se ainda não existir):
+Solution::Solution() : totalItems(0), objectiveValue(0.0), feasible(false) {
+    // Corpo do construtor (se houver lógica adicional)
 }
 
 void Solution::addOrder(int orderId, const Warehouse& warehouse) {
-    // Verificar se o pedido já está na solução
-    if (std::find(selectedOrders.begin(), selectedOrders.end(), orderId) != selectedOrders.end()) {
-        return;
+    if (!isOrderSelected(orderId)) {
+        selectedOrders.push_back(orderId);
+        
+        // Atualizar total de itens
+        for (const auto& item : warehouse.orders[orderId]) {
+            totalItems += item.second;
+        }
+        
+        // Não atualiza os corredores aqui para evitar recálculos constantes
+        // Os corredores serão atualizados explicitamente quando necessário
     }
-    
-    // Adicionar o pedido
-    selectedOrders.push_back(orderId);
-    
-    // Atualizar o total de itens
-    for (const auto& item : warehouse.orders[orderId]) {
-        totalItems += item.second; // adiciona a quantidade de cada item
-    }
-    
-    // Atualizar corredores
-    updateCorridors(warehouse);
-    
-    // Atualizar função objetivo
-    calculateObjectiveValue(warehouse);
 }
 
 void Solution::removeOrder(int orderId, const Warehouse& warehouse) {
-    // Encontrar o pedido
     auto it = std::find(selectedOrders.begin(), selectedOrders.end(), orderId);
-    if (it == selectedOrders.end()) {
-        return;
-    }
-    
-    // Remover o pedido
-    selectedOrders.erase(it);
-    
-    // Atualizar o total de itens
-    totalItems = 0;
-    for (int id : selectedOrders) {
-        for (const auto& item : warehouse.orders[id]) {
-            totalItems += item.second;
+    if (it != selectedOrders.end()) {
+        selectedOrders.erase(it);
+        
+        // Reduzir total de itens
+        for (const auto& item : warehouse.orders[orderId]) {
+            totalItems -= item.second;
         }
+        
+        // Corredores serão atualizados explicitamente pelo método updateCorridors
     }
-    
-    // Atualizar corredores
-    updateCorridors(warehouse);
-    
-    // Atualizar função objetivo
-    calculateObjectiveValue(warehouse);
+}
+
+void Solution::addVisitedCorridor(int corridorId) {
+    // Verificar se o corredor já está na lista
+    if (std::find(visitedCorridors.begin(), visitedCorridors.end(), corridorId) 
+        == visitedCorridors.end()) {
+        visitedCorridors.push_back(corridorId);
+    }
 }
 
 void Solution::updateCorridors(const Warehouse& warehouse) {
+    // Limpar corredores existentes
     visitedCorridors.clear();
     
-    // Se não há pedidos selecionados, não há corredores
-    if (selectedOrders.empty()) {
-        return;
-    }
+    // Usar conjunto para evitar duplicatas
+    std::set<int> corridorsSet;
     
-    // 1. Determinar quais itens precisamos e em que quantidade
-    std::map<int, int> requiredItems;
+    // Para cada pedido selecionado
     for (int orderId : selectedOrders) {
-        for (const auto& itemPair : warehouse.orders[orderId]) {
-            requiredItems[itemPair.first] += itemPair.second;
-        }
-    }
-    
-    // 2. Criar um mapa de corredores com sua utilidade
-    // (utilidade = quantos itens diferentes/quantidade podemos obter do corredor)
-    std::vector<std::pair<int, double>> corridorUtility;
-    for (size_t corridorId = 0; corridorId < warehouse.corridors.size(); corridorId++) {
-        int uniqueItemsCovered = 0;
-        int totalQuantityCovered = 0;
-        
-        for (const auto& itemPair : warehouse.corridors[corridorId]) {
-            auto it = requiredItems.find(itemPair.first);
-            if (it != requiredItems.end() && it->second > 0) {
-                uniqueItemsCovered++;
-                totalQuantityCovered += std::min(it->second, itemPair.second);
-            }
-        }
-        
-        // Calcular utilidade combinando itens únicos e quantidade
-        double utility = uniqueItemsCovered * 100.0 + totalQuantityCovered;
-        if (utility > 0) {
-            corridorUtility.push_back({corridorId, utility});
-        }
-    }
-    
-    // 3. Ordenar corredores por utilidade decrescente
-    std::sort(corridorUtility.begin(), corridorUtility.end(),
-              [](const auto& a, const auto& b) { return a.second > b.second; });
-    
-    // 4. Selecionar corredores até satisfazer todos os itens
-    std::set<int> corridorSet;
-    std::map<int, int> collectedItems;
-    
-    for (const auto& [corridorId, utility] : corridorUtility) {
-        bool usefulCorridor = false;
-        
-        for (const auto& itemPair : warehouse.corridors[corridorId]) {
-            int itemId = itemPair.first;
-            int availableQty = itemPair.second;
+        // Para cada item no pedido
+        for (const auto& item : warehouse.orders[orderId]) {
+            int itemId = item.first;
             
-            auto it = requiredItems.find(itemId);
-            if (it != requiredItems.end()) {
-                int neededQty = it->second - collectedItems[itemId];
-                if (neededQty > 0) {
-                    int takeQty = std::min(neededQty, availableQty);
-                    collectedItems[itemId] += takeQty;
-                    usefulCorridor = true;
+            // Encontrar todos os corredores que contêm este item
+            for (int c = 0; c < warehouse.numCorridors; c++) {
+                for (const auto& corridorItem : warehouse.corridors[c]) {
+                    if (corridorItem.first == itemId) {
+                        corridorsSet.insert(c);
+                        break;  // Encontrou um corredor com este item, não precisa continuar
+                    }
                 }
             }
         }
-        
-        if (usefulCorridor) {
-            corridorSet.insert(corridorId);
-        }
-        
-        // Verificar se já coletamos todos os itens necessários
-        bool allSatisfied = true;
-        for (const auto& [itemId, requiredQty] : requiredItems) {
-            if (collectedItems[itemId] < requiredQty) {
-                allSatisfied = false;
-                break;
-            }
-        }
-        
-        if (allSatisfied) break;
     }
     
-    // Converter set para vector
-    visitedCorridors.assign(corridorSet.begin(), corridorSet.end());
+    // Converter conjunto para vetor
+    visitedCorridors.assign(corridorsSet.begin(), corridorsSet.end());
+    
+    std::cout << "    Corredores atualizados: " << visitedCorridors.size() << " corredores necessários." << std::endl;
 }
 
 double Solution::calculateObjectiveValue(const Warehouse& warehouse) {
-    // Calcular a função objetivo: total de itens / número de corredores
+    // Atualizar corredores se necessário
+    if (visitedCorridors.empty() && !selectedOrders.empty()) {
+        updateCorridors(warehouse);
+    }
+    
+    // Calcular a razão (função objetivo)
     if (visitedCorridors.empty()) {
-        objectiveValue = 0.0;
+        objectiveValue = 0.0;  // Evitar divisão por zero
     } else {
         objectiveValue = static_cast<double>(totalItems) / visitedCorridors.size();
     }
@@ -148,26 +92,123 @@ double Solution::calculateObjectiveValue(const Warehouse& warehouse) {
     return objectiveValue;
 }
 
-const std::vector<int>& Solution::getSelectedOrders() const {
-    return selectedOrders;
+bool Solution::isOrderSelected(int orderId) const {
+    return std::find(selectedOrders.begin(), selectedOrders.end(), orderId) != selectedOrders.end();
 }
 
-const std::vector<int>& Solution::getVisitedCorridors() const {
-    return visitedCorridors;
+void Solution::clear() {
+    selectedOrders.clear();
+    visitedCorridors.clear();
+    totalItems = 0;
+    objectiveValue = 0.0;
+    // Não limpa auxiliaryDataMap para preservar estruturas auxiliares
 }
 
-double Solution::getObjectiveValue() const {
-    return objectiveValue;
+bool Solution::isValid(const Warehouse& warehouse) const {
+    // Verificar limite inferior
+    if (totalItems < warehouse.LB) {
+        std::cout << "Validação: total de itens (" << totalItems 
+                  << ") abaixo do limite inferior (" << warehouse.LB << ")" << std::endl;
+        return false;
+    }
+    
+    // Verificar limite superior
+    if (totalItems > warehouse.UB) {
+        std::cout << "Validação: total de itens (" << totalItems 
+                  << ") acima do limite superior (" << warehouse.UB << ")" << std::endl;
+        return false;
+    }
+    
+    // Verificar disponibilidade de estoque
+    std::vector<int> estoqueUsado(warehouse.numItems, 0);
+    for (int orderId : selectedOrders) {
+        for (const auto& item : warehouse.orders[orderId]) {
+            estoqueUsado[item.first] += item.second;
+        }
+    }
+    
+    // Calcular estoque disponível
+    std::vector<int> estoqueDisponivel(warehouse.numItems, 0);
+    for (int corridorId : visitedCorridors) {
+        for (const auto& item : warehouse.corridors[corridorId]) {
+            estoqueDisponivel[item.first] += item.second;
+        }
+    }
+    
+    // Verificar se o estoque é suficiente
+    for (size_t i = 0; i < estoqueUsado.size(); i++) {
+        if (estoqueUsado[i] > estoqueDisponivel[i]) {
+            std::cout << "Validação: estoque insuficiente para o item " << i 
+                      << " (necessário: " << estoqueUsado[i] 
+                      << ", disponível: " << estoqueDisponivel[i] << ")" << std::endl;
+            return false;
+        }
+    }
+    
+    return true;
 }
 
-bool Solution::isFeasible() const {
-    return feasible;
+bool Solution::saveToFile(const std::string& filename) const {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir arquivo para gravação: " << filename << std::endl;
+        return false;
+    }
+    
+    // Eliminar duplicatas antes de salvar
+    std::set<int> pedidosUnicos(selectedOrders.begin(), selectedOrders.end());
+    std::vector<int> pedidosValidados(pedidosUnicos.begin(), pedidosUnicos.end());
+    
+    // Primeira linha: número de pedidos
+    file << pedidosValidados.size() << std::endl;
+    
+    // Segunda linha: IDs dos pedidos separados por espaço
+    for (size_t i = 0; i < pedidosValidados.size(); i++) {
+        file << pedidosValidados[i];
+        if (i < pedidosValidados.size() - 1) {
+            file << " ";
+        }
+    }
+    file << std::endl;
+    
+    file.close();
+    return true;
 }
 
-int Solution::getTotalItems() const {
-    return totalItems;
-}
-
-void Solution::setFeasible(bool value) {
-    feasible = value;
+bool Solution::loadFromFile(const std::string& filename, const Warehouse& warehouse) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir arquivo para leitura: " << filename << std::endl;
+        return false;
+    }
+    
+    clear();  // Limpar a solução atual
+    
+    // Primeira linha: número de pedidos
+    int numPedidos;
+    file >> numPedidos;
+    
+    // Segunda linha: IDs dos pedidos
+    for (int i = 0; i < numPedidos; i++) {
+        int orderId;
+        if (file >> orderId) {
+            // Verificar se ID é válido antes de adicionar
+            if (orderId >= 0 && orderId < warehouse.numOrders) {
+                addOrder(orderId, warehouse);
+            } else {
+                std::cerr << "ID de pedido inválido no arquivo: " << orderId << std::endl;
+            }
+        }
+    }
+    
+    file.close();
+    
+    // Atualizar corredores e calcular função objetivo
+    updateCorridors(warehouse);
+    calculateObjectiveValue(warehouse);
+    
+    // Verificar se a solução é viável
+    setFeasible(isValid(warehouse));
+    
+    return true;
 }

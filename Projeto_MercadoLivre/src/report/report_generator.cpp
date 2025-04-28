@@ -30,11 +30,38 @@ bool ReportGenerator::generateReport(const std::string& instanceFile, const std:
     }
 }
 
+bool ReportGenerator::generateReportFromSolution(const Warehouse& warehouse, 
+                                                const Solution& solution,
+                                                const std::string& outputPath) {
+    // Criar uma cópia da solução para poder modificar se necessário
+    Solution workingSolution = solution;
+    
+    // Verificar/criar estruturas auxiliares
+    try {
+        std::any_cast<AuxiliaryStructures>(workingSolution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        cria_auxiliares(warehouse, workingSolution);
+    }
+    
+    // Usar o método existente com a cópia modificável
+    return generateReportFromProcessedData(warehouse, workingSolution, outputPath);
+}
+
 bool ReportGenerator::generateReportFromProcessedData(const Warehouse& warehouse, 
                                                      const Solution& solution,
                                                      const std::string& outputPath) {
     // Recuperar estruturas auxiliares da solução
-    AuxiliaryStructures aux = solution.getAuxiliaryData<AuxiliaryStructures>("structures");
+    AuxiliaryStructures aux;
+    try {
+        aux = std::any_cast<AuxiliaryStructures>(solution.getAuxiliaryData("structures"));
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Erro ao recuperar estruturas auxiliares: " << e.what() << std::endl;
+        
+        // CORREÇÃO: Criar uma cópia para modificar
+        Solution solutionCopy = solution;
+        cria_auxiliares(warehouse, solutionCopy);
+        aux = std::any_cast<AuxiliaryStructures>(solutionCopy.getAuxiliaryData("structures"));
+    }
     
     // Calcular estatísticas avançadas
     AuxiliaryStructures::OrderStatistics orderStats;
