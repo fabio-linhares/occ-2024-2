@@ -1,0 +1,8 @@
+CMake Error at CMakeLists.txt:101 (add_executable):
+  add_executable cannot create target "parser_test" because another target
+  with the same name already exists.  The existing target is an executable
+  created in source directory
+  "/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre".  See
+  documentation for policy CMP0002 for more details.
+
+

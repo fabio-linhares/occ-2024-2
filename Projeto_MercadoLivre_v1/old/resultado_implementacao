@@ -1,0 +1,1386 @@
+╰─❯ ./validador_completo /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output
+=== RESULTADO DA VALIDAÇÃO: instance_0007.txt ===
+Data/Hora: 2025-04-28 16:16:31
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.96721
+- Total de Itens Coletados: 362
+- Número de Corredores Visitados: 122
+- Limites (LB, UB): (1306, 3847)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 8320
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0014.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.99403
+- Total de Itens Coletados: 1003
+- Número de Corredores Visitados: 335
+- Limites (LB, UB): (1947, 7739)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0009.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.00000
+- Total de Itens Coletados: 50
+- Número de Corredores Visitados: 50
+- Limites (LB, UB): (52, 153)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 70
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0004.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.40000
+- Total de Itens Coletados: 2
+- Número de Corredores Visitados: 5
+- Limites (LB, UB): (4, 40)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0001.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.28571
+- Total de Itens Coletados: 9
+- Número de Corredores Visitados: 7
+- Limites (LB, UB): (30, 68)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0012.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.28571
+- Total de Itens Coletados: 6
+- Número de Corredores Visitados: 21
+- Limites (LB, UB): (35, 177)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0003.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.25000
+- Total de Itens Coletados: 15
+- Número de Corredores Visitados: 12
+- Limites (LB, UB): (33, 106)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0005.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 4.35556
+- Total de Itens Coletados: 392
+- Número de Corredores Visitados: 90
+- Limites (LB, UB): (1322, 4395)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0019.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.91489
+- Total de Itens Coletados: 43
+- Número de Corredores Visitados: 47
+- Limites (LB, UB): (152, 999)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 134
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0016.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.56897
+- Total de Itens Coletados: 149
+- Número de Corredores Visitados: 58
+- Limites (LB, UB): (149, 686)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 88
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0020.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.60000
+- Total de Itens Coletados: 3
+- Número de Corredores Visitados: 5
+- Limites (LB, UB): (5, 12)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: OK
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 5
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0017.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.50000
+- Total de Itens Coletados: 54
+- Número de Corredores Visitados: 36
+- Limites (LB, UB): (54, 175)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 83
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0018.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 5.12821
+- Total de Itens Coletados: 400
+- Número de Corredores Visitados: 78
+- Limites (LB, UB): (537, 1205)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 90
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0002.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.00000
+- Total de Itens Coletados: 2
+- Número de Corredores Visitados: 1
+- Limites (LB, UB): (0, 2)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0006.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.13953
+- Total de Itens Coletados: 49
+- Número de Corredores Visitados: 43
+- Limites (LB, UB): (452, 3892)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0008.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 4.20430
+- Total de Itens Coletados: 391
+- Número de Corredores Visitados: 93
+- Limites (LB, UB): (1304, 2840)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0011.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.22930
+- Total de Itens Coletados: 193
+- Número de Corredores Visitados: 157
+- Limites (LB, UB): (330, 2045)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0010.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.52299
+- Total de Itens Coletados: 265
+- Número de Corredores Visitados: 174
+- Limites (LB, UB): (416, 1746)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0013.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.84940
+- Total de Itens Coletados: 946
+- Número de Corredores Visitados: 332
+- Limites (LB, UB): (1510, 4583)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 413
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0015.txt ===
+Data/Hora: 2025-04-28 16:16:32
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.08247
+- Total de Itens Coletados: 105
+- Número de Corredores Visitados: 97
+- Limites (LB, UB): (384, 3679)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+
+===== RESUMO DA VALIDAÇÃO =====
+Total de instâncias: 20
+Instâncias com soluções válidas: 0
+Taxa de sucesso: 0.00%
+  Número de itens: 7
+  Número de corredores: 33
+  LB: 0, UB: 2
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 600.00s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=0, UB=2)...
+    Corredores atualizados: 1 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 1
+      - Pedidos selecionados: 1
+      - Corredores visitados: 1
+      - Função objetivo: 1.00
+    Corredores atualizados: 1 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 1.00
+    Solução Inicial - Total de itens: 1
+    Solução Inicial - Corredores visitados: 1
+    Solução Inicial - Pedidos selecionados: 1
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 0 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 600.00s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=0, UB=2
+Adicionado pedido #1 com 2 itens. Total atual: 2/0
+
+=== Solução inicial válida gerada ===
+- Total de itens: 2
+- Pedidos selecionados: 1
+- Corredores visitados: 4
+- Função objetivo (itens/corredores): 0.50
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 0.50
+Processamento principal concluído:
+    Valor da função objetivo: 0.50
+    Pedidos selecionados: 1
+    Corredores visitados: 4
+    Total de itens: 2
+----------------------------------
+  Executando: pós-processamento (tempo restante: 600.00s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0002.txt_solution.txt
+  Tempo de processamento: 0.00 segundos
+
+[15/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0006.txt
+  Número de pedidos: 10341
+  Número de itens: 7089
+  Número de corredores: 184
+  LB: 452, UB: 3892
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 589.53s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=452, UB=3892)...
+    Corredores atualizados: 43 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 465
+      - Pedidos selecionados: 35
+      - Corredores visitados: 43
+      - Função objetivo: 10.81
+    Corredores atualizados: 43 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 10.81
+    Solução Inicial - Total de itens: 465
+    Solução Inicial - Corredores visitados: 43
+    Solução Inicial - Pedidos selecionados: 35
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 39 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 589.49s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=452, UB=3892
+Adicionado pedido #10305 com 50 itens. Total atual: 50/452
+Adicionado pedido #1707 com 31 itens. Total atual: 81/452
+Adicionado pedido #5292 com 30 itens. Total atual: 111/452
+Adicionado pedido #8493 com 30 itens. Total atual: 141/452
+Adicionado pedido #5774 com 30 itens. Total atual: 171/452
+Adicionado pedido #4373 com 24 itens. Total atual: 195/452
+Adicionado pedido #2200 com 20 itens. Total atual: 215/452
+Adicionado pedido #5638 com 20 itens. Total atual: 235/452
+Adicionado pedido #1621 com 20 itens. Total atual: 255/452
+Adicionado pedido #2934 com 16 itens. Total atual: 271/452
+Adicionado pedido #9216 com 15 itens. Total atual: 286/452
+Adicionado pedido #3561 com 15 itens. Total atual: 301/452
+Adicionado pedido #9077 com 15 itens. Total atual: 316/452
+Adicionado pedido #1203 com 15 itens. Total atual: 331/452
+Adicionado pedido #10047 com 15 itens. Total atual: 346/452
+Adicionado pedido #4131 com 15 itens. Total atual: 361/452
+Adicionado pedido #3281 com 15 itens. Total atual: 376/452
+Adicionado pedido #2875 com 15 itens. Total atual: 391/452
+Adicionado pedido #10261 com 15 itens. Total atual: 406/452
+Adicionado pedido #5899 com 15 itens. Total atual: 421/452
+Adicionado pedido #1046 com 15 itens. Total atual: 436/452
+Adicionado pedido #8008 com 15 itens. Total atual: 451/452
+Adicionado pedido #973 com 15 itens. Total atual: 466/452
+
+=== Solução inicial válida gerada ===
+- Total de itens: 466
+- Pedidos selecionados: 23
+- Corredores visitados: 77
+- Função objetivo (itens/corredores): 6.05
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 6.05
+Processamento principal concluído:
+    Valor da função objetivo: 6.05
+    Pedidos selecionados: 23
+    Corredores visitados: 77
+    Total de itens: 466
+----------------------------------
+  Executando: pós-processamento (tempo restante: 588.94s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0006.txt_solution.txt
+  Tempo de processamento: 11.06 segundos
+
+[16/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0008.txt
+  Número de pedidos: 2185
+  Número de itens: 5831
+  Número de corredores: 168
+  LB: 1304, UB: 2840
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 597.29s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=1304, UB=2840)...
+    Corredores atualizados: 93 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 1320
+      - Pedidos selecionados: 68
+      - Corredores visitados: 93
+      - Função objetivo: 14.19
+    Corredores atualizados: 93 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 14.19
+    Solução Inicial - Total de itens: 1320
+    Solução Inicial - Corredores visitados: 93
+    Solução Inicial - Pedidos selecionados: 68
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 169 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 597.12s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=1304, UB=2840
+Adicionado pedido #1228 com 66 itens. Total atual: 66/1304
+Adicionado pedido #152 com 60 itens. Total atual: 126/1304
+Adicionado pedido #374 com 48 itens. Total atual: 174/1304
+Adicionado pedido #451 com 47 itens. Total atual: 221/1304
+Adicionado pedido #514 com 47 itens. Total atual: 268/1304
+Adicionado pedido #1530 com 46 itens. Total atual: 314/1304
+Adicionado pedido #899 com 44 itens. Total atual: 358/1304
+Adicionado pedido #1891 com 44 itens. Total atual: 402/1304
+Adicionado pedido #535 com 44 itens. Total atual: 446/1304
+Adicionado pedido #637 com 42 itens. Total atual: 488/1304
+Adicionado pedido #1293 com 40 itens. Total atual: 528/1304
+Adicionado pedido #738 com 37 itens. Total atual: 565/1304
+Adicionado pedido #185 com 37 itens. Total atual: 602/1304
+Adicionado pedido #1110 com 36 itens. Total atual: 638/1304
+Adicionado pedido #110 com 35 itens. Total atual: 673/1304
+Adicionado pedido #2077 com 35 itens. Total atual: 708/1304
+Adicionado pedido #111 com 35 itens. Total atual: 743/1304
+Adicionado pedido #127 com 34 itens. Total atual: 777/1304
+Adicionado pedido #1627 com 34 itens. Total atual: 811/1304
+Adicionado pedido #961 com 33 itens. Total atual: 844/1304
+Adicionado pedido #252 com 32 itens. Total atual: 876/1304
+Adicionado pedido #1425 com 32 itens. Total atual: 908/1304
+Adicionado pedido #63 com 31 itens. Total atual: 939/1304
+Adicionado pedido #1684 com 31 itens. Total atual: 970/1304
+Adicionado pedido #1581 com 30 itens. Total atual: 1000/1304
+Adicionado pedido #224 com 29 itens. Total atual: 1029/1304
+Adicionado pedido #1832 com 29 itens. Total atual: 1058/1304
+Adicionado pedido #681 com 29 itens. Total atual: 1087/1304
+Adicionado pedido #711 com 29 itens. Total atual: 1116/1304
+Adicionado pedido #651 com 28 itens. Total atual: 1144/1304
+Adicionado pedido #944 com 27 itens. Total atual: 1171/1304
+Adicionado pedido #2063 com 27 itens. Total atual: 1198/1304
+Adicionado pedido #750 com 26 itens. Total atual: 1224/1304
+Adicionado pedido #1043 com 26 itens. Total atual: 1250/1304
+Adicionado pedido #787 com 25 itens. Total atual: 1275/1304
+Adicionado pedido #1618 com 25 itens. Total atual: 1300/1304
+Adicionado pedido #1687 com 25 itens. Total atual: 1325/1304
+
+=== Solução inicial válida gerada ===
+- Total de itens: 1325
+- Pedidos selecionados: 37
+- Corredores visitados: 115
+- Função objetivo (itens/corredores): 11.52
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 11.52
+Processamento principal concluído:
+    Valor da função objetivo: 11.52
+    Pedidos selecionados: 37
+    Corredores visitados: 115
+    Total de itens: 1325
+----------------------------------
+  Executando: pós-processamento (tempo restante: 596.99s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0008.txt_solution.txt
+  Tempo de processamento: 3.01 segundos
+
+[17/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0011.txt
+  Número de pedidos: 1029
+  Número de itens: 2784
+  Número de corredores: 375
+  LB: 330, UB: 2045
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 599.42s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=330, UB=2045)...
+    Corredores atualizados: 157 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 339
+      - Pedidos selecionados: 53
+      - Corredores visitados: 157
+      - Função objetivo: 2.16
+    Corredores atualizados: 157 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 2.16
+    Solução Inicial - Total de itens: 339
+    Solução Inicial - Corredores visitados: 157
+    Solução Inicial - Pedidos selecionados: 53
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 47 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 599.38s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=330, UB=2045
+Adicionado pedido #433 com 29 itens. Total atual: 29/330
+Adicionado pedido #362 com 26 itens. Total atual: 55/330
+Adicionado pedido #1016 com 25 itens. Total atual: 80/330
+Adicionado pedido #450 com 20 itens. Total atual: 100/330
+Adicionado pedido #107 com 19 itens. Total atual: 119/330
+Adicionado pedido #559 com 16 itens. Total atual: 135/330
+Adicionado pedido #649 com 16 itens. Total atual: 151/330
+Adicionado pedido #268 com 15 itens. Total atual: 166/330
+Adicionado pedido #637 com 15 itens. Total atual: 181/330
+Adicionado pedido #86 com 15 itens. Total atual: 196/330
+Adicionado pedido #470 com 14 itens. Total atual: 210/330
+Adicionado pedido #117 com 14 itens. Total atual: 224/330
+Adicionado pedido #850 com 14 itens. Total atual: 238/330
+Adicionado pedido #204 com 14 itens. Total atual: 252/330
+Adicionado pedido #686 com 14 itens. Total atual: 266/330
+Adicionado pedido #94 com 13 itens. Total atual: 279/330
+Adicionado pedido #109 com 13 itens. Total atual: 292/330
+Adicionado pedido #891 com 12 itens. Total atual: 304/330
+Adicionado pedido #90 com 12 itens. Total atual: 316/330
+Adicionado pedido #375 com 12 itens. Total atual: 328/330
+Adicionado pedido #474 com 12 itens. Total atual: 340/330
+
+=== Solução inicial válida gerada ===
+- Total de itens: 340
+- Pedidos selecionados: 21
+- Corredores visitados: 177
+- Função objetivo (itens/corredores): 1.92
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 1.92
+Processamento principal concluído:
+    Valor da função objetivo: 1.92
+    Pedidos selecionados: 21
+    Corredores visitados: 177
+    Total de itens: 340
+----------------------------------
+  Executando: pós-processamento (tempo restante: 599.32s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0011.txt_solution.txt
+  Tempo de processamento: 0.68 segundos
+
+[18/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0010.txt
+  Número de pedidos: 1602
+  Número de itens: 3689
+  Número de corredores: 383
+  LB: 416, UB: 1746
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 598.89s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=416, UB=1746)...
+    Corredores atualizados: 174 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 420
+      - Pedidos selecionados: 95
+      - Corredores visitados: 174
+      - Função objetivo: 2.41
+    Corredores atualizados: 174 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 2.41
+    Solução Inicial - Total de itens: 420
+    Solução Inicial - Corredores visitados: 174
+    Solução Inicial - Pedidos selecionados: 95
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 107 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 598.78s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=416, UB=1746
+Adicionado pedido #550 com 18 itens. Total atual: 18/416
+Adicionado pedido #463 com 17 itens. Total atual: 35/416
+Adicionado pedido #260 com 17 itens. Total atual: 52/416
+Adicionado pedido #332 com 16 itens. Total atual: 68/416
+Adicionado pedido #1511 com 13 itens. Total atual: 81/416
+Adicionado pedido #1210 com 13 itens. Total atual: 94/416
+Adicionado pedido #843 com 12 itens. Total atual: 106/416
+Adicionado pedido #977 com 11 itens. Total atual: 117/416
+Adicionado pedido #538 com 11 itens. Total atual: 128/416
+Adicionado pedido #1530 com 11 itens. Total atual: 139/416
+Adicionado pedido #1398 com 11 itens. Total atual: 150/416
+Adicionado pedido #484 com 10 itens. Total atual: 160/416
+Adicionado pedido #1028 com 10 itens. Total atual: 170/416
+Adicionado pedido #548 com 10 itens. Total atual: 180/416
+Adicionado pedido #125 com 9 itens. Total atual: 189/416
+Adicionado pedido #621 com 9 itens. Total atual: 198/416
+Adicionado pedido #1240 com 9 itens. Total atual: 207/416
+Adicionado pedido #517 com 9 itens. Total atual: 216/416
+Adicionado pedido #343 com 9 itens. Total atual: 225/416
+Adicionado pedido #716 com 9 itens. Total atual: 234/416
+Adicionado pedido #391 com 9 itens. Total atual: 243/416
+Adicionado pedido #161 com 9 itens. Total atual: 252/416
+Adicionado pedido #941 com 8 itens. Total atual: 260/416
+Adicionado pedido #986 com 8 itens. Total atual: 268/416
+Adicionado pedido #1043 com 8 itens. Total atual: 276/416
+Adicionado pedido #1107 com 8 itens. Total atual: 284/416
+Adicionado pedido #163 com 8 itens. Total atual: 292/416
+Adicionado pedido #953 com 8 itens. Total atual: 300/416
+Adicionado pedido #749 com 7 itens. Total atual: 307/416
+Adicionado pedido #770 com 7 itens. Total atual: 314/416
+Adicionado pedido #470 com 7 itens. Total atual: 321/416
+Adicionado pedido #1361 com 7 itens. Total atual: 328/416
+Adicionado pedido #1568 com 7 itens. Total atual: 335/416
+Adicionado pedido #1594 com 7 itens. Total atual: 342/416
+Adicionado pedido #98 com 7 itens. Total atual: 349/416
+Adicionado pedido #1298 com 7 itens. Total atual: 356/416
+Adicionado pedido #643 com 7 itens. Total atual: 363/416
+Adicionado pedido #1431 com 7 itens. Total atual: 370/416
+Adicionado pedido #727 com 6 itens. Total atual: 376/416
+Adicionado pedido #1447 com 6 itens. Total atual: 382/416
+Adicionado pedido #934 com 6 itens. Total atual: 388/416
+Adicionado pedido #844 com 6 itens. Total atual: 394/416
+Adicionado pedido #1197 com 6 itens. Total atual: 400/416
+Adicionado pedido #86 com 6 itens. Total atual: 406/416
+Adicionado pedido #1434 com 6 itens. Total atual: 412/416
+Adicionado pedido #725 com 6 itens. Total atual: 418/416
+
+=== Solução inicial válida gerada ===
+- Total de itens: 418
+- Pedidos selecionados: 46
+- Corredores visitados: 316
+- Função objetivo (itens/corredores): 1.32
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 1.32
+Processamento principal concluído:
+    Valor da função objetivo: 1.32
+    Pedidos selecionados: 46
+    Corredores visitados: 316
+    Total de itens: 418
+----------------------------------
+  Executando: pós-processamento (tempo restante: 598.70s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0010.txt_solution.txt
+  Tempo de processamento: 1.30 segundos
+
+[19/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0013.txt
+  Número de pedidos: 8375
+  Número de itens: 7525
+  Número de corredores: 413
+  LB: 1510, UB: 4583
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 591.19s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=1510, UB=4583)...
+    Corredores atualizados: 332 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 1510
+      - Pedidos selecionados: 802
+      - Corredores visitados: 332
+      - Função objetivo: 4.55
+    Corredores atualizados: 332 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 4.55
+    Solução Inicial - Total de itens: 1510
+    Solução Inicial - Corredores visitados: 332
+    Solução Inicial - Pedidos selecionados: 802
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 546 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 590.64s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=1510, UB=4583
+Adicionado pedido #7021 com 23 itens. Total atual: 23/1510
+Adicionado pedido #4779 com 20 itens. Total atual: 43/1510
+Adicionado pedido #5172 com 15 itens. Total atual: 58/1510
+Adicionado pedido #5205 com 12 itens. Total atual: 70/1510
+Adicionado pedido #1900 com 12 itens. Total atual: 82/1510
+Adicionado pedido #7136 com 11 itens. Total atual: 93/1510
+Adicionado pedido #2697 com 11 itens. Total atual: 104/1510
+Adicionado pedido #6098 com 10 itens. Total atual: 114/1510
+Adicionado pedido #884 com 10 itens. Total atual: 124/1510
+Adicionado pedido #4942 com 10 itens. Total atual: 134/1510
+Adicionado pedido #1228 com 10 itens. Total atual: 144/1510
+Adicionado pedido #5489 com 10 itens. Total atual: 154/1510
+Adicionado pedido #2326 com 10 itens. Total atual: 164/1510
+Adicionado pedido #7346 com 10 itens. Total atual: 174/1510
+Adicionado pedido #7356 com 10 itens. Total atual: 184/1510
+Adicionado pedido #6949 com 10 itens. Total atual: 194/1510
+Adicionado pedido #596 com 9 itens. Total atual: 203/1510
+Adicionado pedido #4385 com 9 itens. Total atual: 212/1510
+Adicionado pedido #6771 com 9 itens. Total atual: 221/1510
+Adicionado pedido #1805 com 8 itens. Total atual: 229/1510
+Adicionado pedido #6428 com 8 itens. Total atual: 237/1510
+Adicionado pedido #3792 com 8 itens. Total atual: 245/1510
+Adicionado pedido #3524 com 8 itens. Total atual: 253/1510
+Adicionado pedido #5224 com 8 itens. Total atual: 261/1510
+Adicionado pedido #1003 com 8 itens. Total atual: 269/1510
+Adicionado pedido #164 com 8 itens. Total atual: 277/1510
+Adicionado pedido #57 com 8 itens. Total atual: 285/1510
+Adicionado pedido #1453 com 8 itens. Total atual: 293/1510
+Adicionado pedido #1449 com 7 itens. Total atual: 300/1510
+Adicionado pedido #2538 com 7 itens. Total atual: 307/1510
+Adicionado pedido #8166 com 6 itens. Total atual: 313/1510
+Adicionado pedido #4850 com 6 itens. Total atual: 319/1510
+Adicionado pedido #589 com 6 itens. Total atual: 325/1510
+Adicionado pedido #4730 com 6 itens. Total atual: 331/1510
+Adicionado pedido #4867 com 6 itens. Total atual: 337/1510
+Adicionado pedido #3140 com 6 itens. Total atual: 343/1510
+Adicionado pedido #4882 com 6 itens. Total atual: 349/1510
+Adicionado pedido #951 com 6 itens. Total atual: 355/1510
+Adicionado pedido #1219 com 6 itens. Total atual: 361/1510
+Adicionado pedido #5399 com 6 itens. Total atual: 367/1510
+Adicionado pedido #2286 com 6 itens. Total atual: 373/1510
+Adicionado pedido #7404 com 6 itens. Total atual: 379/1510
+Adicionado pedido #7482 com 6 itens. Total atual: 385/1510
+Adicionado pedido #3493 com 6 itens. Total atual: 391/1510
+Adicionado pedido #3543 com 6 itens. Total atual: 397/1510
+Adicionado pedido #5912 com 6 itens. Total atual: 403/1510
+Adicionado pedido #6493 com 6 itens. Total atual: 409/1510
+Adicionado pedido #7785 com 6 itens. Total atual: 415/1510
+Adicionado pedido #795 com 6 itens. Total atual: 421/1510
+Adicionado pedido #2496 com 6 itens. Total atual: 427/1510
+Adicionado pedido #6615 com 6 itens. Total atual: 433/1510
+Adicionado pedido #4612 com 6 itens. Total atual: 439/1510
+Adicionado pedido #4094 com 6 itens. Total atual: 445/1510
+Adicionado pedido #5952 com 5 itens. Total atual: 450/1510
+Adicionado pedido #6301 com 5 itens. Total atual: 455/1510
+Adicionado pedido #2468 com 5 itens. Total atual: 460/1510
+Adicionado pedido #7975 com 5 itens. Total atual: 465/1510
+Adicionado pedido #925 com 5 itens. Total atual: 470/1510
+Adicionado pedido #4142 com 5 itens. Total atual: 475/1510
+Adicionado pedido #2683 com 5 itens. Total atual: 480/1510
+Adicionado pedido #4186 com 5 itens. Total atual: 485/1510
+Adicionado pedido #3130 com 5 itens. Total atual: 490/1510
+Adicionado pedido #1781 com 5 itens. Total atual: 495/1510
+Adicionado pedido #7915 com 5 itens. Total atual: 500/1510
+Adicionado pedido #3627 com 5 itens. Total atual: 505/1510
+Adicionado pedido #2738 com 5 itens. Total atual: 510/1510
+Adicionado pedido #3742 com 5 itens. Total atual: 515/1510
+Adicionado pedido #4996 com 5 itens. Total atual: 520/1510
+Adicionado pedido #2466 com 5 itens. Total atual: 525/1510
+Adicionado pedido #7679 com 5 itens. Total atual: 530/1510
+Adicionado pedido #1845 com 5 itens. Total atual: 535/1510
+Adicionado pedido #1207 com 5 itens. Total atual: 540/1510
+Adicionado pedido #3255 com 5 itens. Total atual: 545/1510
+Adicionado pedido #2258 com 5 itens. Total atual: 550/1510
+Adicionado pedido #7904 com 5 itens. Total atual: 555/1510
+Adicionado pedido #6465 com 5 itens. Total atual: 560/1510
+Adicionado pedido #7775 com 5 itens. Total atual: 565/1510
+Adicionado pedido #7462 com 5 itens. Total atual: 570/1510
+Adicionado pedido #791 com 5 itens. Total atual: 575/1510
+Adicionado pedido #3581 com 5 itens. Total atual: 580/1510
+Adicionado pedido #2596 com 5 itens. Total atual: 585/1510
+Adicionado pedido #6049 com 5 itens. Total atual: 590/1510
+Adicionado pedido #4732 com 5 itens. Total atual: 595/1510
+Adicionado pedido #5711 com 5 itens. Total atual: 600/1510
+Adicionado pedido #1620 com 5 itens. Total atual: 605/1510
+Adicionado pedido #1566 com 5 itens. Total atual: 610/1510
+Adicionado pedido #4378 com 4 itens. Total atual: 614/1510
+Adicionado pedido #2507 com 4 itens. Total atual: 618/1510
+Adicionado pedido #7305 com 4 itens. Total atual: 622/1510
+Adicionado pedido #2531 com 4 itens. Total atual: 626/1510
+Adicionado pedido #5230 com 4 itens. Total atual: 630/1510
+Adicionado pedido #5257 com 4 itens. Total atual: 634/1510
+Adicionado pedido #3346 com 4 itens. Total atual: 638/1510
+Adicionado pedido #6326 com 4 itens. Total atual: 642/1510
+Adicionado pedido #6128 com 4 itens. Total atual: 646/1510
+Adicionado pedido #1650 com 4 itens. Total atual: 650/1510
+Adicionado pedido #5522 com 4 itens. Total atual: 654/1510
+Adicionado pedido #500 com 4 itens. Total atual: 658/1510
+Adicionado pedido #2398 com 4 itens. Total atual: 662/1510
+Adicionado pedido #5772 com 4 itens. Total atual: 666/1510
+Adicionado pedido #6853 com 4 itens. Total atual: 670/1510
+Adicionado pedido #2845 com 4 itens. Total atual: 674/1510
+Adicionado pedido #2954 com 4 itens. Total atual: 678/1510
+Adicionado pedido #2975 com 4 itens. Total atual: 682/1510
+Adicionado pedido #7123 com 4 itens. Total atual: 686/1510
+Adicionado pedido #5674 com 4 itens. Total atual: 690/1510
+Adicionado pedido #535 com 4 itens. Total atual: 694/1510
+Adicionado pedido #1370 com 4 itens. Total atual: 698/1510
+Adicionado pedido #5659 com 4 itens. Total atual: 702/1510
+Adicionado pedido #3036 com 4 itens. Total atual: 706/1510
+Adicionado pedido #6201 com 4 itens. Total atual: 710/1510
+Adicionado pedido #3046 com 4 itens. Total atual: 714/1510
+Adicionado pedido #2445 com 4 itens. Total atual: 718/1510
+Adicionado pedido #3251 com 4 itens. Total atual: 722/1510
+Adicionado pedido #6821 com 4 itens. Total atual: 726/1510
+Adicionado pedido #6230 com 4 itens. Total atual: 730/1510
+Adicionado pedido #3091 com 4 itens. Total atual: 734/1510
+Adicionado pedido #462 com 4 itens. Total atual: 738/1510
+Adicionado pedido #5563 com 4 itens. Total atual: 742/1510
+Adicionado pedido #322 com 4 itens. Total atual: 746/1510
+Adicionado pedido #1658 com 4 itens. Total atual: 750/1510
+Adicionado pedido #2768 com 4 itens. Total atual: 754/1510
+Adicionado pedido #3144 com 4 itens. Total atual: 758/1510
+Adicionado pedido #5533 com 4 itens. Total atual: 762/1510
+Adicionado pedido #1254 com 4 itens. Total atual: 766/1510
+Adicionado pedido #2892 com 4 itens. Total atual: 770/1510
+Adicionado pedido #511 com 4 itens. Total atual: 774/1510
+Adicionado pedido #3232 com 4 itens. Total atual: 778/1510
+Adicionado pedido #817 com 4 itens. Total atual: 782/1510
+Adicionado pedido #7503 com 4 itens. Total atual: 786/1510
+Adicionado pedido #5011 com 4 itens. Total atual: 790/1510
+Adicionado pedido #4574 com 4 itens. Total atual: 794/1510
+Adicionado pedido #7509 com 4 itens. Total atual: 798/1510
+Adicionado pedido #4230 com 4 itens. Total atual: 802/1510
+Adicionado pedido #5047 com 4 itens. Total atual: 806/1510
+Adicionado pedido #7644 com 4 itens. Total atual: 810/1510
+Adicionado pedido #6625 com 4 itens. Total atual: 814/1510
+Adicionado pedido #4081 com 4 itens. Total atual: 818/1510
+Adicionado pedido #824 com 4 itens. Total atual: 822/1510
+Adicionado pedido #836 com 4 itens. Total atual: 826/1510
+Adicionado pedido #5086 com 4 itens. Total atual: 830/1510
+Adicionado pedido #2110 com 4 itens. Total atual: 834/1510
+Adicionado pedido #131 com 4 itens. Total atual: 838/1510
+Adicionado pedido #663 com 4 itens. Total atual: 842/1510
+Adicionado pedido #7593 com 4 itens. Total atual: 846/1510
+Adicionado pedido #4838 com 4 itens. Total atual: 850/1510
+Adicionado pedido #2862 com 3 itens. Total atual: 853/1510
+Adicionado pedido #4607 com 3 itens. Total atual: 856/1510
+Adicionado pedido #4111 com 3 itens. Total atual: 859/1510
+Adicionado pedido #3506 com 3 itens. Total atual: 862/1510
+Adicionado pedido #7152 com 3 itens. Total atual: 865/1510
+Adicionado pedido #2815 com 3 itens. Total atual: 868/1510
+Adicionado pedido #7587 com 3 itens. Total atual: 871/1510
+Adicionado pedido #2818 com 3 itens. Total atual: 874/1510
+Adicionado pedido #1471 com 3 itens. Total atual: 877/1510
+Adicionado pedido #2996 com 3 itens. Total atual: 880/1510
+Adicionado pedido #6470 com 3 itens. Total atual: 883/1510
+Adicionado pedido #2438 com 3 itens. Total atual: 886/1510
+Adicionado pedido #240 com 3 itens. Total atual: 889/1510
+Adicionado pedido #1705 com 3 itens. Total atual: 892/1510
+Adicionado pedido #854 com 3 itens. Total atual: 895/1510
+Adicionado pedido #802 com 3 itens. Total atual: 898/1510
+Adicionado pedido #7603 com 3 itens. Total atual: 901/1510
+Adicionado pedido #4688 com 3 itens. Total atual: 904/1510
+Adicionado pedido #5744 com 3 itens. Total atual: 907/1510
+Adicionado pedido #3007 com 3 itens. Total atual: 910/1510
+Adicionado pedido #1379 com 3 itens. Total atual: 913/1510
+Adicionado pedido #839 com 3 itens. Total atual: 916/1510
+Adicionado pedido #4008 com 3 itens. Total atual: 919/1510
+Adicionado pedido #4739 com 3 itens. Total atual: 922/1510
+Adicionado pedido #5708 com 3 itens. Total atual: 925/1510
+Adicionado pedido #6050 com 3 itens. Total atual: 928/1510
+Adicionado pedido #4455 com 3 itens. Total atual: 931/1510
+Adicionado pedido #1597 com 3 itens. Total atual: 934/1510
+Adicionado pedido #6932 com 3 itens. Total atual: 937/1510
+Adicionado pedido #2486 com 3 itens. Total atual: 940/1510
+Adicionado pedido #6010 com 3 itens. Total atual: 943/1510
+Adicionado pedido #1646 com 3 itens. Total atual: 946/1510
+Adicionado pedido #2603 com 3 itens. Total atual: 949/1510
+Adicionado pedido #8366 com 3 itens. Total atual: 952/1510
+Adicionado pedido #1949 com 3 itens. Total atual: 955/1510
+Adicionado pedido #7993 com 3 itens. Total atual: 958/1510
+Adicionado pedido #6056 com 3 itens. Total atual: 961/1510
+Adicionado pedido #1639 com 3 itens. Total atual: 964/1510
+Adicionado pedido #6062 com 3 itens. Total atual: 967/1510
+Adicionado pedido #2551 com 3 itens. Total atual: 970/1510
+Adicionado pedido #6072 com 3 itens. Total atual: 973/1510
+Adicionado pedido #6080 com 3 itens. Total atual: 976/1510
+Adicionado pedido #6901 com 3 itens. Total atual: 979/1510
+Adicionado pedido #1555 com 3 itens. Total atual: 982/1510
+Adicionado pedido #2783 com 3 itens. Total atual: 985/1510
+Adicionado pedido #2774 com 3 itens. Total atual: 988/1510
+Adicionado pedido #5880 com 3 itens. Total atual: 991/1510
+Adicionado pedido #6981 com 3 itens. Total atual: 994/1510
+Adicionado pedido #7676 com 3 itens. Total atual: 997/1510
+Adicionado pedido #4545 com 3 itens. Total atual: 1000/1510
+Adicionado pedido #2706 com 3 itens. Total atual: 1003/1510
+Adicionado pedido #4603 com 3 itens. Total atual: 1006/1510
+Adicionado pedido #6633 com 3 itens. Total atual: 1009/1510
+Adicionado pedido #7720 com 3 itens. Total atual: 1012/1510
+Adicionado pedido #6142 com 3 itens. Total atual: 1015/1510
+Adicionado pedido #6133 com 3 itens. Total atual: 1018/1510
+Adicionado pedido #1573 com 3 itens. Total atual: 1021/1510
+Adicionado pedido #1579 com 3 itens. Total atual: 1024/1510
+Adicionado pedido #6621 com 3 itens. Total atual: 1027/1510
+Adicionado pedido #96 com 3 itens. Total atual: 1030/1510
+Adicionado pedido #3599 com 3 itens. Total atual: 1033/1510
+Adicionado pedido #1855 com 3 itens. Total atual: 1036/1510
+Adicionado pedido #5076 com 3 itens. Total atual: 1039/1510
+Adicionado pedido #1056 com 3 itens. Total atual: 1042/1510
+Adicionado pedido #6302 com 3 itens. Total atual: 1045/1510
+Adicionado pedido #5389 com 3 itens. Total atual: 1048/1510
+Adicionado pedido #608 com 3 itens. Total atual: 1051/1510
+Adicionado pedido #2263 com 3 itens. Total atual: 1054/1510
+Adicionado pedido #5113 com 3 itens. Total atual: 1057/1510
+Adicionado pedido #977 com 3 itens. Total atual: 1060/1510
+Adicionado pedido #3201 com 3 itens. Total atual: 1063/1510
+Adicionado pedido #3685 com 3 itens. Total atual: 1066/1510
+Adicionado pedido #5400 com 3 itens. Total atual: 1069/1510
+Adicionado pedido #938 com 3 itens. Total atual: 1072/1510
+Adicionado pedido #7833 com 3 itens. Total atual: 1075/1510
+Adicionado pedido #1208 com 3 itens. Total atual: 1078/1510
+Adicionado pedido #6768 com 3 itens. Total atual: 1081/1510
+Adicionado pedido #6408 com 3 itens. Total atual: 1084/1510
+Adicionado pedido #3703 com 3 itens. Total atual: 1087/1510
+Adicionado pedido #3263 com 3 itens. Total atual: 1090/1510
+Adicionado pedido #1338 com 3 itens. Total atual: 1093/1510
+Adicionado pedido #2179 com 3 itens. Total atual: 1096/1510
+Adicionado pedido #7486 com 3 itens. Total atual: 1099/1510
+Adicionado pedido #149 com 3 itens. Total atual: 1102/1510
+Adicionado pedido #3284 com 3 itens. Total atual: 1105/1510
+Adicionado pedido #1177 com 3 itens. Total atual: 1108/1510
+Adicionado pedido #6761 com 3 itens. Total atual: 1111/1510
+Adicionado pedido #3645 com 3 itens. Total atual: 1114/1510
+Adicionado pedido #3496 com 3 itens. Total atual: 1117/1510
+Adicionado pedido #6196 com 3 itens. Total atual: 1120/1510
+Adicionado pedido #5064 com 3 itens. Total atual: 1123/1510
+Adicionado pedido #2128 com 3 itens. Total atual: 1126/1510
+Adicionado pedido #881 com 3 itens. Total atual: 1129/1510
+Adicionado pedido #2183 com 3 itens. Total atual: 1132/1510
+Adicionado pedido #7191 com 3 itens. Total atual: 1135/1510
+Adicionado pedido #1310 com 3 itens. Total atual: 1138/1510
+Adicionado pedido #6818 com 3 itens. Total atual: 1141/1510
+Adicionado pedido #3075 com 3 itens. Total atual: 1144/1510
+Adicionado pedido #899 com 3 itens. Total atual: 1147/1510
+Adicionado pedido #8022 com 3 itens. Total atual: 1150/1510
+Adicionado pedido #5163 com 3 itens. Total atual: 1153/1510
+Adicionado pedido #1280 com 3 itens. Total atual: 1156/1510
+Adicionado pedido #1814 com 3 itens. Total atual: 1159/1510
+Adicionado pedido #6733 com 3 itens. Total atual: 1162/1510
+Adicionado pedido #6242 com 3 itens. Total atual: 1165/1510
+Adicionado pedido #386 com 3 itens. Total atual: 1168/1510
+Adicionado pedido #553 com 3 itens. Total atual: 1171/1510
+Adicionado pedido #2144 com 3 itens. Total atual: 1174/1510
+Adicionado pedido #1795 com 3 itens. Total atual: 1177/1510
+Adicionado pedido #6436 com 3 itens. Total atual: 1180/1510
+Adicionado pedido #7530 com 3 itens. Total atual: 1183/1510
+Adicionado pedido #6608 com 2 itens. Total atual: 1185/1510
+Adicionado pedido #1794 com 2 itens. Total atual: 1187/1510
+Adicionado pedido #6751 com 2 itens. Total atual: 1189/1510
+Adicionado pedido #6746 com 2 itens. Total atual: 1191/1510
+Adicionado pedido #1830 com 2 itens. Total atual: 1193/1510
+Adicionado pedido #6895 com 2 itens. Total atual: 1195/1510
+Adicionado pedido #1656 com 2 itens. Total atual: 1197/1510
+Adicionado pedido #6599 com 2 itens. Total atual: 1199/1510
+Adicionado pedido #6727 com 2 itens. Total atual: 1201/1510
+Adicionado pedido #6745 com 2 itens. Total atual: 1203/1510
+Adicionado pedido #1815 com 2 itens. Total atual: 1205/1510
+Adicionado pedido #1970 com 2 itens. Total atual: 1207/1510
+Adicionado pedido #6900 com 2 itens. Total atual: 1209/1510
+Adicionado pedido #672 com 2 itens. Total atual: 1211/1510
+Adicionado pedido #6590 com 2 itens. Total atual: 1213/1510
+Adicionado pedido #1666 com 2 itens. Total atual: 1215/1510
+Adicionado pedido #1880 com 2 itens. Total atual: 1217/1510
+Adicionado pedido #6832 com 2 itens. Total atual: 1219/1510
+Adicionado pedido #6682 com 2 itens. Total atual: 1221/1510
+Adicionado pedido #6833 com 2 itens. Total atual: 1223/1510
+Adicionado pedido #1870 com 2 itens. Total atual: 1225/1510
+Adicionado pedido #6805 com 2 itens. Total atual: 1227/1510
+Adicionado pedido #1862 com 2 itens. Total atual: 1229/1510
+Adicionado pedido #6846 com 2 itens. Total atual: 1231/1510
+Adicionado pedido #6848 com 2 itens. Total atual: 1233/1510
+Adicionado pedido #6859 com 2 itens. Total atual: 1235/1510
+Adicionado pedido #6875 com 2 itens. Total atual: 1237/1510
+Adicionado pedido #1851 com 2 itens. Total atual: 1239/1510
+Adicionado pedido #6783 com 2 itens. Total atual: 1241/1510
+Adicionado pedido #6778 com 2 itens. Total atual: 1243/1510
+Adicionado pedido #6623 com 2 itens. Total atual: 1245/1510
+Adicionado pedido #1771 com 2 itens. Total atual: 1247/1510
+Adicionado pedido #6880 com 2 itens. Total atual: 1249/1510
+Adicionado pedido #6708 com 2 itens. Total atual: 1251/1510
+Adicionado pedido #1777 com 2 itens. Total atual: 1253/1510
+Adicionado pedido #1881 com 2 itens. Total atual: 1255/1510
+Adicionado pedido #1661 com 2 itens. Total atual: 1257/1510
+Adicionado pedido #1907 com 2 itens. Total atual: 1259/1510
+Adicionado pedido #1651 com 2 itens. Total atual: 1261/1510
+Adicionado pedido #6653 com 2 itens. Total atual: 1263/1510
+Adicionado pedido #6637 com 2 itens. Total atual: 1265/1510
+Adicionado pedido #1842 com 2 itens. Total atual: 1267/1510
+Adicionado pedido #1935 com 2 itens. Total atual: 1269/1510
+Adicionado pedido #6756 com 2 itens. Total atual: 1271/1510
+Adicionado pedido #983 com 2 itens. Total atual: 1273/1510
+Adicionado pedido #7549 com 2 itens. Total atual: 1275/1510
+Adicionado pedido #911 com 2 itens. Total atual: 1277/1510
+Adicionado pedido #7548 com 2 itens. Total atual: 1279/1510
+Adicionado pedido #7546 com 2 itens. Total atual: 1281/1510
+Adicionado pedido #918 com 2 itens. Total atual: 1283/1510
+Adicionado pedido #920 com 2 itens. Total atual: 1285/1510
+Adicionado pedido #7521 com 2 itens. Total atual: 1287/1510
+Adicionado pedido #945 com 2 itens. Total atual: 1289/1510
+Adicionado pedido #7510 com 2 itens. Total atual: 1291/1510
+Adicionado pedido #962 com 2 itens. Total atual: 1293/1510
+Adicionado pedido #7500 com 2 itens. Total atual: 1295/1510
+Adicionado pedido #7495 com 2 itens. Total atual: 1297/1510
+Adicionado pedido #978 com 2 itens. Total atual: 1299/1510
+Adicionado pedido #905 com 2 itens. Total atual: 1301/1510
+Adicionado pedido #998 com 2 itens. Total atual: 1303/1510
+Adicionado pedido #7470 com 2 itens. Total atual: 1305/1510
+Adicionado pedido #1033 com 2 itens. Total atual: 1307/1510
+Adicionado pedido #7436 com 2 itens. Total atual: 1309/1510
+Adicionado pedido #7434 com 2 itens. Total atual: 1311/1510
+Adicionado pedido #1044 com 2 itens. Total atual: 1313/1510
+Adicionado pedido #7429 com 2 itens. Total atual: 1315/1510
+Adicionado pedido #1060 com 2 itens. Total atual: 1317/1510
+Adicionado pedido #7406 com 2 itens. Total atual: 1319/1510
+Adicionado pedido #1073 com 2 itens. Total atual: 1321/1510
+Adicionado pedido #1080 com 2 itens. Total atual: 1323/1510
+Adicionado pedido #7397 com 2 itens. Total atual: 1325/1510
+Adicionado pedido #773 com 2 itens. Total atual: 1327/1510
+Adicionado pedido #1 com 2 itens. Total atual: 1329/1510
+Adicionado pedido #7763 com 2 itens. Total atual: 1331/1510
+Adicionado pedido #7760 com 2 itens. Total atual: 1333/1510
+Adicionado pedido #688 com 2 itens. Total atual: 1335/1510
+Adicionado pedido #7744 com 2 itens. Total atual: 1337/1510
+Adicionado pedido #7742 com 2 itens. Total atual: 1339/1510
+Adicionado pedido #7739 com 2 itens. Total atual: 1341/1510
+Adicionado pedido #704 com 2 itens. Total atual: 1343/1510
+Adicionado pedido #7732 com 2 itens. Total atual: 1345/1510
+Adicionado pedido #7723 com 2 itens. Total atual: 1347/1510
+Adicionado pedido #7716 com 2 itens. Total atual: 1349/1510
+Adicionado pedido #7702 com 2 itens. Total atual: 1351/1510
+Adicionado pedido #741 com 2 itens. Total atual: 1353/1510
+Adicionado pedido #1090 com 2 itens. Total atual: 1355/1510
+Adicionado pedido #7665 com 2 itens. Total atual: 1357/1510
+Adicionado pedido #7659 com 2 itens. Total atual: 1359/1510
+Adicionado pedido #7658 com 2 itens. Total atual: 1361/1510
+Adicionado pedido #7657 com 2 itens. Total atual: 1363/1510
+Adicionado pedido #785 com 2 itens. Total atual: 1365/1510
+Adicionado pedido #796 com 2 itens. Total atual: 1367/1510
+Adicionado pedido #841 com 2 itens. Total atual: 1369/1510
+Adicionado pedido #7602 com 2 itens. Total atual: 1371/1510
+Adicionado pedido #866 com 2 itens. Total atual: 1373/1510
+Adicionado pedido #868 com 2 itens. Total atual: 1375/1510
+Adicionado pedido #878 com 2 itens. Total atual: 1377/1510
+Adicionado pedido #7570 com 2 itens. Total atual: 1379/1510
+Adicionado pedido #6992 com 2 itens. Total atual: 1381/1510
+Adicionado pedido #7091 com 2 itens. Total atual: 1383/1510
+Adicionado pedido #7086 com 2 itens. Total atual: 1385/1510
+Adicionado pedido #1427 com 2 itens. Total atual: 1387/1510
+Adicionado pedido #1430 com 2 itens. Total atual: 1389/1510
+Adicionado pedido #1450 com 2 itens. Total atual: 1391/1510
+Adicionado pedido #1461 com 2 itens. Total atual: 1393/1510
+Adicionado pedido #1470 com 2 itens. Total atual: 1395/1510
+Adicionado pedido #1472 com 2 itens. Total atual: 1397/1510
+Adicionado pedido #1478 com 2 itens. Total atual: 1399/1510
+Adicionado pedido #1490 com 2 itens. Total atual: 1401/1510
+Adicionado pedido #7022 com 2 itens. Total atual: 1403/1510
+Adicionado pedido #7012 com 2 itens. Total atual: 1405/1510
+Adicionado pedido #1522 com 2 itens. Total atual: 1407/1510
+Adicionado pedido #7097 com 2 itens. Total atual: 1409/1510
+Adicionado pedido #1546 com 2 itens. Total atual: 1411/1510
+Adicionado pedido #6973 com 2 itens. Total atual: 1413/1510
+Adicionado pedido #1559 com 2 itens. Total atual: 1415/1510
+Adicionado pedido #6960 com 2 itens. Total atual: 1417/1510
+Adicionado pedido #6945 com 2 itens. Total atual: 1419/1510
+Adicionado pedido #1592 com 2 itens. Total atual: 1421/1510
+Adicionado pedido #1611 com 2 itens. Total atual: 1423/1510
+Adicionado pedido #1613 com 2 itens. Total atual: 1425/1510
+Adicionado pedido #6919 com 2 itens. Total atual: 1427/1510
+Adicionado pedido #1617 com 2 itens. Total atual: 1429/1510
+Adicionado pedido #1619 com 2 itens. Total atual: 1431/1510
+Adicionado pedido #6915 com 2 itens. Total atual: 1433/1510
+Adicionado pedido #1251 com 2 itens. Total atual: 1435/1510
+Adicionado pedido #1095 com 2 itens. Total atual: 1437/1510
+Adicionado pedido #7375 com 2 itens. Total atual: 1439/1510
+Adicionado pedido #7373 com 2 itens. Total atual: 1441/1510
+Adicionado pedido #7369 com 2 itens. Total atual: 1443/1510
+Adicionado pedido #1132 com 2 itens. Total atual: 1445/1510
+Adicionado pedido #7344 com 2 itens. Total atual: 1447/1510
+Adicionado pedido #1170 com 2 itens. Total atual: 1449/1510
+Adicionado pedido #1174 com 2 itens. Total atual: 1451/1510
+Adicionado pedido #7297 com 2 itens. Total atual: 1453/1510
+Adicionado pedido #1212 com 2 itens. Total atual: 1455/1510
+Adicionado pedido #1220 com 2 itens. Total atual: 1457/1510
+Adicionado pedido #1223 com 2 itens. Total atual: 1459/1510
+Adicionado pedido #1235 com 2 itens. Total atual: 1461/1510
+Adicionado pedido #6903 com 2 itens. Total atual: 1463/1510
+Adicionado pedido #7236 com 2 itens. Total atual: 1465/1510
+Adicionado pedido #7216 com 2 itens. Total atual: 1467/1510
+Adicionado pedido #1295 com 2 itens. Total atual: 1469/1510
+Adicionado pedido #1297 com 2 itens. Total atual: 1471/1510
+Adicionado pedido #7198 com 2 itens. Total atual: 1473/1510
+Adicionado pedido #7183 com 2 itens. Total atual: 1475/1510
+Adicionado pedido #1331 com 2 itens. Total atual: 1477/1510
+Adicionado pedido #7171 com 2 itens. Total atual: 1479/1510
+Adicionado pedido #1334 com 2 itens. Total atual: 1481/1510
+Adicionado pedido #7157 com 2 itens. Total atual: 1483/1510
+Adicionado pedido #1355 com 2 itens. Total atual: 1485/1510
+Adicionado pedido #1396 com 2 itens. Total atual: 1487/1510
+Adicionado pedido #5159 com 2 itens. Total atual: 1489/1510
+Adicionado pedido #5332 com 2 itens. Total atual: 1491/1510
+Adicionado pedido #5322 com 2 itens. Total atual: 1493/1510
+Adicionado pedido #5321 com 2 itens. Total atual: 1495/1510
+Adicionado pedido #3390 com 2 itens. Total atual: 1497/1510
+Adicionado pedido #3393 com 2 itens. Total atual: 1499/1510
+Adicionado pedido #3423 com 2 itens. Total atual: 1501/1510
+Adicionado pedido #5267 com 2 itens. Total atual: 1503/1510
+Adicionado pedido #3439 com 2 itens. Total atual: 1505/1510
+Adicionado pedido #3455 com 2 itens. Total atual: 1507/1510
+Adicionado pedido #5244 com 2 itens. Total atual: 1509/1510
+Adicionado pedido #5241 com 2 itens. Total atual: 1511/1510
+
+=== Solução inicial válida gerada ===
+- Total de itens: 1511
+- Pedidos selecionados: 421
+- Corredores visitados: 338
+- Função objetivo (itens/corredores): 4.47
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 4.47
+Processamento principal concluído:
+    Valor da função objetivo: 4.47
+    Pedidos selecionados: 421
+    Corredores visitados: 338
+    Total de itens: 1511
+----------------------------------
+  Executando: pós-processamento (tempo restante: 590.22s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0013.txt_solution.txt
+  Tempo de processamento: 9.78 segundos
+
+[20/20] Processando: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/input/instance_0015.txt
+  Número de pedidos: 7367
+  Número de itens: 6633
+  Número de corredores: 402
+  LB: 384, UB: 3679
+    Threads utilizadas: 20
+    Calculando eficiência dos pedidos...
+    Estruturas auxiliares criadas com sucesso.
+----------------------------------
+  Executando: pré-processamento (tempo restante: 592.94s)...
+----------------------------------
+    Gerando solução inicial relaxada...
+    Gerando solução inicial otimizada...
+    Fase 1: Seleção de pedidos prioritários (limite: LB=384, UB=3679)...
+    Corredores atualizados: 97 corredores necessários.
+    Solução inicial gerada:
+      - Total de itens: 385
+      - Pedidos selecionados: 76
+      - Corredores visitados: 97
+      - Função objetivo: 3.97
+    Corredores atualizados: 97 corredores necessários.
+    Verificando restrições da solução...
+    Solução Inicial - Valor da função objetivo: 3.97
+    Solução Inicial - Total de itens: 385
+    Solução Inicial - Corredores visitados: 97
+    Solução Inicial - Pedidos selecionados: 76
+    Solução Inicial - Viável: Sim
+    Tempo de execução real: 61 ms
+    Pré-processamento concluído com sucesso.
+----------------------------------------
+  Executando: processamento principal (tempo restante: 592.88s)...
+----------------------------------------
+Iniciando processamento principal...
+    Gerando solução inicial válida...
+=== Gerando solução inicial válida ===
+Limites: LB=384, UB=3679
+Adicionado pedido #6920 com 20 itens. Total atual: 20/384
+Adicionado pedido #5353 com 20 itens. Total atual: 40/384
+Adicionado pedido #6116 com 15 itens. Total atual: 55/384
+Adicionado pedido #6166 com 15 itens. Total atual: 70/384
+Adicionado pedido #4962 com 13 itens. Total atual: 83/384
+Adicionado pedido #5855 com 12 itens. Total atual: 95/384
+Adicionado pedido #1705 com 11 itens. Total atual: 106/384
+Adicionado pedido #2574 com 10 itens. Total atual: 116/384
+Adicionado pedido #6551 com 10 itens. Total atual: 126/384
+Adicionado pedido #4782 com 10 itens. Total atual: 136/384
+Adicionado pedido #5153 com 10 itens. Total atual: 146/384
+Adicionado pedido #4974 com 10 itens. Total atual: 156/384
+Adicionado pedido #1491 com 10 itens. Total atual: 166/384
+Adicionado pedido #5532 com 9 itens. Total atual: 175/384
+Adicionado pedido #6642 com 9 itens. Total atual: 184/384
+Adicionado pedido #4067 com 9 itens. Total atual: 193/384
+Adicionado pedido #295 com 9 itens. Total atual: 202/384
+Adicionado pedido #3779 com 8 itens. Total atual: 210/384
+Adicionado pedido #3545 com 8 itens. Total atual: 218/384
+Adicionado pedido #3810 com 8 itens. Total atual: 226/384
+Adicionado pedido #4351 com 8 itens. Total atual: 234/384
+Adicionado pedido #757 com 8 itens. Total atual: 242/384
+Adicionado pedido #5216 com 7 itens. Total atual: 249/384
+Adicionado pedido #3723 com 7 itens. Total atual: 256/384
+Adicionado pedido #4942 com 7 itens. Total atual: 263/384
+Adicionado pedido #2963 com 7 itens. Total atual: 270/384
+Adicionado pedido #3585 com 7 itens. Total atual: 277/384
+Adicionado pedido #1402 com 7 itens. Total atual: 284/384
+Adicionado pedido #1573 com 7 itens. Total atual: 291/384
+Adicionado pedido #6916 com 6 itens. Total atual: 297/384
+Adicionado pedido #3385 com 6 itens. Total atual: 303/384
+Adicionado pedido #7041 com 6 itens. Total atual: 309/384
+Adicionado pedido #3116 com 6 itens. Total atual: 315/384
+Adicionado pedido #4964 com 6 itens. Total atual: 321/384
+Adicionado pedido #3925 com 6 itens. Total atual: 327/384
+Adicionado pedido #1464 com 6 itens. Total atual: 333/384
+Adicionado pedido #2192 com 6 itens. Total atual: 339/384
+Adicionado pedido #2128 com 6 itens. Total atual: 345/384
+Adicionado pedido #6729 com 6 itens. Total atual: 351/384
+Adicionado pedido #529 com 6 itens. Total atual: 357/384
+Adicionado pedido #498 com 6 itens. Total atual: 363/384
+Adicionado pedido #4779 com 6 itens. Total atual: 369/384
+Adicionado pedido #4259 com 6 itens. Total atual: 375/384
+Adicionado pedido #4088 com 6 itens. Total atual: 381/384
+Adicionado pedido #1359 com 6 itens. Total atual: 387/384
+
+=== Solução inicial válida gerada ===
+- Total de itens: 387
+- Pedidos selecionados: 45
+- Corredores visitados: 165
+- Função objetivo (itens/corredores): 2.35
+    Otimizando solução com algoritmo Dinkelbach...
+Otimização concluída em 0 segundos
+Valor final da função objetivo: 2.35
+Processamento principal concluído:
+    Valor da função objetivo: 2.35
+    Pedidos selecionados: 45
+    Corredores visitados: 165
+    Total de itens: 387
+----------------------------------
+  Executando: pós-processamento (tempo restante: 592.47s)...
+----------------------------------
+    Pós-processamento concluído com sucesso.
+  Solução salva em: /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/data/output/instance_0015.txt_solution.txt
+  Tempo de processamento: 7.53 segundos
+
+===== RESUMO DO PROCESSAMENTO =====
+Total de instâncias processadas: 20/20
+Tempo total de processamento: 59.74 segundos
+
+Tempos por instância:
+  instance_0007.txt: 6.75 segundos
+  instance_0014.txt: 13.54 segundos
+  instance_0009.txt: 0.02 segundos
+  instance_0004.txt: 0.00 segundos
+  instance_0001.txt: 0.01 segundos
+  instance_0012.txt: 0.03 segundos
+  instance_0003.txt: 0.02 segundos
+  instance_0005.txt: 3.76 segundos
+  instance_0019.txt: 0.77 segundos
+  instance_0016.txt: 0.20 segundos
+  instance_0020.txt: 0.00 segundos
+  instance_0017.txt: 0.04 segundos
+  instance_0018.txt: 1.07 segundos
+  instance_0002.txt: 0.00 segundos
+  instance_0006.txt: 11.06 segundos
+  instance_0008.txt: 3.01 segundos
+  instance_0011.txt: 0.68 segundos
+  instance_0010.txt: 1.30 segundos
+  instance_0013.txt: 9.78 segundos
+  instance_0015.txt: 7.53 segundos

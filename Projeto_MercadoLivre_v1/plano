@@ -1,0 +1,97 @@
+# Plano de Restruturação do Projeto MercadoLivre - Wave Picking
+
+## Visão Geral do Projeto Restruturado
+Vamos desenvolver uma solução modular e robusta para o problema de otimização de coleta no armazém (wave picking), focando em uma implementação incremental e bem testada.
+
+## Cronograma de Desenvolvimento
+
+### Fase 1: Fundação e Estrutura Básica (Dias 1-2)
+- **1.1** Preservar o código atual (renomear arquivos para `.old`)
+- **1.2** Criar estrutura básica de diretórios
+- **1.3** Implementar CMakeLists.txt básico
+- **1.4** Criar esqueleto principal com menu de opções
+
+### Fase 2: Parser e Validação (Dias 3-4)
+- **2.1** Definir estruturas de dados (Warehouse, Order, Corridor)
+- **2.2** Implementar parser de entrada rigoroso com validações
+- **2.3** Criar ferramenta de diagnóstico para verificar o parser
+- **2.4** Implementar testes para o parser com casos extremos
+
+### Fase 3: Geração de Solução Inicial (Dias 5-6)
+- **3.1** Definir estrutura de Solução
+- **3.2** Implementar estratégia gulosa para geração de solução inicial
+- **3.3** Garantir limites LB/UB e disponibilidade
+- **3.4** Priorizar eficiência (itens/corredores)
+
+### Fase 4: Validação de Solução (Dias 7-8)
+- **4.1** Implementar validador completo de solução
+- **4.2** Verificar limites LB/UB, disponibilidade e IDs válidos
+- **4.3** Adicionar mensagens detalhadas de diagnóstico
+- **4.4** Garantir manipulação correta de erros
+
+### Fase 5: Otimização da Solução (Dias 9-10)
+- **5.1** Implementar algoritmo Dinkelbach para otimização
+- **5.2** Desenvolver busca local para refinamento
+- **5.3** Adicionar estratégias de intensificação e diversificação
+- **5.4** Otimizar para instâncias grandes
+
+### Fase 6: Relatórios e Interface (Dias 11-12)
+- **6.1** Implementar formatação de saída conforme especificação
+- **6.2** Adicionar geração de relatório HTML para análise visual
+- **6.3** Melhorar interface de usuário e experiência
+- **6.4** Documentar todas as funcionalidades
+
+### Fase 7: Testes e Validação Final (Dias 13-14)
+- **7.1** Testar todas as instâncias disponíveis
+- **7.2** Medir e comparar resultados
+- **7.3** Corrigir problemas identificados
+- **7.4** Otimizar performance final
+
+## Estrutura de Diretórios Proposta
+
+```
+MercadoLivre/
+├── include/                      # Arquivos de cabeçalho
+│   ├── core/                     # Classes centrais (Warehouse, Solution)
+│   ├── input/                    # Leitura de entradas
+│   ├── output/                   # Formatação de saídas
+│   ├── algorithm/                # Algoritmos de otimização
+│   └── modules/                  # Módulos funcionais
+├── src/                          # Implementações
+│   ├── core/
+│   ├── input/
+│   ├── output/
+│   ├── algorithm/
+│   ├── modules/
+│   ├── tools/                    # Ferramentas de diagnóstico
+│   └── app/                      # Aplicação principal
+├── test/                         # Testes unitários
+├── data/                         # Dados de entrada/saída
+│   ├── input/
+│   └── output/
+├── old/                          # Código anterior preservado
+└── doc/                          # Documentação
+```
+
+## Módulos Principais
+
+1. **Core**: Estruturas fundamentais
+2. **Input**: Parser e validação
+3. **Modules**: Geração de solução inicial, manipulação
+4. **Algorithm**: Algoritmos de otimização
+5. **Output**: Formatação de resultados
+6. **Tools**: Ferramentas de diagnóstico e debug
+
+## Lições Aprendidas até Agora
+
+1. **Interpretação de LB/UB**: Referem-se ao total de itens, não de pedidos
+2. **Validação de IDs**: Garantir IDs válidos é crítico (0 a numOrders-1)
+3. **Disponibilidade de itens**: Verificar estoque disponível em corredores
+4. **Correção de corredores**: Garantir adição explícita de corredores à solução
+5. **Controle de estoque**: Importante para garantir disponibilidade
+
+## Próximos Passos
+
+Posso iniciar o desenvolvimento do esqueleto básico do sistema ou, se preferir, podemos discutir mais detalhes sobre alguma fase específica antes de começar.
+
+Devo prosseguir com a implementação da estrutura básica e o menu inicial?

@@ -1,0 +1,57 @@
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/core/solution.cpp:27:6: error: no declaration matches ‘void Solution::removeOrder(int)’
+   27 | void Solution::removeOrder(int order_id) {
+      |      ^~~~~~~~
+In file included from /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/core/solution.cpp:1:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/include/core/solution.h:35:10: note: candidate is: ‘void Solution::removeOrder(int, const Warehouse&)’
+   35 |     void removeOrder(int orderId, const Warehouse& warehouse);
+      |          ^~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/include/core/solution.h:11:7: note: ‘class Solution’ defined here
+   11 | class Solution {
+      |       ^~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/core/solution.cpp: In member function ‘void Solution::addVisitedCorridor(int)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/core/solution.cpp:58:5: error: ‘corridors’ was not declared in this scope; did you mean ‘corridor_id’?
+   58 |     corridors.insert(corridor_id);
+      |     ^~~~~~~~~
+      |     corridor_id
+make[2]: *** [CMakeFiles/MercadoLivreCore.dir/build.make:202: CMakeFiles/MercadoLivreCore.dir/src/core/solution.cpp.o] Error 1
+make[2]: ** Esperando que outros processos terminem.
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/process.cpp: In function ‘bool processSingleInstance(const std::string&, const std::string&)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/process.cpp:38:29: error: ‘warehouse’ was not declared in this scope; did you mean ‘Warehouse’?
+   38 |         validarSolucaoFinal(warehouse, solution);
+      |                             ^~~~~~~~~
+      |                             Warehouse
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/process.cpp:38:40: error: ‘solution’ was not declared in this scope; did you mean ‘Solution’?
+   38 |         validarSolucaoFinal(warehouse, solution);
+      |                                        ^~~~~~~~
+      |                                        Solution
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/process.cpp:38:9: error: ‘validarSolucaoFinal’ was not declared in this scope
+   38 |         validarSolucaoFinal(warehouse, solution);
+      |         ^~~~~~~~~~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp: In function ‘bool gerarSolucaoInicialValida(const Warehouse&, Solution&)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:177:14: error: ‘resolverDisponibilidadeEmergencia’ was not declared in this scope
+  177 |         if (!resolverDisponibilidadeEmergencia(warehouse, solution,
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:197:44: error: ‘class Solution’ has no member named ‘getOrders’
+  197 |     std::cout << "- Pedidos: " << solution.getOrders().size() << "\n";
+      |                                            ^~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp: In function ‘bool resolverDisponibilidadeEmergencia(const Warehouse&, Solution&, const std::map<int, int>&, std::map<int, int>&, const std::vector<int>&)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:222:38: error: ‘class Solution’ has no member named ‘getOrders’
+  222 |         for (int pedidoId : solution.getOrders()) {
+      |                                      ^~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:237:37: error: no matching function for call to ‘Solution::removeOrder(std::tuple_element<0, const std::pair<int, int> >::type&)’
+  237 |                 solution.removeOrder(pedidoId);
+      |                 ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+In file included from /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/include/modules/solucao_valida_inicial.h:4,
+                 from /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:1:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/include/core/solution.h:35:10: note: candidate: ‘void Solution::removeOrder(int, const Warehouse&)’
+   35 |     void removeOrder(int orderId, const Warehouse& warehouse);
+      |          ^~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/include/core/solution.h:35:10: note:   candidate expects 2 arguments, 1 provided
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre/src/modules/solucao_valida_inicial.cpp:259:34: error: ‘class Solution’ has no member named ‘getOrders’
+  259 |     for (int pedidoId : solution.getOrders()) {
+      |                                  ^~~~~~~~~
+make[2]: *** [CMakeFiles/MercadoLivreCore.dir/build.make:244: CMakeFiles/MercadoLivreCore.dir/src/modules/process.cpp.o] Error 1
+make[2]: *** [CMakeFiles/MercadoLivreCore.dir/build.make:300: CMakeFiles/MercadoLivreCore.dir/src/modules/solucao_valida_inicial.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:140: CMakeFiles/MercadoLivreCore.dir/all] Error 2
+make[1]: ** Esperando que outros processos terminem.
+make: *** [Makefile:146: all] Error 2
