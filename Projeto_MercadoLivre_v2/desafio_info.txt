@@ -1,0 +1,38 @@
+=== Descrição do Desafio SBPO 2025 ===
+
+Objetivo:
+O objetivo do problema de coleta de pedidos em waves é selecionar um subconjunto de pedidos do backlog, ou seja, uma wave, e um subconjunto de corredores (locais de coleta) que maximizem a produtividade do processo de coleta. Isso é conseguido ao criar condições favoráveis à geração de rotas de coleta eficientes. Para este desafio, vamos explorar uma dessas condições, que é concentrar os itens da wave na menor quantidade possível de corredores, respeitando as restrições descritas abaixo.
+
+Função Objetivo:
+Maximizar o número de itens coletados por corredor visitado, matematicamente representado por:
+
+max (Soma(o em O') Soma(i em Io) uoi) / |A'|
+
+Onde:
+- O' é o subconjunto de pedidos na wave
+- Io é o subconjunto de itens solicitados pelo pedido o em O
+- uoi é o número de unidades do item i solicitado pelo pedido o
+- A' é o subconjunto de corredores que serão visitados para coletar todos os itens em O'
+
+Restrições:
+1. Limites Operacionais no Número Total de Unidades:
+   Soma(o em O') Soma(i em Io) uoi >= LB
+   Soma(o em O') Soma(i em Io) uoi <= UB
+   Onde LB e UB são os limites inferior e superior do tamanho da wave.
+
+2. Capacidade dos Corredores:
+   Para cada item i em Io e para cada pedido o em O':
+   Soma(o em O') uoi <= Soma(a em A') uai
+   Onde uai é o número de unidades do item i disponíveis no corredor a.
+
+Conjuntos:
+- O: Conjunto de pedidos no backlog.
+- Io: Subconjunto de itens solicitados pelo pedido o em O.
+- I: Conjunto de itens, onde I = União(o em O) Io.
+- Ai: Subconjunto de corredores contendo pelo menos uma unidade do item i.
+- A: Conjunto de corredores, onde A = União(i em I) Ai.
+
+Constantes:
+- uoi: Número de unidades do item i em I solicitado pelo pedido o em O.
+- uai: Número de unidades do item i em I disponíveis no corredor a em A.
+- LB/UB: Limite inferior/superior do tamanho da wave.
