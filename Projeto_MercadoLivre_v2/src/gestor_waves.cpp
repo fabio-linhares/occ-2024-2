@@ -1,20 +1,31 @@
 #include "gestor_waves.h"
 
-GestorWaves::GestorWaves(const Deposito& dep, const Backlog& back) 
-    : deposito(dep), 
-      backlog(back),
-      localizador(dep.numItens),
-      verificador(dep.numItens),
+GestorWaves::GestorWaves(const Deposito& dep, const Backlog& back)
+    : deposito(dep), backlog(back), 
+      localizador(dep.numItens), 
+      verificador(dep.numItens), 
       analisador(back.numPedidos) {
     
-    // Inicializar estruturas auxiliares
+    // Construir as estruturas auxiliares
     localizador.construir(deposito);
     verificador.construir(deposito);
-    analisador.construir(backlog, localizador);
+    
+    // Usar o novo método calcularRelevancia para cada pedido em vez de construir
+    for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+        if (verificador.verificarDisponibilidade(backlog.pedido[pedidoId])) {
+            analisador.calcularRelevancia(pedidoId, backlog, localizador);
+        }
+    }
 }
 
 SeletorWaves::WaveCandidata GestorWaves::selecionarMelhorWave() {
-    std::vector<int> pedidosOrdenados = analisador.getPedidosOrdenadosPorRelevancia();
+    // Usar o novo método ordenarPorRelevancia em vez de getPedidosOrdenadosPorRelevancia
+    std::vector<int> pedidosOrdenados = analisador.ordenarPorRelevancia();
+    
+    // CORREÇÃO: Usar o construtor sem parâmetros para SeletorWaves
+    SeletorWaves seletor;
+    
+    // CORREÇÃO: Usar o método selecionarWaveOtima que existe na classe SeletorWaves
     return seletor.selecionarWaveOtima(backlog, pedidosOrdenados, analisador, localizador);
 }
 

@@ -15,79 +15,75 @@ struct AnalisadorRelevancia {
      */
     struct InfoPedido {
         int pedidoId;
-        int numItens;            // Quantidade de tipos de itens diferentes
-        int numUnidades;         // Quantidade total de unidades
-        int numCorredoresMinimo; // Número mínimo de corredores necessários
-        double pontuacaoRelevancia; // Pontuação calculada de relevância
+        int numItens;
+        int numUnidades;
+        int numCorredoresMinimo;
+        std::unordered_set<int> corredoresNecessarios;
+        double pontuacaoRelevancia;
     };
     
     std::vector<InfoPedido> infoPedidos;
     
     /**
      * @brief Construtor
-     * @param numPedidos Número total de pedidos no backlog
+     * @param numPedidos Número total de pedidos
      */
-    AnalisadorRelevancia(int numPedidos) : infoPedidos(numPedidos) {}
-    
-    /**
-     * @brief Inicializa a estrutura a partir do backlog e do localizador de itens
-     * @param backlog Referência ao objeto Backlog
-     * @param localizador Referência ao objeto LocalizadorItens
-     */
-    void construir(const Backlog& backlog, const LocalizadorItens& localizador) {
-        for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-            InfoPedido& info = infoPedidos[pedidoId];
-            info.pedidoId = pedidoId;
-            info.numItens = backlog.pedido[pedidoId].size();
-            
-            // Calcular número total de unidades
-            info.numUnidades = 0;
-            for (const auto& [itemId, quantidade] : backlog.pedido[pedidoId]) {
-                info.numUnidades += quantidade;
-            }
-            
-            // Calcular número mínimo de corredores necessários
-            std::unordered_set<int> corredoresNecessarios;
-            for (const auto& [itemId, quantidadeSolicitada] : backlog.pedido[pedidoId]) {
-                const auto& corredoresComItem = localizador.getCorredoresComItem(itemId);
-                
-                int quantidadeRestante = quantidadeSolicitada;
-                // Ordenar corredores por quantidade disponível (decrescente)
-                std::vector<std::pair<int, int>> corredoresOrdenados(
-                    corredoresComItem.begin(), corredoresComItem.end());
-                std::sort(corredoresOrdenados.begin(), corredoresOrdenados.end(),
-                    [](const auto& a, const auto& b) { return a.second > b.second; });
-                
-                for (const auto& [corredorId, quantidadeDisponivel] : corredoresOrdenados) {
-                    if (quantidadeRestante <= 0) break;
-                    
-                    corredoresNecessarios.insert(corredorId);
-                    quantidadeRestante -= std::min(quantidadeRestante, quantidadeDisponivel);
-                }
-            }
-            
-            info.numCorredoresMinimo = corredoresNecessarios.size();
-            
-            // Calcular pontuação de relevância (mais itens, menos corredores = melhor)
-            info.pontuacaoRelevancia = (info.numItens * info.numUnidades) / 
-                                      (double)std::max(1, info.numCorredoresMinimo);
+    AnalisadorRelevancia(int numPedidos) : infoPedidos(numPedidos) {
+        for (int i = 0; i < numPedidos; i++) {
+            infoPedidos[i].pedidoId = i;
+            infoPedidos[i].numItens = 0;
+            infoPedidos[i].numUnidades = 0;
+            infoPedidos[i].numCorredoresMinimo = 0;
+            infoPedidos[i].pontuacaoRelevancia = 0.0;
         }
     }
     
     /**
-     * @brief Obtém pedidos ordenados por relevância (do mais relevante para o menos)
-     * @return Vetor de IDs de pedidos ordenados por relevância
+     * @brief Calcula a relevância de um pedido com base na sua eficiência
+     * @param pedidoId ID do pedido
+     * @param backlog Dados do backlog
+     * @param localizador Localizador de itens
      */
-    std::vector<int> getPedidosOrdenadosPorRelevancia() const {
-        std::vector<int> pedidosOrdenados(infoPedidos.size());
-        for (int i = 0; i < infoPedidos.size(); i++) {
-            pedidosOrdenados[i] = i;
+    void calcularRelevancia(int pedidoId, const Backlog& backlog, const LocalizadorItens& localizador) {
+        InfoPedido& info = infoPedidos[pedidoId];
+        info.pedidoId = pedidoId;
+        info.numItens = backlog.pedido[pedidoId].size();
+        info.numUnidades = 0;
+        info.corredoresNecessarios.clear();
+        
+        // Calcular número total de unidades e corredores necessários
+        for (const auto& [itemId, quantidade] : backlog.pedido[pedidoId]) {
+            info.numUnidades += quantidade;
+            
+            // Adicionar todos os corredores onde este item está disponível
+            for (const auto& [corredorId, _] : localizador.getCorredoresComItem(itemId)) {
+                info.corredoresNecessarios.insert(corredorId);
+            }
+        }
+        
+        info.numCorredoresMinimo = info.corredoresNecessarios.size();
+        
+        // MODIFICADO: Foco direto na maximização do valor objetivo
+        // Antes: (info.numItens * info.numUnidades) / (double)std::max(1, info.numCorredoresMinimo)
+        info.pontuacaoRelevancia = info.numUnidades / (double)std::max(1, info.numCorredoresMinimo);
+    }
+    
+    /**
+     * @brief Ordena os pedidos por relevância (decrescente)
+     * @return Vector de IDs de pedidos ordenados por relevância
+     */
+    std::vector<int> ordenarPorRelevancia() const {
+        std::vector<int> pedidosOrdenados;
+        pedidosOrdenados.reserve(infoPedidos.size());
+        
+        for (const auto& info : infoPedidos) {
+            pedidosOrdenados.push_back(info.pedidoId);
         }
         
         std::sort(pedidosOrdenados.begin(), pedidosOrdenados.end(),
-            [this](int a, int b) {
-                return infoPedidos[a].pontuacaoRelevancia > infoPedidos[b].pontuacaoRelevancia;
-            });
+                 [this](int a, int b) {
+                     return infoPedidos[a].pontuacaoRelevancia > infoPedidos[b].pontuacaoRelevancia;
+                 });
         
         return pedidosOrdenados;
     }

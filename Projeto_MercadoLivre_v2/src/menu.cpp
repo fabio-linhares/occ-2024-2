@@ -1,114 +1,165 @@
-#include <iostream>
-#include <vector>
-#include <filesystem>
 #include "menu.h"
 #include "verificar_instancias.h"
 #include "verificar_estruturas_auxiliares.h"
 #include "solucionar_desafio.h"
 #include "validar_resultados.h"
 #include "desafio_info.h"
+#include "formatacao_terminal.h"
+#include <iostream>
+#include <vector>
+#include <filesystem>
+#include <limits>
+#include <sstream>
+#include <thread>
 
+using namespace FormatacaoTerminal;
+
+// Renomeada para corresponder à declaração em menu.h
 void mostrarMenu() {
-    std::cout << "\n===== Menu Principal =====\n";
-    std::cout << "1. Verificar as instâncias\n";
-    std::cout << "2. Verificar estruturas auxiliares\n";
-    std::cout << "3. Solucionar o desafio\n";
-    std::cout << "4. Validar resultados\n";
-    std::cout << "5. Exibir informações do desafio\n";
-    std::cout << "0. Sair\n";
-    std::cout << "=========================\n";
+    // Limpar a tela para um menu mais limpo
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+    
+    // Cabeçalho principal com borda mais sofisticada
+    std::cout << std::endl;
+    std::cout << colorir("╔══════════════════════════════════════════════════════════╗", CIANO) << std::endl;
+    std::cout << colorir("║", CIANO) << colorirBold(" Projeto MercadoLivre v2 - SBPO 2025                     ", CIANO) << colorir("║", CIANO) << std::endl;
+    std::cout << colorir("║", CIANO) << colorirBold(" Sistema de Otimização de Waves para Processamento      ", CIANO) << colorir("║", CIANO) << std::endl;
+    std::cout << colorir("╚══════════════════════════════════════════════════════════╝", CIANO) << std::endl;
+    std::cout << std::endl;
+
+    // Menu de opções com cores mais vibrantes e formato retangular
+    std::cout << colorir("┌────────────────── MENU PRINCIPAL ──────────────────┐", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("1.", AMARELO) << " " << colorir("Verificar as instâncias", BRANCO) << std::string(29, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("2.", AMARELO) << " " << colorir("Verificar estruturas auxiliares", BRANCO) << std::string(19, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("3.", AMARELO) << " " << colorir("Solucionar o desafio", BRANCO) << std::string(30, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("4.", AMARELO) << " " << colorir("Validar resultados", BRANCO) << std::string(32, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("5.", AMARELO) << " " << colorir("Exibir informações do desafio", BRANCO) << std::string(22, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("0.", AMARELO) << " " << colorir("Sair", BRANCO) << std::string(46, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("└────────────────────────────────────────────────────┘", AZUL) << std::endl;
 }
 
-// Função auxiliar para selecionar um arquivo de instância
-std::string selecionarArquivoInstancia() {
-    // Diretório onde estão os arquivos de instância
-    const std::string diretorioInstancias = "data/input"; // Ajuste conforme necessário
+// Adicionada a função que estava faltando
+void processarEscolhaMenu(int escolha) {
+    const std::string DIR_ENTRADA = "data/input";
+    const std::string DIR_SAIDA = "data/output";
     
-    // Listar arquivos no diretório
-    std::vector<std::string> arquivos;
-    try {
-        for (const auto& entry : std::filesystem::directory_iterator(diretorioInstancias)) {
-            if (entry.is_regular_file()) {
-                arquivos.push_back(entry.path().filename().string());
+    std::cout << std::endl;
+    
+    // Executar a opção escolhida
+    switch (escolha) {
+        case 1: {
+            std::cout << cabecalho("VERIFICAÇÃO DE INSTÂNCIAS") << std::endl;
+            
+            // Verificar o diretório de instâncias
+            if (!std::filesystem::exists(DIR_ENTRADA)) {
+                std::cout << colorir("Erro: Diretório de instâncias não encontrado!", VERMELHO) << std::endl;
+                break;
             }
+            
+            // Listar arquivos disponíveis
+            std::cout << colorir("Instâncias disponíveis:", VERDE) << std::endl;
+            std::vector<std::string> arquivos;
+            for (const auto& entry : std::filesystem::directory_iterator(DIR_ENTRADA)) {
+                if (entry.is_regular_file()) {
+                    arquivos.push_back(entry.path().filename().string());
+                }
+            }
+            
+            // Exibir arquivos em formato de tabela
+            std::cout << separador() << std::endl;
+            for (size_t i = 0; i < arquivos.size(); ++i) {
+                std::cout << colorir(std::to_string(i+1) + ".", AMARELO) << " " << arquivos[i] << std::endl;
+            }
+            std::cout << separador() << std::endl;
+            
+            // Solicitar escolha do usuário
+            std::cout << colorir("Digite o número da instância ou 0 para voltar: ", VERDE);
+            int escolhaArquivo;
+            std::cin >> escolhaArquivo;
+            
+            if (escolhaArquivo > 0 && escolhaArquivo <= static_cast<int>(arquivos.size())) {
+                std::string arquivoSelecionado = DIR_ENTRADA + "/" + arquivos[escolhaArquivo-1];
+                std::cout << std::endl;
+                verificarInstancias(arquivoSelecionado);
+            }
+            
+            break;
         }
-    } catch (const std::filesystem::filesystem_error& e) {
-        std::cout << "Erro ao acessar o diretório: " << e.what() << std::endl;
-        return "";
-    }
-    
-    if (arquivos.empty()) {
-        std::cout << "Nenhum arquivo encontrado no diretório de entrada.\n";
-        return "";
-    }
-    
-    // Mostrar lista de arquivos
-    std::cout << "Arquivos disponíveis:\n";
-    for (size_t i = 0; i < arquivos.size(); i++) {
-        std::cout << i + 1 << ". " << arquivos[i] << "\n";
-    }
-    
-    // Obter escolha do usuário
-    int escolhaArquivo;
-    std::cout << "Selecione um arquivo (1-" << arquivos.size() << "): ";
-    std::cin >> escolhaArquivo;
-    
-    if (escolhaArquivo < 1 || escolhaArquivo > static_cast<int>(arquivos.size())) {
-        std::cout << "Seleção inválida.\n";
-        return "";
-    }
-    
-    // Formar o caminho completo do arquivo selecionado
-    return diretorioInstancias + "/" + arquivos[escolhaArquivo - 1];
-}
+        case 2: {
+            std::cout << cabecalho("VERIFICAÇÃO DE ESTRUTURAS AUXILIARES") << std::endl;
+            
+            // Verificar o diretório de instâncias
+            if (!std::filesystem::exists(DIR_ENTRADA)) {
+                std::cout << colorir("Erro: Diretório de instâncias não encontrado!", VERMELHO) << std::endl;
+                break;
+            }
+            
+            // Listar arquivos disponíveis
+            std::cout << colorir("Instâncias disponíveis:", VERDE) << std::endl;
+            std::vector<std::string> arquivos;
+            for (const auto& entry : std::filesystem::directory_iterator(DIR_ENTRADA)) {
+                if (entry.is_regular_file()) {
+                    arquivos.push_back(entry.path().filename().string());
+                }
+            }
+            
+            // Exibir arquivos em formato de tabela
+            std::cout << separador() << std::endl;
+            for (size_t i = 0; i < arquivos.size(); ++i) {
+                std::cout << colorir(std::to_string(i+1) + ".", AMARELO) << " " << arquivos[i] << std::endl;
+            }
+            std::cout << separador() << std::endl;
+            
+            // Solicitar escolha do usuário
+            std::cout << colorir("Digite o número da instância ou 0 para voltar: ", VERDE);
+            int escolhaArquivo;
+            std::cin >> escolhaArquivo;
+            
+            if (escolhaArquivo > 0 && escolhaArquivo <= static_cast<int>(arquivos.size())) {
+                std::string arquivoSelecionado = DIR_ENTRADA + "/" + arquivos[escolhaArquivo-1];
+                std::cout << std::endl;
+                verificarEstruturasAuxiliares(arquivoSelecionado);
+            }
+            
+            break;
+        }
+        case 3: {
+            std::cout << cabecalho("SOLUÇÃO DO DESAFIO") << std::endl;
 
-void processarEscolhaMenu(int choice) {
-    switch (choice) {
-        case 0:
-            std::cout << "Saindo do programa. Até logo!\n";
+            std::stringstream ss;
+            ss << criarCabecalhoCaixa("PARÂMETROS DE EXECUÇÃO") << "\n";
+            ss << criarLinhaCaixa(colorir("• Diretório de entrada: ", CIANO) + DIR_ENTRADA) << "\n";
+            ss << criarLinhaCaixa(colorir("• Diretório de saída: ", CIANO) + DIR_SAIDA) << "\n";
+            ss << criarLinhaCaixa(colorir("• Threads utilizadas: ", CIANO) + colorirBold(std::to_string(std::thread::hardware_concurrency()), AMARELO)) << "\n";
+            ss << criarRodapeCaixa();
+
+            std::cout << ss.str() << std::endl << std::endl;
+
+            solucionarDesafio(DIR_ENTRADA, DIR_SAIDA);
             break;
-        case 1:
-            {
-                std::string arquivoSelecionado = selecionarArquivoInstancia();
-                if (!arquivoSelecionado.empty()) {
-                    verificarInstancias(arquivoSelecionado);
-                }
-            }
-            break;
-        case 2:
-            {
-                std::string arquivoSelecionado = selecionarArquivoInstancia();
-                if (!arquivoSelecionado.empty()) {
-                    verificarEstruturasAuxiliares(arquivoSelecionado);
-                }
-            }
-            break;
-        case 3:
-            {
-                // Definir diretórios de entrada e saída
-                const std::string diretorioEntrada = "data/input";
-                const std::string diretorioSaida = "data/output";
-                
-                // Chamar a função para solucionar o desafio
-                solucionarDesafio(diretorioEntrada, diretorioSaida);
-            }
-            break;
+        }
         case 4:
-            {
-                // Definir diretórios de entrada e saída
-                const std::string diretorioEntrada = "data/input";
-                const std::string diretorioSaida = "data/output";
-                const std::string arquivoLog = "data/validation_log.txt";
-                
-                // Chamar a função para validar os resultados
-                validarResultados(diretorioEntrada, diretorioSaida, arquivoLog);
-            }
+            validarResultados(DIR_ENTRADA, DIR_SAIDA);
             break;
         case 5:
             exibirInformacoesDesafio();
             break;
-        default:
-            std::cout << "Opção inválida. Tente novamente.\n";
+        case 0:
+            std::cout << colorirBold("Obrigado por usar o Sistema de Otimização de Waves!", VERDE) << std::endl;
             break;
+        default:
+            std::cout << colorir("Opção inválida. Por favor, tente novamente.", VERMELHO) << std::endl;
+    }
+    
+    if (escolha != 0) {
+        std::cout << std::endl;
+        std::cout << colorir("Pressione ENTER para continuar...", BRANCO);
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cin.get();
+        std::cout << std::endl;
     }
 }

@@ -205,7 +205,7 @@ build_project() {
     
     # Verificar se houve erros reais (não apenas avisos)
     if grep -q -i "error:" "$ERROS_FILE" || grep -q -i "erro:" "$ERROS_FILE" || grep -q -i "fatal:" "$ERROS_FILE"; then
-        print_msg "⚠️ Ocorreram erros durante a compilação. Verifique o arquivo: $ERROS_FILE" "${RED}"
+        print_msg "⚠️  Ocorreram erros durante a compilação. Verifique o arquivo: $ERROS_FILE" "${RED}"
         # Exibir os erros encontrados
         print_msg "Erros encontrados:" "${RED}"
         grep -i -E "error:|erro:|fatal:" "$ERROS_FILE"

@@ -4,16 +4,16 @@
 #include "validar_resultados.h"
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
-        std::cerr << "Uso: " << argv[0] << " <diretorio_entrada> <diretorio_saida> <arquivo_log>\n";
+    if (argc < 3) {
+        std::cerr << "Uso: " << argv[0] << " <diretorio_entrada> <diretorio_saida>\n";
         return 1;
     }
     
     std::string diretorioEntrada = argv[1];
     std::string diretorioSaida = argv[2];
-    std::string arquivoLog = argv[3];
     
-    validarResultados(diretorioEntrada, diretorioSaida, arquivoLog);
+    // Removido o terceiro argumento (arquivoLog) que não é mais necessário
+    validarResultados(diretorioEntrada, diretorioSaida);
     
     return 0;
 }

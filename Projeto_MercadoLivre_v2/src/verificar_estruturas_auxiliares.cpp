@@ -9,30 +9,18 @@
 #include "gestor_waves.h"
 
 void verificarEstruturasAuxiliares(const std::string& filePath) {
-    std::cout << "Verificando estruturas auxiliares para a instância: " << filePath << std::endl;
     try {
         // Carregar a instância
         InputParser parser;
         auto [deposito, backlog] = parser.parseFile(filePath);
         
-        std::cout << "\n=== Informações Básicas da Instância ===\n";
-        std::cout << "Número de pedidos: " << backlog.numPedidos << std::endl;
-        std::cout << "Número de itens: " << deposito.numItens << std::endl;
-        std::cout << "Número de corredores: " << deposito.numCorredores << std::endl;
-        std::cout << "Limites da wave: LB=" << backlog.wave.LB << ", UB=" << backlog.wave.UB << std::endl;
+        std::cout << "\n=== Verificando estruturas auxiliares para: " << filePath << " ===\n";
         
-        // Inicializar estruturas auxiliares
+        // === Localizador de Itens ===
+        std::cout << "\n--- Localizador de Itens ---\n";
         LocalizadorItens localizador(deposito.numItens);
         localizador.construir(deposito);
         
-        VerificadorDisponibilidade verificador(deposito.numItens);
-        verificador.construir(deposito);
-        
-        AnalisadorRelevancia analisador(backlog.numPedidos);
-        analisador.construir(backlog, localizador);
-        
-        // Exibir informações do Localizador de Itens
-        std::cout << "\n=== Localizador de Itens ===\n";
         int itemsToShow = std::min(10, deposito.numItens); // Mostrar no máximo 10 itens
         for (int i = 0; i < itemsToShow; i++) {
             const auto& corredores = localizador.getCorredoresComItem(i);
@@ -51,8 +39,11 @@ void verificarEstruturasAuxiliares(const std::string& filePath) {
             std::cout << "... e mais " << (deposito.numItens - itemsToShow) << " itens\n";
         }
         
-        // Exibir informações do Verificador de Disponibilidade
-        std::cout << "\n=== Verificador de Disponibilidade ===\n";
+        // === Verificador de Disponibilidade ===
+        std::cout << "\n--- Verificador de Disponibilidade ---\n";
+        VerificadorDisponibilidade verificador(deposito.numItens);
+        verificador.construir(deposito);
+        
         for (int i = 0; i < itemsToShow; i++) {
             std::cout << "Item " << i << ": " << verificador.estoqueTotal[i] << " unidades disponíveis\n";
         }
@@ -60,26 +51,33 @@ void verificarEstruturasAuxiliares(const std::string& filePath) {
             std::cout << "... e mais " << (deposito.numItens - itemsToShow) << " itens\n";
         }
         
-        // Exibir informações do Analisador de Relevância
-        std::cout << "\n=== Analisador de Relevância ===\n";
-        std::cout << "Top 10 pedidos mais relevantes:\n";
-        std::cout << std::setw(8) << "Pedido" << std::setw(10) << "Tipos" << std::setw(12) << "Unidades" 
-                  << std::setw(12) << "Corredores" << std::setw(15) << "Pontuação" << std::endl;
+        // === Analisador de Relevância ===
+        std::cout << "\n--- Analisador de Relevância ---\n";
+        AnalisadorRelevancia analisador(backlog.numPedidos);
         
-        auto pedidosOrdenados = analisador.getPedidosOrdenadosPorRelevancia();
-        int pedidosToShow = std::min(10, backlog.numPedidos);
-        for (int i = 0; i < pedidosToShow; i++) {
-            int pedidoId = pedidosOrdenados[i];
-            const auto& info = analisador.infoPedidos[pedidoId];
-            std::cout << std::setw(8) << pedidoId 
-                      << std::setw(10) << info.numItens 
-                      << std::setw(12) << info.numUnidades 
-                      << std::setw(12) << info.numCorredoresMinimo 
-                      << std::setw(15) << std::fixed << std::setprecision(2) << info.pontuacaoRelevancia 
-                      << std::endl;
+        // CORREÇÃO: Iterar pedidos e calcular relevância em vez de chamar construir
+        for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+            if (verificador.verificarDisponibilidade(backlog.pedido[pedidoId])) {
+                analisador.calcularRelevancia(pedidoId, backlog, localizador);
+            }
         }
-        if (backlog.numPedidos > pedidosToShow) {
-            std::cout << "... e mais " << (backlog.numPedidos - pedidosToShow) << " pedidos\n";
+        
+        // CORREÇÃO: Usar ordenarPorRelevancia em vez de getPedidosOrdenadosPorRelevancia
+        auto pedidosOrdenados = analisador.ordenarPorRelevancia();
+        
+        // Mostrar os pedidos ordenados por relevância
+        std::cout << "Pedidos ordenados por relevância (top 10):\n";
+        int contador = 0;
+        for (int pedidoId : pedidosOrdenados) {
+            auto& info = analisador.infoPedidos[pedidoId];
+            std::cout << "Pedido #" << pedidoId 
+                      << " - Itens: " << info.numItens
+                      << ", Unidades: " << info.numUnidades
+                      << ", Corredores: " << info.numCorredoresMinimo
+                      << ", Relevância: " << std::fixed << std::setprecision(2) << info.pontuacaoRelevancia << "\n";
+            
+            contador++;
+            if (contador >= 10) break;
         }
         
         // Selecionar e exibir a melhor wave
@@ -116,6 +114,8 @@ void verificarEstruturasAuxiliares(const std::string& filePath) {
             std::cout << "... e mais " << (melhorWave.corredoresNecessarios.size() - corridorsToShow) << " corredores";
         }
         std::cout << std::endl;
+        
+        std::cout << "\nVerificação de estruturas auxiliares concluída.\n";
         
     } catch (const std::exception& e) {
         std::cerr << "Erro ao verificar estruturas auxiliares: " << e.what() << std::endl;
