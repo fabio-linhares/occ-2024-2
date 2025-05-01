@@ -52,4 +52,22 @@ public:
      * @return Mapa de corredores e suas quantidades disponíveis
      */
     const std::unordered_map<int, int>& getCorredoresComItem(int itemId);
+
+    /**
+     * @brief Obtém o LocalizadorItens
+     * @return Referência constante ao objeto LocalizadorItens
+     */
+    const LocalizadorItens& getLocalizador() const { return localizador; }
+
+    /**
+     * @brief Obtém o VerificadorDisponibilidade
+     * @return Referência constante ao objeto VerificadorDisponibilidade
+     */
+    const VerificadorDisponibilidade& getVerificador() const { return verificador; }
+
+    /**
+     * @brief Obtém o AnalisadorRelevancia
+     * @return Referência constante ao objeto AnalisadorRelevancia
+     */
+    const AnalisadorRelevancia& getAnalisador() const { return analisador; }
 };
