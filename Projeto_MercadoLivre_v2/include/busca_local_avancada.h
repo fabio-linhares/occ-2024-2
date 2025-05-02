@@ -47,40 +47,25 @@ public:
     };
     
     /**
+     * @brief Enumeração para definir o tipo de movimento
+     */
+    enum class TipoMovimento {
+        ADICIONAR,
+        REMOVER,
+        SWAP,
+        CHAIN_EXCHANGE,
+        PATH_RELINKING
+    };
+
+    /**
      * @brief Estrutura para representar um movimento na busca local
      */
     struct Movimento {
-        enum class Tipo {
-            ADICIONAR,
-            REMOVER,
-            SWAP,
-            CHAIN_EXCHANGE,
-            PATH_RELINKING
-        } tipo;
+        TipoMovimento tipo;           // Corrigido para usar o enum
         
-        std::vector<int> pedidosRemover;     // Pedidos a remover
-        std::vector<int> pedidosAdicionar;   // Pedidos a adicionar
-        double deltaValorObjetivo;           // Mudança estimada no valor objetivo
-        
-        // Construtor para movimentos simples
-        Movimento(Tipo t, int pedido, double delta) 
-            : tipo(t), deltaValorObjetivo(delta) {
-            if (t == Tipo::ADICIONAR) {
-                pedidosAdicionar.push_back(pedido);
-            } else if (t == Tipo::REMOVER) {
-                pedidosRemover.push_back(pedido);
-            }
-        }
-        
-        // Construtor para trocas simples
-        Movimento(Tipo t, int pedidoRemover, int pedidoAdicionar, double delta)
-            : tipo(t), deltaValorObjetivo(delta) {
-            pedidosRemover.push_back(pedidoRemover);
-            pedidosAdicionar.push_back(pedidoAdicionar);
-        }
-        
-        // Construtor sem argumentos
-        Movimento() : tipo(Tipo::SWAP), deltaValorObjetivo(0.0) {}
+        std::vector<int> pedidosRemover;
+        std::vector<int> pedidosAdicionar;
+        double deltaValorObjetivo;
     };
     
     /**
@@ -108,49 +93,36 @@ public:
      * @brief Estrutura para configurar o ILS
      */
     struct ConfigILS {
-        int maxIteracoes = 100;           // Número máximo de iterações
-        double nivelPerturbacao = 0.3;    // Nível de perturbação (0.0 a 1.0)
-        int maxIteracoesSemMelhoria = 50; // Máximo de iterações sem melhoria
+        int maxIteracoes = 100;
+        double nivelPerturbacao = 0.3;
+        int maxIteracoesSemMelhoria = 50;
+        double temperaturaInicial = 100.0;  // Adicionado
+        double taxaResfriamento = 0.95;     // Adicionado
     };
     
     /**
      * @brief Estrutura para estatísticas de execução
      */
     struct Estatisticas {
-        int iteracoesTotais;                // Total de iterações realizadas
-        int melhorias;                      // Número de melhorias encontradas
-        int tempoExecucaoMs;                // Tempo de execução em milissegundos
-        std::string algoritmoUsado;         // Nome do algoritmo utilizado
-        
-        // Estatísticas adicionais
-        int movimentosAceitos;              // Número de movimentos aceitos
-        int movimentosRejeitados;           // Número de movimentos rejeitados
-        int iteracoesIntensificacao;        // Número de iterações em modo intensificação
-        int iteracoesDiversificacao;        // Número de iterações em modo diversificação
-        double melhorValorObjetivo;         // Melhor valor objetivo encontrado
-        double valorObjetivoInicial;        // Valor objetivo da solução inicial
-        double melhoria;                    // Percentual de melhoria
-        
-        // Estatísticas específicas para métodos
-        // Busca Tabu
-        int movimentosTabu;                 // Número de movimentos tabu encontrados
-        int aspiracoesSucedidas;            // Número de vezes que o critério de aspiração foi usado
-        
-        // VNS
-        int mudancasVizinhanca;             // Número de mudanças de estrutura de vizinhança
-        int shakesSucedidos;                // Número de perturbações que levaram a melhorias
-        
-        // ILS
-        int perturbacoes;                   // Número de perturbações realizadas
-        int buscasLocais;                   // Número de buscas locais completas executadas
-        
-        // Construtor com inicialização
-        Estatisticas() : 
-            iteracoesTotais(0), melhorias(0), tempoExecucaoMs(0), algoritmoUsado("Nenhum"),
-            movimentosAceitos(0), movimentosRejeitados(0), iteracoesIntensificacao(0),
-            iteracoesDiversificacao(0), melhorValorObjetivo(0.0), valorObjetivoInicial(0.0),
-            melhoria(0.0), movimentosTabu(0), aspiracoesSucedidas(0), mudancasVizinhanca(0),
-            shakesSucedidos(0), perturbacoes(0), buscasLocais(0) {}
+        int iteracoesTotais;
+        int melhorias;
+        int tempoExecucaoMs;
+        std::string algoritmoUsado;
+        int movimentosAceitos;
+        int movimentosRejeitados;
+        int iteracoesIntensificacao;
+        int iteracoesDiversificacao;
+        double melhorValorObjetivo;
+        double valorObjetivoInicial;
+        double melhoria;
+        int movimentosTabu;
+        int aspiracoesSucedidas;
+        int mudancasVizinhanca;
+        int shakesSucedidos;
+        int perturbacoes;
+        int buscasLocais;
+        int reiniciosForçados;               // Adicionado
+        int aceitacoesEstrategicas;          // Adicionado
     };
 
     /**

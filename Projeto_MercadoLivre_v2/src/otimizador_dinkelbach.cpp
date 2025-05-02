@@ -1,4 +1,5 @@
 #include "otimizador_dinkelbach.h"
+#include "busca_local_avancada.h"
 #include <chrono>
 #include <iostream>
 #include <iomanip>
@@ -15,7 +16,9 @@ OtimizadorDinkelbach::OtimizadorDinkelbach(
     verificador_(verificador),
     epsilon_(0.0001),
     maxIteracoes_(100),
-    usarBranchAndBound_(true) {
+    usarBranchAndBound_(true),
+    usarBuscaLocalAvancada_(false),
+    limiteTempoBuscaLocal_(1.0) {
 }
 
 void OtimizadorDinkelbach::configurarParametros(double epsilon, int maxIteracoes, bool usarBranchAndBound) {
@@ -220,10 +223,10 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
               });
     
     // Construir solução selecionando pedidos em ordem de pontuação
-    SolucaoWave solucao;
+    SolucaoWave solucaoGulosa;
     std::unordered_set<int> corredoresUnicos;
     int totalUnidades = 0;
-    double valorObjetivo = 0;
+    double valorSolucao = 0;
     
     for (const auto& pedido : pedidosPontuados) {
         // Verificar se adicionar este pedido não excede o limite superior
@@ -232,7 +235,7 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
         }
         
         // Adicionar pedido à solução
-        solucao.pedidosWave.push_back(pedido.pedidoId);
+        solucaoGulosa.pedidosWave.push_back(pedido.pedidoId);
         totalUnidades += pedido.unidades;
         
         // Adicionar corredores únicos
@@ -250,8 +253,8 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
     if (totalUnidades < LB) {
         for (const auto& pedido : pedidosPontuados) {
             // Verificar se o pedido já está na solução
-            if (std::find(solucao.pedidosWave.begin(), solucao.pedidosWave.end(), pedido.pedidoId) 
-                != solucao.pedidosWave.end()) {
+            if (std::find(solucaoGulosa.pedidosWave.begin(), solucaoGulosa.pedidosWave.end(), pedido.pedidoId) 
+                != solucaoGulosa.pedidosWave.end()) {
                 continue;
             }
             
@@ -261,7 +264,7 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
             }
             
             // Adicionar pedido à solução
-            solucao.pedidosWave.push_back(pedido.pedidoId);
+            solucaoGulosa.pedidosWave.push_back(pedido.pedidoId);
             totalUnidades += pedido.unidades;
             
             // Adicionar corredores únicos
@@ -285,8 +288,8 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
         
         for (int pedidoId = 0; pedidoId < backlog_.numPedidos; pedidoId++) {
             // Verificar se o pedido já está na solução
-            if (std::find(solucao.pedidosWave.begin(), solucao.pedidosWave.end(), pedidoId) 
-                != solucao.pedidosWave.end()) {
+            if (std::find(solucaoGulosa.pedidosWave.begin(), solucaoGulosa.pedidosWave.end(), pedidoId) 
+                != solucaoGulosa.pedidosWave.end()) {
                 continue;
             }
             
@@ -334,7 +337,7 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
             }
             
             // Adicionar pedido à solução
-            solucao.pedidosWave.push_back(pedido.pedidoId);
+            solucaoGulosa.pedidosWave.push_back(pedido.pedidoId);
             totalUnidades += pedido.unidades;
             
             // Adicionar corredores únicos
@@ -350,12 +353,30 @@ OtimizadorDinkelbach::resolverSubproblemaComHeuristica(double lambda, int LB, in
     }
     
     // Converter conjunto de corredores para vetor
-    solucao.corredoresWave.assign(corredoresUnicos.begin(), corredoresUnicos.end());
+    solucaoGulosa.corredoresWave.assign(corredoresUnicos.begin(), corredoresUnicos.end());
     
     // Calcular valor objetivo
-    valorObjetivo = totalUnidades - lambda * corredoresUnicos.size();
+    valorSolucao = totalUnidades - lambda * corredoresUnicos.size();
     
-    return {solucao, valorObjetivo};
+    // Refinar com busca local avançada
+    if (usarBuscaLocalAvancada_) {
+        BuscaLocalAvancada::Solucao solucaoBL;
+        solucaoBL.pedidosWave = solucaoGulosa.pedidosWave;
+        solucaoBL.corredoresWave = solucaoGulosa.corredoresWave;
+        
+        BuscaLocalAvancada buscaLocal(deposito_, backlog_, localizador_, verificador_, 2.0);
+        auto solucaoRefinada = buscaLocal.otimizar(solucaoBL, LB, UB, 
+                                                 BuscaLocalAvancada::TipoBuscaLocal::BUSCA_TABU);
+        
+        solucaoGulosa.pedidosWave = solucaoRefinada.pedidosWave;
+        solucaoGulosa.corredoresWave = solucaoRefinada.corredoresWave;
+        
+        // Recalcular valor
+        double valorSubproblema = calcularValorSubproblema(solucaoGulosa, lambda);
+        return {solucaoGulosa, valorSubproblema};
+    }
+    
+    return {solucaoGulosa, valorSolucao};
 }
 
 double OtimizadorDinkelbach::calcularValorObjetivo(const std::vector<int>& pedidosWave) {
@@ -425,4 +446,17 @@ void OtimizadorDinkelbach::exibirDetalhesConvergencia() const {
     }
     
     std::cout << "\n";
+}
+
+double OtimizadorDinkelbach::calcularValorSubproblema(const SolucaoWave& solucao, double lambda) {
+    // Calcular total de unidades
+    int totalUnidades = 0;
+    for (int pedidoId : solucao.pedidosWave) {
+        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
+            totalUnidades += quantidade;
+        }
+    }
+    
+    // Subproblema de Dinkelbach: (totalUnidades - lambda * numCorredores)
+    return totalUnidades - lambda * solucao.corredoresWave.size();
 }

@@ -61,6 +61,22 @@ public:
     void configurarParametros(double epsilon, int maxIteracoes, bool usarBranchAndBound = true);
 
     /**
+     * @brief Define se deve usar Busca Local Avançada
+     * @param usar Verdadeiro para usar, falso caso contrário
+     */
+    void setUsarBuscaLocalAvancada(bool usar) {
+        usarBuscaLocalAvancada_ = usar;
+    }
+    
+    /**
+     * @brief Define limite de tempo para Busca Local Avançada
+     * @param limite Tempo em segundos
+     */
+    void setLimiteTempoBuscaLocal(double limite) {
+        limiteTempoBuscaLocal_ = limite;
+    }
+
+    /**
      * @brief Otimiza a wave usando o algoritmo de Dinkelbach
      * @param LB Limite inferior para o número de unidades
      * @param UB Limite superior para o número de unidades
@@ -88,6 +104,12 @@ private:
     int maxIteracoes_;
     bool usarBranchAndBound_;
     InfoConvergencia infoConvergencia_;
+
+    // Controle para uso de busca local avançada
+    bool usarBuscaLocalAvancada_ = true;
+    
+    // Limite de tempo para busca local (em segundos)
+    double limiteTempoBuscaLocal_ = 2.0;
 
     /**
      * @brief Resolve o subproblema linearizado usando branch-and-bound para instâncias pequenas
@@ -120,4 +142,12 @@ private:
      * @return Lista de IDs dos corredores necessários
      */
     std::vector<int> construirListaCorredores(const std::vector<int>& pedidosWave);
+
+    /**
+     * @brief Calcula o valor do subproblema linearizado
+     * @param solucao Solução a avaliar
+     * @param lambda Valor atual de lambda
+     * @return Valor do subproblema (totalUnidades - lambda * numCorredores)
+     */
+    double calcularValorSubproblema(const SolucaoWave& solucao, double lambda);
 };

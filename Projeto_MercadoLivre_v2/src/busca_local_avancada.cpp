@@ -5,6 +5,7 @@
 #include <cmath>
 #include <set>
 
+
 BuscaLocalAvancada::BuscaLocalAvancada(
     const Deposito& deposito,
     const Backlog& backlog,
@@ -29,6 +30,8 @@ BuscaLocalAvancada::BuscaLocalAvancada(
     estatisticas_.melhorias = 0;
     estatisticas_.tempoExecucaoMs = 0;
     estatisticas_.algoritmoUsado = "Nenhum";
+
+    inicializarMemoriaLongoPrazo(backlog_.numPedidos);
 }
 
 void BuscaLocalAvancada::iniciarEstatisticas(const Solucao& solucaoInicial) {
@@ -149,152 +152,186 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::buscaTabu(
     const Solucao& solucaoInicial, 
     int LB, int UB
 ) {
-    // Inicialização
-    Solucao melhorSolucao = solucaoInicial;
+    // Inicializar solução atual e melhor solução global
     Solucao solucaoAtual = solucaoInicial;
+    Solucao melhorSolucao = solucaoInicial;
     
-    // Calcular valor objetivo para garantir que esteja atualizado
-    calcularValorObjetivo(melhorSolucao);
+    // Calcular valor objetivo inicial
     calcularValorObjetivo(solucaoAtual);
+    calcularValorObjetivo(melhorSolucao);
     
-    // Estrutura para lista tabu: <pedidoId, iteração até quando é tabu>
-    std::unordered_map<int, int> listaTabu;
+    // Inicializar estatísticas
+    iniciarEstatisticas(solucaoInicial);
+    estatisticas_.algoritmoUsado = "Busca Tabu";
+    estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
     
-    // Frequência para memória de longo prazo
-    std::unordered_map<int, int> frequenciaPedidos;
+    // Estruturas da busca tabu
+    std::unordered_map<int, int> listaTabu; // pedidoId -> iteracao de liberação
+    std::unordered_map<int, int> frequenciaPedidos; // pedidoId -> frequência
     
+    // Inicializar frequências
+    for (int i = 0; i < backlog_.numPedidos; i++) {
+        frequenciaPedidos[i] = 0;
+    }
+    
+    // Parâmetros da busca
     int iteracaoAtual = 0;
     int iteracoesSemMelhoria = 0;
-    bool intensificacao = false;
-    bool diversificacao = false;
+    bool modoIntensificacao = false;
+    bool modoDiversificacao = false;
     
     // Loop principal da busca tabu
     while (!tempoExcedido() && iteracoesSemMelhoria < configTabu_.maxIteracoesSemMelhoria) {
-        // Gerar vizinhança
-        std::vector<Movimento> movimentos;
+        estatisticas_.iteracoesTotais++;
         
-        if (intensificacao) {
-            // Durante intensificação, focar em movimentos de pequeno impacto
-            movimentos = gerarMovimentosSwap(solucaoAtual, LB, UB);
-        } else if (diversificacao) {
-            // Durante diversificação, usar chain-exchange para movimentos maiores
-            movimentos = gerarMovimentosChainExchange(solucaoAtual, LB, UB);
+        // Gerar vizinhança
+        std::vector<Movimento> vizinhanca;
+        
+        if (modoIntensificacao) {
+            // Intensificação: explorar regiões promissoras 
+            vizinhanca = gerarMovimentosIntensificacao(solucaoAtual, LB, UB);
+            estatisticas_.iteracoesIntensificacao++;
+        } else if (modoDiversificacao) {
+            // Diversificação: explorar áreas pouco visitadas
+            vizinhanca = gerarMovimentosDiversificacao(solucaoAtual, LB, UB);
+            estatisticas_.iteracoesDiversificacao++;
         } else {
-            // Normalmente, usar uma mistura de movimentos
-            auto swaps = gerarMovimentosSwap(solucaoAtual, LB, UB);
-            auto chains = gerarMovimentosChainExchange(solucaoAtual, LB, UB);
+            // Vizinhança padrão: combinação de swaps e chain-exchange
+            std::vector<Movimento> swaps = gerarMovimentosSwap(solucaoAtual, LB, UB);
+            std::vector<Movimento> chains = gerarMovimentosChainExchange(solucaoAtual, LB, UB);
             
-            movimentos.insert(movimentos.end(), swaps.begin(), swaps.end());
-            movimentos.insert(movimentos.end(), chains.begin(), chains.end());
+            vizinhanca.insert(vizinhanca.end(), swaps.begin(), swaps.end());
+            vizinhanca.insert(vizinhanca.end(), chains.begin(), chains.end());
         }
         
-        // Filtrar movimentos tabu, a menos que satisfaçam critério de aspiração
-        std::vector<Movimento> movimentosPermitidos;
-        for (const auto& movimento : movimentos) {
-            bool tabu = false;
-            
+        // Se não encontramos vizinhos viáveis, tentar estratégias alternativas
+        if (vizinhanca.empty()) {
+            if (!modoIntensificacao && !modoDiversificacao) {
+                modoIntensificacao = true;
+                continue;
+            } else if (modoIntensificacao) {
+                modoIntensificacao = false;
+                modoDiversificacao = true;
+                continue;
+            } else {
+                // Se já tentamos tudo, reiniciar da melhor solução com perturbação
+                solucaoAtual = perturbarSolucao(melhorSolucao, 0.3, LB, UB);
+                modoDiversificacao = false;
+                estatisticas_.reiniciosForçados++;
+                continue;
+            }
+        }
+        
+        // Encontrar o melhor movimento não-tabu ou com aspiração
+        Movimento melhorMovimento;
+        double melhorDelta = -std::numeric_limits<double>::max();
+        bool movimentoEncontrado = false;
+        
+        for (const Movimento& movimento : vizinhanca) {
             // Verificar se o movimento é tabu
+            bool ehTabu = false;
             for (int pedidoId : movimento.pedidosRemover) {
                 if (listaTabu.find(pedidoId) != listaTabu.end() && 
                     listaTabu[pedidoId] > iteracaoAtual) {
-                    tabu = true;
+                    ehTabu = true;
                     break;
                 }
             }
             
-            for (int pedidoId : movimento.pedidosAdicionar) {
-                if (listaTabu.find(pedidoId) != listaTabu.end() && 
-                    listaTabu[pedidoId] > iteracaoAtual) {
-                    tabu = true;
-                    break;
-                }
-            }
-            
-            // Critério de aspiração: aceitar movimento tabu se ele melhora a melhor solução
+            // Calcular delta real aplicando o movimento
             Solucao novaSolucao = aplicarMovimento(solucaoAtual, movimento);
-            double novoValor = calcularValorObjetivo(novaSolucao);
+            double delta = novaSolucao.valorObjetivo - solucaoAtual.valorObjetivo;
             
-            if (!tabu || novoValor > melhorSolucao.valorObjetivo) {
-                movimentosPermitidos.push_back(movimento);
+            // Critério de aceitação: não é tabu OU satisfaz critério de aspiração
+            if (!ehTabu || novaSolucao.valorObjetivo > melhorSolucao.valorObjetivo) {
+                if (delta > melhorDelta) {
+                    melhorDelta = delta;
+                    melhorMovimento = movimento;
+                    movimentoEncontrado = true;
+                    
+                    if (ehTabu) {
+                        estatisticas_.aspiracoesSucedidas++;
+                    }
+                }
+            } else {
+                estatisticas_.movimentosTabu++;
             }
         }
         
-        if (movimentosPermitidos.empty()) {
-            // Se não há movimentos permitidos, diversificar
-            diversificacao = true;
-            intensificacao = false;
+        // Se não encontramos movimento viável, tentar estratégias alternativas
+        if (!movimentoEncontrado) {
+            if (!modoIntensificacao && !modoDiversificacao) {
+                modoIntensificacao = true;
+            } else if (modoIntensificacao) {
+                modoIntensificacao = false;
+                modoDiversificacao = true;
+            } else {
+                modoDiversificacao = false;
+                // Reiniciar com perturbação forte
+                solucaoAtual = perturbarSolucao(melhorSolucao, 0.4, LB, UB);
+                estatisticas_.reiniciosForçados++;
+            }
             continue;
         }
         
-        // Selecionar o melhor movimento não tabu
-        auto melhorMovimento = *std::max_element(movimentosPermitidos.begin(), movimentosPermitidos.end(),
-            [](const Movimento& a, const Movimento& b) {
-                return a.deltaValorObjetivo < b.deltaValorObjetivo;
-            });
-        
-        // Aplicar o movimento
+        // Aplicar o melhor movimento
         solucaoAtual = aplicarMovimento(solucaoAtual, melhorMovimento);
+        iteracaoAtual++;
         
-        // Atualizar lista tabu
-        int duracaoTabu = configTabu_.duracaoTabuBase;
-        
-        // Duração tabu dinâmica
-        if (iteracoesSemMelhoria > configTabu_.maxIteracoesSemMelhoria / 2) {
-            // Aumentar duração tabu quando estagnado
-            duracaoTabu = configTabu_.duracaoTabuBase * 2;
-        }
-        
+        // Atualizar estruturas tabu
         for (int pedidoId : melhorMovimento.pedidosRemover) {
+            // Duração tabu dinâmica baseada no tamanho do problema e iteração atual
+            int duracaoTabu = configTabu_.duracaoTabuBase + 
+                            (iteracaoAtual % 5); // Pequena variação
             listaTabu[pedidoId] = iteracaoAtual + duracaoTabu;
+            
+            // Atualizar frequência para memória de longo prazo
+            frequenciaPedidos[pedidoId]++;
+            frequenciaPedidos_[pedidoId]++;
+            recenciaPedidos_[pedidoId] = iteracaoAtual;
         }
         
         for (int pedidoId : melhorMovimento.pedidosAdicionar) {
-            listaTabu[pedidoId] = iteracaoAtual + duracaoTabu;
+            frequenciaPedidos[pedidoId]++;
         }
         
-        // Atualizar frequência para memória de longo prazo
-        if (configTabu_.usarMemoriaLongoPrazo) {
-            for (int pedidoId : melhorMovimento.pedidosRemover) {
-                frequenciaPedidos[pedidoId]++;
-            }
-            
-            for (int pedidoId : melhorMovimento.pedidosAdicionar) {
-                frequenciaPedidos[pedidoId]++;
-            }
-        }
-        
-        // Verificar se melhorou a melhor solução
+        // Verificar se melhorou a melhor solução global
         if (solucaoAtual.valorObjetivo > melhorSolucao.valorObjetivo) {
             melhorSolucao = solucaoAtual;
             iteracoesSemMelhoria = 0;
+            estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
             estatisticas_.melhorias++;
             
-            // Desativar mecanismos de intensificação/diversificação após melhoria
-            intensificacao = false;
-            diversificacao = false;
+            // Atualizar qualidade
+            for (int pedidoId : solucaoAtual.pedidosWave) {
+                qualidadePedidos_[pedidoId] += 1.0;
+            }
+            
+            // Reset dos modos de intensificação/diversificação
+            modoIntensificacao = false;
+            modoDiversificacao = false;
         } else {
             iteracoesSemMelhoria++;
         }
         
-        // Verificar se é momento de intensificação ou diversificação
-        if (configTabu_.usarMemoriaLongoPrazo) {
-            if (iteracoesSemMelhoria > 0 && iteracoesSemMelhoria % configTabu_.ciclosIntensificacao == 0) {
-                intensificacao = true;
-                diversificacao = false;
-            } else if (iteracoesSemMelhoria > 0 && iteracoesSemMelhoria % configTabu_.ciclosDiversificacao == 0) {
-                intensificacao = false;
-                diversificacao = true;
-            }
+        // Ativar estratégias de intensificação/diversificação baseado no progresso
+        if (iteracoesSemMelhoria > 0 && iteracoesSemMelhoria % configTabu_.ciclosIntensificacao == 0) {
+            modoIntensificacao = true;
+            modoDiversificacao = false;
+        } else if (iteracoesSemMelhoria > 0 && 
+                 iteracoesSemMelhoria % configTabu_.ciclosDiversificacao == 0) {
+            modoIntensificacao = false;
+            modoDiversificacao = true;
+        } else {
+            modoIntensificacao = false;
+            modoDiversificacao = false;
         }
-        
-        iteracaoAtual++;
-        estatisticas_.iteracoesTotais++;
     }
     
-    // Registrar tempo de execução nas estatísticas
-    auto tempoFim = std::chrono::high_resolution_clock::now();
+    // Registrar estatísticas finais
     estatisticas_.tempoExecucaoMs = 
-        std::chrono::duration_cast<std::chrono::milliseconds>(tempoFim - tempoInicio_).count();
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - tempoInicio_).count();
     
     return melhorSolucao;
 }
@@ -346,7 +383,7 @@ std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosSw
             
             // Criar movimento de troca
             Movimento movimento;
-            movimento.tipo = Movimento::Tipo::SWAP;
+            movimento.tipo = TipoMovimento::SWAP;
             movimento.pedidosRemover.push_back(pedidoNaWave);
             movimento.pedidosAdicionar.push_back(pedidoFora);
             
@@ -368,622 +405,792 @@ std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosSw
 // Implementações iniciais para o restante dos métodos
 // Estas serão completadas em implementações futuras
 
-BuscaLocalAvancada::Solucao BuscaLocalAvancada::vns(const Solucao& solucaoInicial, int LB, int UB) {
-    // Inicialização
-    iniciarEstatisticas(solucaoInicial);
-    
+BuscaLocalAvancada::Solucao BuscaLocalAvancada::vns(
+    const Solucao& solucaoInicial, 
+    int LB, int UB
+) {
+    // Inicializar melhor solução e solução atual
     Solucao melhorSolucao = solucaoInicial;
     Solucao solucaoAtual = solucaoInicial;
     
-    // Calcular valor objetivo para garantir que esteja atualizado
+    // Calcular valor objetivo inicial
     calcularValorObjetivo(melhorSolucao);
     calcularValorObjetivo(solucaoAtual);
     
-    // Estatísticas iniciais
-    estatisticas_.valorObjetivoInicial = solucaoInicial.valorObjetivo;
-    estatisticas_.melhorValorObjetivo = solucaoInicial.valorObjetivo;
+    // Inicializar estatísticas
+    iniciarEstatisticas(solucaoInicial);
+    estatisticas_.algoritmoUsado = "Variable Neighborhood Search";
+    estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
     
-    // Definir estruturas de vizinhança
-    enum Vizinhanca {
-        SWAP_SIMPLE = 0,     // Troca simples de 1x1 pedidos
-        SWAP_CHAIN_1X2 = 1,  // Troca de 1 por 2 pedidos
-        SWAP_CHAIN_2X1 = 2,  // Troca de 2 por 1 pedidos
-        SWAP_CHAIN_2X2 = 3   // Troca de 2 por 2 pedidos
-    };
-    
-    int k = 0;  // Índice da vizinhança atual
-    int kMax = configVNS_.kMax;  // Número máximo de vizinhanças
-    
+    // Variáveis de controle
     int iteracoesSemMelhoria = 0;
-    int iteracao = 0;
+    int k = 1; // Índice da estrutura de vizinhança atual
     
     // Loop principal do VNS
-    while (iteracao < configVNS_.maxIteracoesSemMelhoria && !tempoExcedido()) {
-        iteracao++;
+    while (!tempoExcedido() && iteracoesSemMelhoria < configVNS_.maxIteracoesSemMelhoria) {
         estatisticas_.iteracoesTotais++;
         
-        // 1. Shaking (Perturbação) - Gerar solução da vizinhança k
-        Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, k, LB, UB);
+        // Fase de Shaking: perturbar a solução atual com intensidade proporcional a k
+        double intensidadePerturbacao = 0.1 * k; // Ajustar conforme necessário
+        Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, intensidadePerturbacao, LB, UB);
         estatisticas_.perturbacoes++;
         
-        // 2. Local Search - Busca local a partir da solução perturbada
-        Solucao solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, k, LB, UB);
+        // Fase de Busca Local: explorar a vizinhança da solução perturbada
+        Solucao solucaoMelhorada;
+        
+        // Escolher tipo de vizinhança baseado em k
+        switch (k % 3) {
+            case 0:
+                // Vizinhança simples (swaps)
+                solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, 0, LB, UB);
+                break;
+                
+            case 1:
+                // Vizinhança de chain-exchange
+                solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, 1, LB, UB);
+                break;
+                
+            case 2:
+                // Combinação de vizinhanças
+                solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, 2, LB, UB);
+                break;
+        }
+        
         estatisticas_.buscasLocais++;
         
-        // 3. Move or Not - Decidir se aceita a nova solução
+        // Verificar se houve melhoria
         if (solucaoMelhorada.valorObjetivo > solucaoAtual.valorObjetivo) {
-            // Aceitar a solução melhorada
+            // Aceitar a nova solução
             solucaoAtual = solucaoMelhorada;
-            k = 0;  // Reiniciar com a primeira vizinhança
+            k = 1; // Reiniciar estrutura de vizinhança
             iteracoesSemMelhoria = 0;
             estatisticas_.shakesSucedidos++;
             
-            // Verificar se melhorou a melhor solução global
+            // Verificar se é a melhor global
             if (solucaoAtual.valorObjetivo > melhorSolucao.valorObjetivo) {
                 melhorSolucao = solucaoAtual;
-                estatisticas_.melhorias++;
                 estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
+                estatisticas_.melhorias++;
             }
         } else {
-            // Não aceitar, mudar para próxima vizinhança
-            k = (k + 1) % kMax;
+            // Passar para a próxima estrutura de vizinhança
+            k++;
             iteracoesSemMelhoria++;
+            
+            // Reiniciar ciclo de vizinhanças se atingir o máximo
+            if (k > configVNS_.kMax) {
+                k = 1;
+            }
+            
             estatisticas_.mudancasVizinhanca++;
         }
-        
-        // Condição de parada
-        if (iteracoesSemMelhoria >= configVNS_.maxIteracoesSemMelhoria) {
-            break;
-        }
     }
     
-    // Registrar tempo de execução nas estatísticas
-    auto tempoFim = std::chrono::high_resolution_clock::now();
+    // Registrar estatísticas finais
     estatisticas_.tempoExecucaoMs = 
-        std::chrono::duration_cast<std::chrono::milliseconds>(tempoFim - tempoInicio_).count();
-    
-    // Calcular melhoria
-    if (estatisticas_.valorObjetivoInicial > 0) {
-        estatisticas_.melhoria = (estatisticas_.melhorValorObjetivo - estatisticas_.valorObjetivoInicial) 
-                               / estatisticas_.valorObjetivoInicial * 100.0;
-    }
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - tempoInicio_).count();
     
     return melhorSolucao;
 }
 
-BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao& solucaoInicial, int LB, int UB) {
-    // Inicialização
-    iniciarEstatisticas(solucaoInicial);
-    
-    Solucao melhorSolucao = solucaoInicial;
+BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(
+    const Solucao& solucaoInicial, 
+    int LB, int UB
+) {
+    // Inicializar solução atual e melhor solução
     Solucao solucaoAtual = solucaoInicial;
+    Solucao melhorSolucao = solucaoInicial;
     
-    // Calcular valor objetivo para garantir que esteja atualizado
-    calcularValorObjetivo(melhorSolucao);
+    // Calcular valor objetivo inicial
     calcularValorObjetivo(solucaoAtual);
+    calcularValorObjetivo(melhorSolucao);
     
-    // Estatísticas iniciais
-    estatisticas_.valorObjetivoInicial = solucaoInicial.valorObjetivo;
-    estatisticas_.melhorValorObjetivo = solucaoInicial.valorObjetivo;
+    // Inicializar estatísticas
+    iniciarEstatisticas(solucaoInicial);
+    estatisticas_.algoritmoUsado = "Iterated Local Search";
+    estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
     
-    // Realizar busca local inicial
+    // Primeiro, melhorar a solução inicial com busca local
     solucaoAtual = buscaLocalBasica(solucaoAtual, 0, LB, UB);
     estatisticas_.buscasLocais++;
     
     // Atualizar melhor solução se necessário
     if (solucaoAtual.valorObjetivo > melhorSolucao.valorObjetivo) {
         melhorSolucao = solucaoAtual;
-        estatisticas_.melhorias++;
         estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
+        estatisticas_.melhorias++;
     }
     
+    // Variáveis de controle
     int iteracoesSemMelhoria = 0;
+    double nivelPerturbacao = configILS_.nivelPerturbacao;
+    double temperatura = configILS_.temperaturaInicial;
     
     // Loop principal do ILS
-    for (int i = 0; i < configILS_.maxIteracoes && !tempoExcedido(); i++) {
+    for (int iteracao = 0; 
+         iteracao < configILS_.maxIteracoes && 
+         !tempoExcedido() && 
+         iteracoesSemMelhoria < configILS_.maxIteracoesSemMelhoria; 
+         iteracao++) {
+        
         estatisticas_.iteracoesTotais++;
         
-        // 1. Perturbação - aumentar intensidade gradualmente se não houver melhoria
-        double intensidadePerturbacao = configILS_.nivelPerturbacao * 
-                                         (1.0 + iteracoesSemMelhoria / 10.0);
-        
-        // Limitar intensidade máxima
-        intensidadePerturbacao = std::min(intensidadePerturbacao, 3.0);
-        
-        Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, intensidadePerturbacao, LB, UB);
+        // Fase de Perturbação
+        Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, nivelPerturbacao, LB, UB);
         estatisticas_.perturbacoes++;
         
-        // 2. Busca Local
-        Solucao solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, 0, LB, UB);
+        // Fase de Busca Local
+        // Alternamos entre tipos de busca local para diversificar
+        int tipoBusca = iteracao % 3;
+        Solucao solucaoMelhorada = buscaLocalBasica(solucaoPerturbada, tipoBusca, LB, UB);
         estatisticas_.buscasLocais++;
         
-        // 3. Critério de Aceitação - aceitar se melhorar a solução atual
-        if (solucaoMelhorada.valorObjetivo > solucaoAtual.valorObjetivo) {
+        // Fase de Aceitação - baseada em critério de Metropolis
+        double delta = solucaoMelhorada.valorObjetivo - solucaoAtual.valorObjetivo;
+        
+        // Aceitar se melhorou ou probabilisticamente baseado em temperatura
+        if (delta > 0) {
+            // Aceitar melhoria sempre
             solucaoAtual = solucaoMelhorada;
             iteracoesSemMelhoria = 0;
             
-            // Verificar se melhorou a melhor solução global
-            if (solucaoAtual.valorObjetivo > melhorSolucao.valorObjetivo) {
-                melhorSolucao = solucaoAtual;
-                estatisticas_.melhorias++;
+            // Atualizar melhor solução global
+            if (solucaoMelhorada.valorObjetivo > melhorSolucao.valorObjetivo) {
+                melhorSolucao = solucaoMelhorada;
                 estatisticas_.melhorValorObjetivo = melhorSolucao.valorObjetivo;
+                estatisticas_.melhorias++;
             }
         } else {
-            iteracoesSemMelhoria++;
-            
-            // Aceitação baseada em probabilidade decrescente (semelhante a SA)
-            double delta = solucaoMelhorada.valorObjetivo - solucaoAtual.valorObjetivo;
-            double temperatura = 0.1 * std::exp(-0.1 * iteracoesSemMelhoria);
-            double probabilidade = std::exp(delta / temperatura);
-            
+            // Critério de aceitação de Metropolis para soluções piores
             std::uniform_real_distribution<> dist(0.0, 1.0);
-            if (dist(rng_) < probabilidade) {
+            if (dist(rng_) < exp(delta / temperatura)) {
                 solucaoAtual = solucaoMelhorada;
+                estatisticas_.aceitacoesEstrategicas++;
+            } else {
+                iteracoesSemMelhoria++;
             }
         }
         
-        // Critério de parada - se não houve melhoria por muitas iterações
-        if (iteracoesSemMelhoria >= configILS_.maxIteracoesSemMelhoria) {
-            break;
+        // Atualização de parâmetros - resfriamento e ajuste de perturbação
+        temperatura *= configILS_.taxaResfriamento; // Resfriar temperatura
+        
+        // Intensificar (perturbação menor) ou diversificar (perturbação maior)
+        if (iteracoesSemMelhoria > configILS_.maxIteracoesSemMelhoria / 2) {
+            // Aumentar perturbação para escapar de ótimos locais
+            nivelPerturbacao = std::min(nivelPerturbacao * 1.5, 0.9);
+        } else if (iteracoesSemMelhoria < configILS_.maxIteracoesSemMelhoria / 4) {
+            // Diminuir perturbação para refinar em áreas promissoras
+            nivelPerturbacao = std::max(nivelPerturbacao * 0.8, configILS_.nivelPerturbacao);
+        }
+        
+        // Reset periódico para a melhor solução (intensificação)
+        if (iteracoesSemMelhoria >= configILS_.maxIteracoesSemMelhoria / 1.5) {
+            solucaoAtual = melhorSolucao;
+            nivelPerturbacao = configILS_.nivelPerturbacao * 2.0; // Perturbação forte para diversificar
+            temperatura = configILS_.temperaturaInicial / 2.0; // Reduzir temperatura para seletividade
+            iteracoesSemMelhoria = 0;
+            estatisticas_.reiniciosForçados++;
         }
     }
     
-    // Registrar tempo de execução nas estatísticas
-    auto tempoFim = std::chrono::high_resolution_clock::now();
+    // Registrar estatísticas finais
     estatisticas_.tempoExecucaoMs = 
-        std::chrono::duration_cast<std::chrono::milliseconds>(tempoFim - tempoInicio_).count();
-    
-    // Calcular melhoria
-    if (estatisticas_.valorObjetivoInicial > 0) {
-        estatisticas_.melhoria = (estatisticas_.melhorValorObjetivo - estatisticas_.valorObjetivoInicial) 
-                               / estatisticas_.valorObjetivoInicial * 100.0;
-    }
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::high_resolution_clock::now() - tempoInicio_).count();
     
     return melhorSolucao;
 }
 
+// Gerar movimentos de chain-exchange (troca em cadeia)
 std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosChainExchange(
-    const Solucao& solucao, 
+    const Solucao& solucao,
     int LB, int UB
 ) {
     std::vector<Movimento> movimentos;
     
-    // Obter todos os pedidos disponíveis não incluídos na solução atual
-    std::vector<int> pedidosForaDaWave;
-    for (int pedidoId = 0; pedidoId < backlog_.numPedidos; pedidoId++) {
-        if (std::find(solucao.pedidosWave.begin(), solucao.pedidosWave.end(), pedidoId) 
-            == solucao.pedidosWave.end() && 
-            verificador_.verificarDisponibilidade(backlog_.pedido[pedidoId])) {
-            pedidosForaDaWave.push_back(pedidoId);
-        }
-    }
-    
-    // Pré-calcular informações para cada pedido (unidades e corredores)
-    struct InfoPedido {
-        int unidades;
-        std::unordered_set<int> corredores;
-    };
-    
-    std::unordered_map<int, InfoPedido> infoPedidos;
-    
-    // Para pedidos na wave
+    // Número total de unidades na solução atual
+    int totalUnidades = 0;
     for (int pedidoId : solucao.pedidosWave) {
-        InfoPedido info;
-        info.unidades = 0;
-        
-        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
-            info.unidades += quantidade;
-            
-            for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
-                info.corredores.insert(corredorId);
-            }
+        for (const auto& [_, quantidade] : backlog_.pedido[pedidoId]) {
+            totalUnidades += quantidade;
         }
-        
-        infoPedidos[pedidoId] = info;
     }
     
-    // Para pedidos fora da wave
-    for (int pedidoId : pedidosForaDaWave) {
-        InfoPedido info;
-        info.unidades = 0;
-        
-        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
-            info.unidades += quantidade;
-            
-            for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
-                info.corredores.insert(corredorId);
-            }
+    // Identificar pedidos não incluídos na solução (candidatos a adicionar)
+    std::vector<int> pedidosCandidatos;
+    for (int p = 0; p < backlog_.numPedidos; p++) {
+        if (std::find(solucao.pedidosWave.begin(), solucao.pedidosWave.end(), p) 
+            == solucao.pedidosWave.end()) {
+            pedidosCandidatos.push_back(p);
         }
-        
-        infoPedidos[pedidoId] = info;
     }
     
-    // Definir limites para controle de explosão combinatória
-    const int MAX_COMBINATIONS = std::min(2000, static_cast<int>(solucao.pedidosWave.size() * pedidosForaDaWave.size() / 2));
-    int combinationsChecked = 0;
+    // Tamanho da cadeia de troca (quantos pedidos trocar de cada vez)
+    // Adaptativo: usar cadeias menores para instâncias grandes
+    int tamanhoCadeia = (backlog_.numPedidos > 500) ? 1 : 
+                       (backlog_.numPedidos > 200) ? 2 : 3;
     
-    // === Chain Exchange 2x2: Remover 2 pedidos e adicionar 2 pedidos ===
-    if (solucao.pedidosWave.size() >= 2 && pedidosForaDaWave.size() >= 2) {
-        // Para cada par de pedidos na wave
-        for (size_t i = 0; i < solucao.pedidosWave.size() && combinationsChecked < MAX_COMBINATIONS; i++) {
-            for (size_t j = i + 1; j < solucao.pedidosWave.size() && combinationsChecked < MAX_COMBINATIONS; j++) {
-                int pedidoRemove1 = solucao.pedidosWave[i];
-                int pedidoRemove2 = solucao.pedidosWave[j];
+    // Gerar trocas de N pedidos atuais por N candidatos
+    // Para instâncias grandes, limitar número de pedidos na cadeia
+    
+    // Função recursiva para gerar todas as combinações de pedidos a remover
+    std::function<void(const std::vector<int>&, std::vector<int>&, size_t, int)> 
+    gerarCombinacoes = [&](
+        const std::vector<int>& pedidosOrigem, 
+        std::vector<int>& combinacaoAtual, 
+        size_t inicio, 
+        int k
+    ) {
+        // Caso base: já temos k pedidos na combinação
+        if (combinacaoAtual.size() == k) {
+            // Calcular unidades removidas
+            int unidadesRemovidas = 0;
+            for (int pedidoId : combinacaoAtual) {
+                for (const auto& [_, quantidade] : backlog_.pedido[pedidoId]) {
+                    unidadesRemovidas += quantidade;
+                }
+            }
+            
+            // Buscar combinações de pedidos a adicionar
+            std::vector<int> pedidosRemover = combinacaoAtual;
+            
+            // Limitamos número de combinações para instâncias grandes
+            int maxCandidatos = std::min(static_cast<int>(pedidosCandidatos.size()), 
+                                       (backlog_.numPedidos > 500) ? 20 : 
+                                       (backlog_.numPedidos > 200) ? 50 : 100);
+            
+            // Escolher aleatoriamente um subconjunto de candidatos para avaliar
+            std::vector<int> candidatosAvaliados;
+            if (pedidosCandidatos.size() > maxCandidatos) {
+                std::vector<int> indices(pedidosCandidatos.size());
+                std::iota(indices.begin(), indices.end(), 0);
+                std::shuffle(indices.begin(), indices.end(), rng_);
                 
-                int unidadesRemovidas = infoPedidos[pedidoRemove1].unidades + infoPedidos[pedidoRemove2].unidades;
-                
-                // Unir corredores dos pedidos a remover para análise de impacto
-                std::unordered_set<int> corredoresRemovidos;
-                corredoresRemovidos.insert(infoPedidos[pedidoRemove1].corredores.begin(), infoPedidos[pedidoRemove1].corredores.end());
-                corredoresRemovidos.insert(infoPedidos[pedidoRemove2].corredores.begin(), infoPedidos[pedidoRemove2].corredores.end());
-                
-                // Para cada par de pedidos fora da wave
-                for (size_t k = 0; k < pedidosForaDaWave.size() && combinationsChecked < MAX_COMBINATIONS; k++) {
-                    for (size_t l = k + 1; l < pedidosForaDaWave.size() && combinationsChecked < MAX_COMBINATIONS; l++) {
-                        combinationsChecked++;
+                for (int i = 0; i < maxCandidatos; i++) {
+                    candidatosAvaliados.push_back(pedidosCandidatos[indices[i]]);
+                }
+            } else {
+                candidatosAvaliados = pedidosCandidatos;
+            }
+            
+            // Gerar combinações de pedidos a adicionar
+            std::function<void(const std::vector<int>&, std::vector<int>&, size_t, int)> 
+            gerarCombinacoesCandidatos = [&](
+                const std::vector<int>& candidatos, 
+                std::vector<int>& combinacaoAtual, 
+                size_t inicio, 
+                int k
+            ) {
+                // Caso base: completamos a combinação
+                if (combinacaoAtual.size() == k) {
+                    // Calcular unidades adicionadas
+                    int unidadesAdicionadas = 0;
+                    for (int pedidoId : combinacaoAtual) {
+                        for (const auto& [_, quantidade] : backlog_.pedido[pedidoId]) {
+                            unidadesAdicionadas += quantidade;
+                        }
+                    }
+                    
+                    // Verificar viabilidade da troca (LB e UB)
+                    int novoTotal = totalUnidades - unidadesRemovidas + unidadesAdicionadas;
+                    if (novoTotal >= LB && novoTotal <= UB) {
+                        // Criar movimento de chain-exchange
+                        Movimento movimento;
+                        movimento.tipo = TipoMovimento::CHAIN_EXCHANGE;
+                        movimento.pedidosRemover = pedidosRemover;
+                        movimento.pedidosAdicionar = combinacaoAtual;
                         
-                        int pedidoAdd1 = pedidosForaDaWave[k];
-                        int pedidoAdd2 = pedidosForaDaWave[l];
+                        // Simular o movimento para calcular seu impacto
+                        Solucao solucaoTemp = solucao;
                         
-                        int unidadesAdicionadas = infoPedidos[pedidoAdd1].unidades + infoPedidos[pedidoAdd2].unidades;
-                        
-                        // Verificar se a troca mantém a solução dentro dos limites
-                        int novoTotalUnidades = solucao.totalUnidades - unidadesRemovidas + unidadesAdicionadas;
-                        if (novoTotalUnidades < LB || novoTotalUnidades > UB) {
-                            continue;
+                        // Remover pedidos
+                        for (int p : pedidosRemover) {
+                            auto it = std::find(solucaoTemp.pedidosWave.begin(), 
+                                              solucaoTemp.pedidosWave.end(), p);
+                            if (it != solucaoTemp.pedidosWave.end()) {
+                                solucaoTemp.pedidosWave.erase(it);
+                            }
                         }
                         
-                        // Criar movimento de troca
-                        Movimento movimento;
-                        movimento.tipo = Movimento::Tipo::CHAIN_EXCHANGE;
-                        movimento.pedidosRemover = {pedidoRemove1, pedidoRemove2};
-                        movimento.pedidosAdicionar = {pedidoAdd1, pedidoAdd2};
+                        // Adicionar novos pedidos
+                        for (int p : combinacaoAtual) {
+                            solucaoTemp.pedidosWave.push_back(p);
+                        }
                         
-                        // Estimar o impacto da troca
-                        Solucao novaSolucao = aplicarMovimento(solucao, movimento);
-                        double novoValorObjetivo = calcularValorObjetivo(novaSolucao);
-                        movimento.deltaValorObjetivo = novoValorObjetivo - solucao.valorObjetivo;
+                        // Recalcular corredores
+                        std::unordered_set<int> corredores;
+                        for (int p : solucaoTemp.pedidosWave) {
+                            for (const auto& [itemId, _] : backlog_.pedido[p]) {
+                                for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                                    corredores.insert(corredorId);
+                                }
+                            }
+                        }
                         
-                        // Adicionar à lista de movimentos se for potencialmente benéfico
-                        // ou com uma pequena tolerância negativa para diversificação
-                        if (movimento.deltaValorObjetivo >= -0.005) {
+                        solucaoTemp.corredoresWave.assign(corredores.begin(), corredores.end());
+                        solucaoTemp.totalUnidades = novoTotal;
+                        
+                        // Calcular valor objetivo
+                        calcularValorObjetivo(solucaoTemp);
+                        
+                        // Calcular delta
+                        movimento.deltaValorObjetivo = solucaoTemp.valorObjetivo - solucao.valorObjetivo;
+                        
+                        // Adicionar movimento se promissor (delta próximo de zero ou positivo)
+                        if (movimento.deltaValorObjetivo > -0.05) {
                             movimentos.push_back(movimento);
                         }
                     }
+                    return;
                 }
-            }
-        }
-    }
-    
-    // === Chain Exchange 1x2: Remover 1 pedido e adicionar 2 pedidos ===
-    if (solucao.pedidosWave.size() >= 1 && pedidosForaDaWave.size() >= 2) {
-        combinationsChecked = 0; // Reset para este tipo de movimento
-        
-        for (int pedidoRemove : solucao.pedidosWave) {
-            int unidadesRemovidas = infoPedidos[pedidoRemove].unidades;
+                
+                // Recursão: construir combinação
+                for (size_t i = inicio; i < candidatos.size(); i++) {
+                    combinacaoAtual.push_back(candidatos[i]);
+                    gerarCombinacoesCandidatos(candidatos, combinacaoAtual, i + 1, k);
+                    combinacaoAtual.pop_back();
+                }
+            };
             
-            // Para cada par de pedidos fora da wave
-            for (size_t k = 0; k < pedidosForaDaWave.size() && combinationsChecked < MAX_COMBINATIONS; k++) {
-                for (size_t l = k + 1; l < pedidosForaDaWave.size() && combinationsChecked < MAX_COMBINATIONS; l++) {
-                    combinationsChecked++;
-                    
-                    int pedidoAdd1 = pedidosForaDaWave[k];
-                    int pedidoAdd2 = pedidosForaDaWave[l];
-                    
-                    int unidadesAdicionadas = infoPedidos[pedidoAdd1].unidades + infoPedidos[pedidoAdd2].unidades;
-                    
-                    // Verificar limites
-                    int novoTotalUnidades = solucao.totalUnidades - unidadesRemovidas + unidadesAdicionadas;
-                    if (novoTotalUnidades < LB || novoTotalUnidades > UB) {
-                        continue;
-                    }
-                    
-                    // Criar movimento
-                    Movimento movimento;
-                    movimento.tipo = Movimento::Tipo::CHAIN_EXCHANGE;
-                    movimento.pedidosRemover = {pedidoRemove};
-                    movimento.pedidosAdicionar = {pedidoAdd1, pedidoAdd2};
-                    
-                    // Estimar impacto
-                    Solucao novaSolucao = aplicarMovimento(solucao, movimento);
-                    double novoValorObjetivo = calcularValorObjetivo(novaSolucao);
-                    movimento.deltaValorObjetivo = novoValorObjetivo - solucao.valorObjetivo;
-                    
-                    // Adicionar apenas se melhorar ou for próximo
-                    if (movimento.deltaValorObjetivo >= -0.005) {
-                        movimentos.push_back(movimento);
-                    }
-                }
-            }
+            // Gerar combinações de pedidos a adicionar
+            std::vector<int> combinacaoCandidatos;
+            gerarCombinacoesCandidatos(candidatosAvaliados, combinacaoCandidatos, 0, k);
+            
+            return;
         }
-    }
-    
-    // === Chain Exchange 2x1: Remover 2 pedidos e adicionar 1 pedido ===
-    if (solucao.pedidosWave.size() >= 2 && pedidosForaDaWave.size() >= 1) {
-        combinationsChecked = 0; // Reset para este tipo de movimento
         
-        // Para cada par de pedidos na wave
-        for (size_t i = 0; i < solucao.pedidosWave.size() && combinationsChecked < MAX_COMBINATIONS; i++) {
-            for (size_t j = i + 1; j < solucao.pedidosWave.size() && combinationsChecked < MAX_COMBINATIONS; j++) {
-                int pedidoRemove1 = solucao.pedidosWave[i];
-                int pedidoRemove2 = solucao.pedidosWave[j];
-                
-                int unidadesRemovidas = infoPedidos[pedidoRemove1].unidades + infoPedidos[pedidoRemove2].unidades;
-                
-                // Para cada pedido fora da wave
-                for (int pedidoAdd : pedidosForaDaWave) {
-                    combinationsChecked++;
-                    
-                    int unidadesAdicionadas = infoPedidos[pedidoAdd].unidades;
-                    
-                    // Verificar limites
-                    int novoTotalUnidades = solucao.totalUnidades - unidadesRemovidas + unidadesAdicionadas;
-                    if (novoTotalUnidades < LB || novoTotalUnidades > UB) {
-                        continue;
-                    }
-                    
-                    // Criar movimento
-                    Movimento movimento;
-                    movimento.tipo = Movimento::Tipo::CHAIN_EXCHANGE;
-                    movimento.pedidosRemover = {pedidoRemove1, pedidoRemove2};
-                    movimento.pedidosAdicionar = {pedidoAdd};
-                    
-                    // Estimar impacto
-                    Solucao novaSolucao = aplicarMovimento(solucao, movimento);
-                    double novoValorObjetivo = calcularValorObjetivo(novaSolucao);
-                    movimento.deltaValorObjetivo = novoValorObjetivo - solucao.valorObjetivo;
-                    
-                    // Este tipo de movimento geralmente reduz unidades, então só aceitamos se melhorar
-                    if (movimento.deltaValorObjetivo > 0) {
-                        movimentos.push_back(movimento);
-                    }
-                }
-            }
+        // Recursão: construir combinação de pedidos a remover
+        for (size_t i = inicio; i < pedidosOrigem.size(); i++) {
+            combinacaoAtual.push_back(pedidosOrigem[i]);
+            gerarCombinacoes(pedidosOrigem, combinacaoAtual, i + 1, k);
+            combinacaoAtual.pop_back();
         }
+    };
+    
+    // Iniciar geração de combinações
+    std::vector<int> combinacaoAtual;
+    gerarCombinacoes(solucao.pedidosWave, combinacaoAtual, 0, tamanhoCadeia);
+    
+    // Limitar número de movimentos para instâncias grandes
+    int maxMovimentos = (backlog_.numPedidos > 500) ? 50 : 
+                        (backlog_.numPedidos > 200) ? 100 : 200;
+    
+    if (movimentos.size() > maxMovimentos) {
+        // Ordenar por delta (mais promissores primeiro)
+        std::sort(movimentos.begin(), movimentos.end(), 
+                 [](const Movimento& a, const Movimento& b) {
+                     return a.deltaValorObjetivo > b.deltaValorObjetivo;
+                 });
+        
+        // Manter apenas os melhores movimentos
+        movimentos.resize(maxMovimentos);
     }
     
     return movimentos;
 }
 
+// Gerar movimentos usando Path Relinking
 std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosPathRelinking(
-    const Solucao& solucao,
+    const Solucao& solucaoAtual,
     const Solucao& solucaoGuia,
     int LB, int UB
 ) {
     std::vector<Movimento> movimentos;
     
-    // Identificar diferenças entre as soluções
-    std::unordered_set<int> pedidosNaSolucao(solucao.pedidosWave.begin(), solucao.pedidosWave.end());
-    std::unordered_set<int> pedidosNaGuia(solucaoGuia.pedidosWave.begin(), solucaoGuia.pedidosWave.end());
+    // Identificar diferenças entre solução atual e guia
     
-    // Pedidos para adicionar (estão na guia mas não na solução atual)
-    std::vector<int> pedidosParaAdicionar;
+    // Pedidos na guia que não estão na solução atual (candidatos a adicionar)
+    std::vector<int> pedidosAdicionar;
     for (int pedidoId : solucaoGuia.pedidosWave) {
-        if (pedidosNaSolucao.find(pedidoId) == pedidosNaSolucao.end()) {
-            pedidosParaAdicionar.push_back(pedidoId);
+        if (std::find(solucaoAtual.pedidosWave.begin(), solucaoAtual.pedidosWave.end(), pedidoId) 
+            == solucaoAtual.pedidosWave.end()) {
+            pedidosAdicionar.push_back(pedidoId);
         }
     }
     
-    // Pedidos para remover (estão na solução atual mas não na guia)
-    std::vector<int> pedidosParaRemover;
-    for (int pedidoId : solucao.pedidosWave) {
-        if (pedidosNaGuia.find(pedidoId) == pedidosNaGuia.end()) {
-            pedidosParaRemover.push_back(pedidoId);
+    // Pedidos na solução atual que não estão na guia (candidatos a remover)
+    std::vector<int> pedidosRemover;
+    for (int pedidoId : solucaoAtual.pedidosWave) {
+        if (std::find(solucaoGuia.pedidosWave.begin(), solucaoGuia.pedidosWave.end(), pedidoId) 
+            == solucaoGuia.pedidosWave.end()) {
+            pedidosRemover.push_back(pedidoId);
         }
     }
     
-    // Tentar movimentos de swap entre pedidos para adicionar e remover
-    for (int pedidoRemover : pedidosParaRemover) {
-        for (int pedidoAdicionar : pedidosParaAdicionar) {
-            // Verificar viabilidade da troca
-            int unidadesPedidoRemover = 0;
-            for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoRemover]) {
-                unidadesPedidoRemover += quantidade;
+    // Total de unidades na solução atual
+    int totalUnidades = 0;
+    for (int pedidoId : solucaoAtual.pedidosWave) {
+        for (const auto& [_, quantidade] : backlog_.pedido[pedidoId]) {
+            totalUnidades += quantidade;
+        }
+    }
+    
+    // Gerar movimentos de path relinking (swap um-a-um)
+    for (int pedidoRemover : pedidosRemover) {
+        // Calcular unidades a remover
+        int unidadesRemover = 0;
+        for (const auto& [_, quantidade] : backlog_.pedido[pedidoRemover]) {
+            unidadesRemover += quantidade;
+        }
+        
+        for (int pedidoAdicionar : pedidosAdicionar) {
+            // Calcular unidades a adicionar
+            int unidadesAdicionar = 0;
+            for (const auto& [_, quantidade] : backlog_.pedido[pedidoAdicionar]) {
+                unidadesAdicionar += quantidade;
             }
             
-            int unidadesPedidoAdicionar = 0;
-            for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoAdicionar]) {
-                unidadesPedidoAdicionar += quantidade;
-            }
-            
-            int novoTotalUnidades = solucao.totalUnidades - unidadesPedidoRemover + unidadesPedidoAdicionar;
-            
-            if (novoTotalUnidades >= LB && novoTotalUnidades <= UB) {
+            // Verificar viabilidade do movimento
+            int novoTotal = totalUnidades - unidadesRemover + unidadesAdicionar;
+            if (novoTotal >= LB && novoTotal <= UB) {
+                // Criar o movimento
                 Movimento movimento;
-                movimento.tipo = Movimento::Tipo::SWAP;
-                movimento.pedidosRemover.push_back(pedidoRemover);
-                movimento.pedidosAdicionar.push_back(pedidoAdicionar);
+                movimento.tipo = TipoMovimento::PATH_RELINKING;
+                movimento.pedidosRemover = {pedidoRemover};
+                movimento.pedidosAdicionar = {pedidoAdicionar};
                 
-                // Estimar o impacto
-                Solucao novaSolucao = aplicarMovimento(solucao, movimento);
-                double novoValorObjetivo = calcularValorObjetivo(novaSolucao);
-                movimento.deltaValorObjetivo = novoValorObjetivo - solucao.valorObjetivo;
+                // Calcular impacto
+                Solucao solucaoTemp = solucaoAtual;
                 
-                // No path-relinking, aceitamos mesmo movimentos que não melhoram,
-                // desde que nos aproximem da solução guia
+                // Remover pedido
+                auto it = std::find(solucaoTemp.pedidosWave.begin(), 
+                                  solucaoTemp.pedidosWave.end(), 
+                                  pedidoRemover);
+                if (it != solucaoTemp.pedidosWave.end()) {
+                    solucaoTemp.pedidosWave.erase(it);
+                }
+                
+                // Adicionar novo pedido
+                solucaoTemp.pedidosWave.push_back(pedidoAdicionar);
+                
+                // Recalcular corredores
+                std::unordered_set<int> corredores;
+                for (int p : solucaoTemp.pedidosWave) {
+                    for (const auto& [itemId, _] : backlog_.pedido[p]) {
+                        for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                            corredores.insert(corredorId);
+                        }
+                    }
+                }
+                
+                solucaoTemp.corredoresWave.assign(corredores.begin(), corredores.end());
+                solucaoTemp.totalUnidades = novoTotal;
+                
+                // Calcular valor objetivo
+                calcularValorObjetivo(solucaoTemp);
+                
+                // Calcular delta
+                movimento.deltaValorObjetivo = solucaoTemp.valorObjetivo - solucaoAtual.valorObjetivo;
+                
+                // Adicionar movimento
                 movimentos.push_back(movimento);
             }
         }
     }
     
-    // Ordenar movimentos primeiro pelo valor objetivo (melhores primeiro)
-    // e depois pela contribuição para aproximar as soluções
-    std::sort(movimentos.begin(), movimentos.end(),
+    // Ordenar movimentos por Delta (melhores primeiro)
+    std::sort(movimentos.begin(), movimentos.end(), 
              [](const Movimento& a, const Movimento& b) {
-                 if (a.deltaValorObjetivo > 0 && b.deltaValorObjetivo <= 0) {
-                     return true;
-                 }
-                 if (a.deltaValorObjetivo <= 0 && b.deltaValorObjetivo > 0) {
-                     return false;
-                 }
                  return a.deltaValorObjetivo > b.deltaValorObjetivo;
              });
+    
+    // Para instâncias grandes, limitar número de movimentos
+    int maxMovimentos = (backlog_.numPedidos > 500) ? 30 : 
+                       (backlog_.numPedidos > 200) ? 50 : 100;
+    
+    if (movimentos.size() > maxMovimentos) {
+        movimentos.resize(maxMovimentos);
+    }
     
     return movimentos;
 }
 
+// Completar a implementação da função calcularValorObjetivo
+double BuscaLocalAvancada::calcularValorObjetivo(Solucao& solucao) {
+    // Se não há pedidos ou corredores, o valor objetivo é zero
+    if (solucao.pedidosWave.empty() || solucao.corredoresWave.empty()) {
+        solucao.valorObjetivo = 0.0;
+        return solucao.valorObjetivo;
+    }
+    
+    // Contagem total de unidades na solução
+    int totalUnidades = 0;
+    
+    // Calcular total de unidades em todos os pedidos selecionados
+    for (int pedidoId : solucao.pedidosWave) {
+        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
+            totalUnidades += quantidade;
+        }
+    }
+    
+    // Armazenar o total de unidades para referência futura
+    solucao.totalUnidades = totalUnidades;
+    
+    // Calcular valor objetivo: unidades por corredor (eficiência)
+    // Quanto maior este valor, melhor a solução
+    solucao.valorObjetivo = static_cast<double>(totalUnidades) / solucao.corredoresWave.size();
+    return solucao.valorObjetivo;
+}
+
+// Aplicar um movimento a uma solução
 BuscaLocalAvancada::Solucao BuscaLocalAvancada::aplicarMovimento(
-    const Solucao& solucao,
+    const Solucao& solucao, 
     const Movimento& movimento
 ) {
+    // Criar nova solução como cópia da original
     Solucao novaSolucao = solucao;
     
-    // Remover pedidos
-    for (int pedidoId : movimento.pedidosRemover) {
-        auto it = std::find(novaSolucao.pedidosWave.begin(), novaSolucao.pedidosWave.end(), pedidoId);
-        if (it != novaSolucao.pedidosWave.end()) {
-            novaSolucao.pedidosWave.erase(it);
+    // Aplicar movimento de acordo com seu tipo
+    switch (movimento.tipo) {
+        case TipoMovimento::ADICIONAR: {
+            // Adicionar pedidos à solução
+            for (int pedidoId : movimento.pedidosAdicionar) {
+                // Verificar se o pedido já está na solução
+                if (std::find(novaSolucao.pedidosWave.begin(), 
+                             novaSolucao.pedidosWave.end(), 
+                             pedidoId) == novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.push_back(pedidoId);
+                }
+            }
+            break;
         }
-    }
-    
-    // Adicionar pedidos
-    for (int pedidoId : movimento.pedidosAdicionar) {
-        if (std::find(novaSolucao.pedidosWave.begin(), novaSolucao.pedidosWave.end(), pedidoId) 
-            == novaSolucao.pedidosWave.end()) {
-            novaSolucao.pedidosWave.push_back(pedidoId);
+        
+        case TipoMovimento::REMOVER: {
+            // Remover pedidos da solução
+            for (int pedidoId : movimento.pedidosRemover) {
+                auto it = std::find(novaSolucao.pedidosWave.begin(), 
+                                   novaSolucao.pedidosWave.end(), 
+                                   pedidoId);
+                if (it != novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.erase(it);
+                }
+            }
+            break;
         }
-    }
-    
-    // Reconstruir lista de corredores e calcular unidades
-    std::unordered_set<int> corredoresUnicos;
-    novaSolucao.totalUnidades = 0;
-    
-    for (int pedidoId : novaSolucao.pedidosWave) {
-        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
-            novaSolucao.totalUnidades += quantidade;
+        
+        case TipoMovimento::SWAP: {
+            // Remover pedidos
+            for (int pedidoId : movimento.pedidosRemover) {
+                auto it = std::find(novaSolucao.pedidosWave.begin(), 
+                                   novaSolucao.pedidosWave.end(), 
+                                   pedidoId);
+                if (it != novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.erase(it);
+                }
+            }
             
+            // Adicionar novos pedidos
+            for (int pedidoId : movimento.pedidosAdicionar) {
+                if (std::find(novaSolucao.pedidosWave.begin(), 
+                             novaSolucao.pedidosWave.end(), 
+                             pedidoId) == novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.push_back(pedidoId);
+                }
+            }
+            break;
+        }
+        
+        case TipoMovimento::CHAIN_EXCHANGE: {
+            // Troca em cadeia - remove uma sequência e adiciona outra
+            for (int pedidoId : movimento.pedidosRemover) {
+                auto it = std::find(novaSolucao.pedidosWave.begin(), 
+                                   novaSolucao.pedidosWave.end(), 
+                                   pedidoId);
+                if (it != novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.erase(it);
+                }
+            }
+            
+            for (int pedidoId : movimento.pedidosAdicionar) {
+                if (std::find(novaSolucao.pedidosWave.begin(), 
+                             novaSolucao.pedidosWave.end(), 
+                             pedidoId) == novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.push_back(pedidoId);
+                }
+            }
+            break;
+        }
+        
+        case TipoMovimento::PATH_RELINKING: {
+            // Aplicar movimento de path relinking
+            // Similar ao SWAP, mas orientado a convergir para solução guia
+            for (int pedidoId : movimento.pedidosRemover) {
+                auto it = std::find(novaSolucao.pedidosWave.begin(), 
+                                   novaSolucao.pedidosWave.end(), 
+                                   pedidoId);
+                if (it != novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.erase(it);
+                }
+            }
+            
+            for (int pedidoId : movimento.pedidosAdicionar) {
+                if (std::find(novaSolucao.pedidosWave.begin(), 
+                             novaSolucao.pedidosWave.end(), 
+                             pedidoId) == novaSolucao.pedidosWave.end()) {
+                    novaSolucao.pedidosWave.push_back(pedidoId);
+                }
+            }
+            break;
+        }
+    }
+    
+    // Recalcular corredores necessários após os movimentos
+    std::unordered_set<int> corredores;
+    for (int pedidoId : novaSolucao.pedidosWave) {
+        for (const auto& [itemId, _] : backlog_.pedido[pedidoId]) {
             for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
-                corredoresUnicos.insert(corredorId);
+                corredores.insert(corredorId);
             }
         }
     }
     
-    novaSolucao.corredoresWave.assign(corredoresUnicos.begin(), corredoresUnicos.end());
+    // Converter conjunto para vetor
+    novaSolucao.corredoresWave.assign(corredores.begin(), corredores.end());
     
-    // Atualizar valor objetivo
+    // Recalcular valor objetivo
     calcularValorObjetivo(novaSolucao);
     
     return novaSolucao;
 }
 
-double BuscaLocalAvancada::calcularValorObjetivo(Solucao& solucao) {
-    if (solucao.pedidosWave.empty() || solucao.corredoresWave.empty()) {
-        solucao.valorObjetivo = 0.0;
-        return 0.0;
-    }
-    
-    // O valor objetivo é a relação unidades/corredores
-    solucao.valorObjetivo = static_cast<double>(solucao.totalUnidades) / solucao.corredoresWave.size();
-    return solucao.valorObjetivo;
-}
-
-bool BuscaLocalAvancada::solucaoViavel(const Solucao& solucao, int LB, int UB) const {
-    // Verificar limites de unidades
-    if (solucao.totalUnidades < LB || solucao.totalUnidades > UB) {
-        return false;
-    }
-    return true;
-}
-
+// Perturbar uma solução (para ILS e VNS)
 BuscaLocalAvancada::Solucao BuscaLocalAvancada::perturbarSolucao(
-    const Solucao& solucao,
+    const Solucao& solucao, 
     double intensidade,
     int LB, int UB
 ) {
-    Solucao solucaoPerturbada = solucao;
+    Solucao novaSolucao = solucao;
     
-    // Definir número de perturbações baseado na intensidade
-    int numPerturbacoes = std::max(1, static_cast<int>(solucao.pedidosWave.size() * 0.1 * (1 + intensidade)));
+    // Quantidade de perturbações baseada na intensidade (proporção do tamanho)
+    int numPerturbacoes = std::max(1, static_cast<int>(intensidade * solucao.pedidosWave.size()));
     
-    // Diferentes tipos de perturbação baseados no valor de intensidade
-    for (int i = 0; i < numPerturbacoes; i++) {
-        std::vector<Movimento> movimentosPossiveis;
-        
-        if (intensidade < 1.0) {
-            // Perturbação leve: movimentos de swap simples
-            auto swaps = gerarMovimentosSwap(solucaoPerturbada, LB, UB);
-            movimentosPossiveis.insert(movimentosPossiveis.end(), swaps.begin(), swaps.end());
-        } else if (intensidade < 2.0) {
-            // Perturbação média: chain exchanges 1x2 ou 2x1
-            std::vector<int> pedidosNaWave = solucaoPerturbada.pedidosWave;
-            std::vector<int> pedidosForaDaWave;
-            
-            for (int pedidoId = 0; pedidoId < backlog_.numPedidos; pedidoId++) {
-                if (std::find(pedidosNaWave.begin(), pedidosNaWave.end(), pedidoId) == pedidosNaWave.end() &&
-                    verificador_.verificarDisponibilidade(backlog_.pedido[pedidoId])) {
-                    pedidosForaDaWave.push_back(pedidoId);
-                }
-            }
-            
-            // Escolher aleatoriamente se faz 1x2 ou 2x1
-            if (!pedidosNaWave.empty() && pedidosForaDaWave.size() >= 2) {
-                std::uniform_int_distribution<> dist(0, 1);
-                if (dist(rng_) == 0 && pedidosNaWave.size() >= 2) {
-                    // Remover 2, adicionar 1
-                    std::uniform_int_distribution<> dist1(0, pedidosNaWave.size() - 1);
-                    std::uniform_int_distribution<> dist2(0, pedidosNaWave.size() - 2);
-                    std::uniform_int_distribution<> dist3(0, pedidosForaDaWave.size() - 1);
-                    
-                    int idx1 = dist1(rng_);
-                    int idx2;
-                    do {
-                        idx2 = dist2(rng_);
-                        if (idx2 >= idx1) idx2++;
-                    } while (idx1 == idx2);
-                    
-                    int idxAdd = dist3(rng_);
-                    
-                    Movimento m;
-                    m.tipo = Movimento::Tipo::CHAIN_EXCHANGE;
-                    m.pedidosRemover = {pedidosNaWave[idx1], pedidosNaWave[idx2]};
-                    m.pedidosAdicionar = {pedidosForaDaWave[idxAdd]};
-                    
-                    // Verificar viabilidade
-                    Solucao testeSolucao = aplicarMovimento(solucaoPerturbada, m);
-                    if (solucaoViavel(testeSolucao, LB, UB)) {
-                        movimentosPossiveis.push_back(m);
-                    }
-                } else {
-                    // Remover 1, adicionar 2
-                    std::uniform_int_distribution<> dist1(0, pedidosNaWave.size() - 1);
-                    std::uniform_int_distribution<> dist2(0, pedidosForaDaWave.size() - 1);
-                    std::uniform_int_distribution<> dist3(0, pedidosForaDaWave.size() - 2);
-                    
-                    int idxRemove = dist1(rng_);
-                    int idxAdd1 = dist2(rng_);
-                    int idxAdd2;
-                    do {
-                        idxAdd2 = dist3(rng_);
-                        if (idxAdd2 >= idxAdd1) idxAdd2++;
-                    } while (idxAdd1 == idxAdd2);
-                    
-                    Movimento m;
-                    m.tipo = Movimento::Tipo::CHAIN_EXCHANGE;
-                    m.pedidosRemover = {pedidosNaWave[idxRemove]};
-                    m.pedidosAdicionar = {pedidosForaDaWave[idxAdd1], pedidosForaDaWave[idxAdd2]};
-                    
-                    // Verificar viabilidade
-                    Solucao testeSolucao = aplicarMovimento(solucaoPerturbada, m);
-                    if (solucaoViavel(testeSolucao, LB, UB)) {
-                        movimentosPossiveis.push_back(m);
-                    }
-                }
-            }
-        } else {
-            // Perturbação forte: chain exchanges 2x2
-            auto chains = gerarMovimentosChainExchange(solucaoPerturbada, LB, UB);
-            movimentosPossiveis.insert(movimentosPossiveis.end(), chains.begin(), chains.end());
-        }
-        
-        // Se encontramos movimentos possíveis, aplicar um aleatoriamente
-        if (!movimentosPossiveis.empty()) {
-            std::uniform_int_distribution<> dist(0, movimentosPossiveis.size() - 1);
-            int idx = dist(rng_);
-            solucaoPerturbada = aplicarMovimento(solucaoPerturbada, movimentosPossiveis[idx]);
+    // Registrar pedidos originais para evitar reimportação acidental
+    std::unordered_set<int> pedidosOriginais(
+        novaSolucao.pedidosWave.begin(), 
+        novaSolucao.pedidosWave.end()
+    );
+    
+    // Identificar pedidos candidatos a entrar na solução
+    std::vector<int> pedidosCandidatos;
+    for (int p = 0; p < backlog_.numPedidos; p++) {
+        if (pedidosOriginais.find(p) == pedidosOriginais.end()) {
+            pedidosCandidatos.push_back(p);
         }
     }
     
-    return solucaoPerturbada;
+    // Se não houver pedidos candidatos, aumentar força da perturbação via remoção
+    if (pedidosCandidatos.empty()) {
+        numPerturbacoes = std::min(numPerturbacoes * 2, 
+                                 static_cast<int>(novaSolucao.pedidosWave.size() / 2));
+        
+        // Apenas remover pedidos
+        for (int i = 0; i < numPerturbacoes && !novaSolucao.pedidosWave.empty(); i++) {
+            std::uniform_int_distribution<> dist(0, novaSolucao.pedidosWave.size() - 1);
+            int idx = dist(rng_);
+            novaSolucao.pedidosWave.erase(novaSolucao.pedidosWave.begin() + idx);
+        }
+    } else {
+        // Remover alguns pedidos aleatoriamente
+        for (int i = 0; i < numPerturbacoes && !novaSolucao.pedidosWave.empty(); i++) {
+            std::uniform_int_distribution<> dist(0, novaSolucao.pedidosWave.size() - 1);
+            int idx = dist(rng_);
+            novaSolucao.pedidosWave.erase(novaSolucao.pedidosWave.begin() + idx);
+        }
+        
+        // Adicionar novos pedidos aleatoriamente
+        for (int i = 0; i < numPerturbacoes && !pedidosCandidatos.empty(); i++) {
+            std::uniform_int_distribution<> dist(0, pedidosCandidatos.size() - 1);
+            int idx = dist(rng_);
+            int pedidoId = pedidosCandidatos[idx];
+            
+            novaSolucao.pedidosWave.push_back(pedidoId);
+            
+            // Remover este pedido dos candidatos para evitar duplicação
+            pedidosCandidatos.erase(pedidosCandidatos.begin() + idx);
+        }
+    }
+    
+    // Recalcular corredores e total de unidades
+    std::unordered_set<int> corredores;
+    int totalUnidades = 0;
+    
+    for (int pedidoId : novaSolucao.pedidosWave) {
+        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
+            totalUnidades += quantidade;
+            for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                corredores.insert(corredorId);
+            }
+        }
+    }
+    
+    // Verificar restrições de unidades (LB e UB)
+    // Se solução violar LB, adicionar pedidos aleatórios até satisfazer
+    std::shuffle(pedidosCandidatos.begin(), pedidosCandidatos.end(), rng_);
+    
+    while (totalUnidades < LB && !pedidosCandidatos.empty()) {
+        int pedidoId = pedidosCandidatos.back();
+        pedidosCandidatos.pop_back();
+        
+        // Calcular impacto do pedido
+        int unidadesPedido = 0;
+        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
+            unidadesPedido += quantidade;
+        }
+        
+        // Adicionar se não violar UB
+        if (totalUnidades + unidadesPedido <= UB) {
+            novaSolucao.pedidosWave.push_back(pedidoId);
+            totalUnidades += unidadesPedido;
+            
+            // Atualizar corredores
+            for (const auto& [itemId, _] : backlog_.pedido[pedidoId]) {
+                for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                    corredores.insert(corredorId);
+                }
+            }
+        }
+    }
+    
+    // Se solução violar UB, remover pedidos até satisfazer
+    while (totalUnidades > UB && !novaSolucao.pedidosWave.empty()) {
+        // Escolher pedido para remover
+        std::uniform_int_distribution<> dist(0, novaSolucao.pedidosWave.size() - 1);
+        int idx = dist(rng_);
+        int pedidoId = novaSolucao.pedidosWave[idx];
+        
+        // Calcular unidades do pedido
+        int unidadesPedido = 0;
+        for (const auto& [itemId, quantidade] : backlog_.pedido[pedidoId]) {
+            unidadesPedido += quantidade;
+        }
+        
+        // Remover pedido
+        novaSolucao.pedidosWave.erase(novaSolucao.pedidosWave.begin() + idx);
+        totalUnidades -= unidadesPedido;
+        
+        // Recalcular corredores
+        corredores.clear();
+        for (int p : novaSolucao.pedidosWave) {
+            for (const auto& [itemId, _] : backlog_.pedido[p]) {
+                for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                    corredores.insert(corredorId);
+                }
+            }
+        }
+    }
+    
+    // Se a solução ainda não satisfaz LB, retornar a original
+    if (totalUnidades < LB) {
+        return solucao;
+    }
+    
+    // Atualizar corredores e recalcular valor objetivo
+    novaSolucao.corredoresWave.assign(corredores.begin(), corredores.end());
+    novaSolucao.totalUnidades = totalUnidades;
+    calcularValorObjetivo(novaSolucao);
+    
+    return novaSolucao;
 }
 
 BuscaLocalAvancada::Solucao BuscaLocalAvancada::buscaLocalBasica(
@@ -1108,7 +1315,7 @@ std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosIn
             
             if (novoTotalUnidades >= LB && novoTotalUnidades <= UB) {
                 Movimento movimento;
-                movimento.tipo = Movimento::Tipo::SWAP;
+                movimento.tipo = TipoMovimento::SWAP;
                 movimento.pedidosRemover.push_back(pedidoAtual);
                 movimento.pedidosAdicionar.push_back(pedidoCandidato);
                 
@@ -1184,7 +1391,7 @@ std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosDi
             
             if (novoTotalUnidades >= LB && novoTotalUnidades <= UB) {
                 Movimento movimento;
-                movimento.tipo = Movimento::Tipo::SWAP;
+                movimento.tipo = TipoMovimento::SWAP;
                 movimento.pedidosRemover.push_back(pedidoFrequente);
                 movimento.pedidosAdicionar.push_back(pedidoRaro);
                 
