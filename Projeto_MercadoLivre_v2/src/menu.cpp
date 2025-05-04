@@ -129,17 +129,25 @@ void processarEscolhaMenu(int escolha) {
         }
         case 3: {
             std::cout << cabecalho("SOLUÇÃO DO DESAFIO") << std::endl;
-
-            std::stringstream ss;
-            ss << criarCabecalhoCaixa("PARÂMETROS DE EXECUÇÃO") << "\n";
-            ss << criarLinhaCaixa(colorir("• Diretório de entrada: ", CIANO) + DIR_ENTRADA) << "\n";
-            ss << criarLinhaCaixa(colorir("• Diretório de saída: ", CIANO) + DIR_SAIDA) << "\n";
-            ss << criarLinhaCaixa(colorir("• Threads utilizadas: ", CIANO) + colorirBold(std::to_string(std::thread::hardware_concurrency()), AMARELO)) << "\n";
-            ss << criarRodapeCaixa();
-
-            std::cout << ss.str() << std::endl << std::endl;
-
-            solucionarDesafio(DIR_ENTRADA, DIR_SAIDA);
+            
+            // Diretórios padrão
+            std::string dirEntrada = "data/input";
+            std::string dirSaida = "data/output";
+            
+            // Perguntar ao usuário se deseja personalizar os diretórios
+            std::string resposta;
+            std::cout << "Usar diretórios padrão? (s/n): ";
+            std::cin >> resposta;
+            
+            if (resposta[0] == 'n' || resposta[0] == 'N') {
+                std::cout << "Digite o diretório de entrada: ";
+                std::cin >> dirEntrada;
+                std::cout << "Digite o diretório de saída: ";
+                std::cin >> dirSaida;
+            }
+            
+            // Chamar a função principal
+            solucionarDesafio(dirEntrada, dirSaida);
             break;
         }
         case 4:

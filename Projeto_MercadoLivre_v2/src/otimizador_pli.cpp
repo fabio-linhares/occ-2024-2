@@ -3,30 +3,26 @@
 #include <memory>
 #include "pli_solver_custom.h"
 #include "localizador_itens.h"
-#include "analisador_relevancia.h"
+#include "pli_solver.h"
 
-OtimizadorPLI::OtimizadorPLI() 
-    : limiteDual_(0.0), limiteTempo_(std::numeric_limits<double>::infinity()) {
-    // Sempre usar nossa implementação personalizada
+OtimizadorPLI::OtimizadorPLI() : limiteDual_(0.0), limiteTempo_(60.0) {
+    // Criar solver customizado
     solver_custom_ = std::make_unique<PLISolverCustom>();
     
-    // Configurar o solver
-    PLISolverCustom::Config config;
-    config.metodo = PLISolverCustom::Metodo::BRANCH_AND_CUT;
-    config.limiteTempo = 60.0;
-    config.tolerancia = 1e-6;
+    // Configuração padrão
+    PLISolver::Config config;
+    config.metodo = PLISolver::Config::Metodo::BRANCH_AND_CUT;
+    config.limiteTempo = limiteTempo_;
     solver_custom_->configurar(config);
 }
 
-OtimizadorPLI::~OtimizadorPLI() {
-    // Resources managed by unique_ptr are automatically freed
-}
+OtimizadorPLI::~OtimizadorPLI() = default;
 
 void OtimizadorPLI::definirLimiteTempo(double limiteTempo) {
     limiteTempo_ = limiteTempo;
     
-    // Atualizar configuração do solver customizado
-    PLISolverCustom::Config config;
+    // Atualizar configuração do solver
+    PLISolver::Config config;
     config.limiteTempo = limiteTempo;
     solver_custom_->configurar(config);
 }
@@ -34,50 +30,34 @@ void OtimizadorPLI::definirLimiteTempo(double limiteTempo) {
 Solucao OtimizadorPLI::otimizar(
     const Deposito& deposito,
     const Backlog& backlog,
-    bool resolverRelaxacaoLinear) {
-    
-    // Obter limitações do problema
-    int LB = backlog.wave.LB;
-    int UB = backlog.wave.UB;
-    
-    // Usar nosso solver personalizado
-    PLISolverCustom::Config config;
+    bool resolverRelaxacaoLinear
+) {
+    // Configurar solver
+    PLISolver::Config config;
     
     if (resolverRelaxacaoLinear) {
-        config.metodo = PLISolverCustom::Metodo::PONTOS_INTERIORES;
+        config.metodo = PLISolver::Config::Metodo::PONTOS_INTERIORES;
     } else {
-        config.metodo = PLISolverCustom::Metodo::BRANCH_AND_CUT;
+        config.metodo = PLISolver::Config::Metodo::BRANCH_AND_CUT;
     }
     
     solver_custom_->configurar(config);
     
-    // Resolver o problema
-    Solucao resultado = solver_custom_->resolver(deposito, backlog, 0.0, LB, UB);
-    
-    // Armazenar o valor dual para referência
-    limiteDual_ = resultado.valorObjetivo;
-    
-    return resultado;
+    // Resolver com lambda = 0 inicialmente (maximizar unidades sem penalidade)
+    double lambda = 0.0;
+    return solver_custom_->resolver(deposito, backlog, lambda, 
+                                   backlog.wave.LB, backlog.wave.UB);
 }
 
 Solucao OtimizadorPLI::resolverSubproblemaDinkelbach(
     const Deposito& deposito,
     const Backlog& backlog,
     double lambda,
-    const Solucao* solucaoInicial) {
-    
-    // Obter limitações do problema
-    int LB = backlog.wave.LB;
-    int UB = backlog.wave.UB;
-    
-    // Resolver usando o solver personalizado
-    Solucao resultado = solver_custom_->resolver(
-        deposito, backlog, lambda, LB, UB, solucaoInicial);
-    
-    // Armazenar o valor dual
-    limiteDual_ = resultado.valorObjetivo;
-    
-    return resultado;
+    const Solucao* solucaoInicial
+) {
+    return solver_custom_->resolver(deposito, backlog, lambda, 
+                                   backlog.wave.LB, backlog.wave.UB, 
+                                   solucaoInicial);
 }
 
 double OtimizadorPLI::obterLimiteDual() const {
@@ -86,17 +66,13 @@ double OtimizadorPLI::obterLimiteDual() const {
 
 Solucao OtimizadorPLI::recuperarSolucaoInteira(
     const Deposito& deposito,
-    const Backlog& backlog) {
-    
-    // Obter limitações do problema
-    int LB = backlog.wave.LB;
-    int UB = backlog.wave.UB;
-    
-    // Configurar para usar o método híbrido
-    PLISolverCustom::Config config;
-    config.metodo = PLISolverCustom::Metodo::HIBRIDO;
+    const Backlog& backlog
+) {
+    // Configurar solver para método híbrido que combina relaxação e arredondamento
+    PLISolver::Config config;
+    config.metodo = PLISolver::Config::Metodo::HIBRIDO;
     solver_custom_->configurar(config);
     
-    // Resolver e retornar solução inteira
-    return solver_custom_->resolver(deposito, backlog, 0.0, LB, UB);
+    return solver_custom_->resolver(deposito, backlog, 0.0, 
+                                   backlog.wave.LB, backlog.wave.UB);
 }

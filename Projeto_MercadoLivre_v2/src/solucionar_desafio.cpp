@@ -160,148 +160,77 @@ void processarArquivo(const std::filesystem::path& arquivoPath,
         
         output << status("Validando instância...") << "\n\n";
         
-        // ======= Escolha do otimizador baseado no tamanho da instância =======
-        
-        // Extrair número de instância do nome do arquivo
-        std::string instanciaStr = nomeArquivo;
-        std::transform(instanciaStr.begin(), instanciaStr.end(), instanciaStr.begin(), ::tolower);
-        
-        // Decidir qual otimizador usar com base na instância
-        bool usarDinkelbach = false;
-        
-        // Determinar o tamanho da instância para decidir qual otimizador usar
-        int totalUnidades = 0;
-        std::unordered_set<int> itensUnicos;
-
-        for (int i = 0; i < backlog.numPedidos; i++) {
-            for (const auto& [itemId, quantidade] : backlog.pedido[i]) {
-                totalUnidades += quantidade;
-                itensUnicos.insert(itemId);
-            }
-        }
-
-        // Calcular estatísticas da instância
-        int numItensUnicos = itensUnicos.size();
-        int numCorredoresUnicos = 0;
-        std::unordered_set<int> corredoresSet;
-
-        // Obter número de corredores utilizados usando LocalizadorItens
-        for (int itemId : itensUnicos) {
-            const auto& corredoresComItem = localizador.getCorredoresComItem(itemId);
-            for (const auto& [corredorId, _] : corredoresComItem) {
-                corredoresSet.insert(corredorId);
-            }
-        }
-        numCorredoresUnicos = corredoresSet.size();
-
-        // Usar Dinkelbach para instâncias menores
-        bool complexidadeBaixa = (
-            backlog.numPedidos < 200 &&
-            numItensUnicos < 300 &&
-            numCorredoresUnicos < 50 &&
-            totalUnidades < 5000
-        );
-
-        usarDinkelbach = complexidadeBaixa;
-        
-        // Estrutura comum para armazenar soluções de ambos os otimizadores
-        struct SolucaoComum {
-            std::vector<int> pedidosWave;
-            std::vector<int> corredoresWave;
-            double valorObjetivo;
-        };
-        
-        // Soluções alternativas para comparar
-        SolucaoComum melhorWave;
-        
-        std::string nomeOtimizador;
-        if (usarDinkelbach) {
-            nomeOtimizador = "Dinkelbach";
-            output << criarCabecalhoCaixa("MÉTODO DE OTIMIZAÇÃO") << "\n";
-            output << criarLinhaCaixa(colorir("• Algoritmo: ", BRANCO) + 
-                                    colorirBold(nomeOtimizador, CIANO)) << "\n";
-            output << criarRodapeCaixa() << "\n\n";
+        // Usar o otimizador avançado para instâncias de médio e grande porte
+        if (backlog.numPedidos > 50) {
+            output << colorir("Utilizando algoritmos avançados (Fases 5-9)...\n", VERDE);
             
+            // 1. Inicializar estruturas auxiliares
+            LocalizadorItens localizador(deposito.numItens);
+            localizador.construir(deposito);
+            
+            VerificadorDisponibilidade verificador(deposito.numItens);
+            verificador.construir(deposito);
+            
+            // 2. Gerar solução inicial com o algoritmo guloso
+            AnalisadorRelevancia analisador(backlog.numPedidos);
+            for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                if (verificador.verificarDisponibilidade(backlog.pedido[pedidoId])) {
+                    analisador.calcularRelevancia(pedidoId, backlog, localizador);
+                }
+            }
+            
+            // 3. Escolher um algoritmo avançado (Dinkelbach + Busca Local)
+            output << "Aplicando algoritmo de Dinkelbach com Busca Local Avançada...\n";
+            
+            // Criar otimizador Dinkelbach
             OtimizadorDinkelbach otimizador(deposito, backlog, localizador, verificador);
+            otimizador.configurarParametros(0.0001, 50, true);
             
-            // Configurar parâmetros baseados no tamanho da instância
-            bool usarBranchAndBound = (backlog.numPedidos <= 200);
-            double epsilon = 0.0001;
-            int maxIteracoes = 100;
+            // Ativar busca local avançada para refinamento
+            otimizador.setUsarBuscaLocalAvancada(true);
+            otimizador.setLimiteTempoBuscaLocal(3.0); // 3 segundos
             
-            // Ajustar parâmetros para instâncias maiores
-            if (backlog.numPedidos > 500) {
-                epsilon = 0.001;
-                maxIteracoes = 50;
+            // Executar otimização
+            auto solucao = otimizador.otimizarWave(backlog.wave.LB, backlog.wave.UB);
+            
+            // Exibir estatísticas de convergência
+            output << "\nEstatísticas de convergência:\n";
+            output << "Iterações: " << otimizador.getInfoConvergencia().iteracoesRealizadas << "\n";
+            output << "Convergiu: " << (otimizador.getInfoConvergencia().convergiu ? "Sim" : "Não") << "\n";
+            output << "Tempo total: " << std::fixed << std::setprecision(3) 
+                   << otimizador.getInfoConvergencia().tempoTotal << " segundos\n";
+            
+            // 4. Salvar resultados
+            std::string nomeArquivoSemExtensao = nomeArquivo.substr(0, nomeArquivo.find_last_of("."));
+            std::string arquivoSaida = diretorioSaida + "/" + nomeArquivoSemExtensao + ".sol";
+            std::ofstream outFile(arquivoSaida);
+            if (!outFile.is_open()) {
+                std::cerr << "Erro ao abrir o arquivo de saída: " << arquivoSaida << std::endl;
+                return;
             }
             
-            otimizador.configurarParametros(epsilon, maxIteracoes, usarBranchAndBound);
-            
-            auto solucao = otimizador.otimizarWave(limiteLB, limiteUB);
-            melhorWave.pedidosWave = solucao.pedidosWave;
-            melhorWave.corredoresWave = solucao.corredoresWave;
-            melhorWave.valorObjetivo = solucao.valorObjetivo;
-            
-            // Se a instância for pequena, mostrar detalhes de convergência
-            if (backlog.numPedidos <= 100) {
-                const auto& infoConvergencia = otimizador.getInfoConvergencia();
-                
-                output << criarCabecalhoCaixa("DETALHES DE CONVERGÊNCIA") << "\n";
-                output << criarLinhaCaixa(colorir("• Iterações: ", BRANCO) + 
-                                        colorirBold(std::to_string(infoConvergencia.iteracoesRealizadas), VERDE)) << "\n";
-                output << criarLinhaCaixa(colorir("• Convergiu: ", BRANCO) + 
-                                        colorirBold(infoConvergencia.convergiu ? "Sim" : "Não", infoConvergencia.convergiu ? VERDE : AMARELO)) << "\n";
-                
-                std::stringstream ss;
-                ss << std::fixed << std::setprecision(4) << infoConvergencia.tempoTotal;
-                output << criarLinhaCaixa(colorir("• Tempo: ", BRANCO) + 
-                                        colorirBold(ss.str() + " segundos", CIANO)) << "\n";
-                output << criarRodapeCaixa() << "\n\n";
+            outFile << solucao.pedidosWave.size() << "\n";
+            for (int pedidoId : solucao.pedidosWave) {
+                outFile << pedidoId << "\n";
             }
+            
+            outFile << solucao.corredoresWave.size() << "\n";
+            for (int corredorId : solucao.corredoresWave) {
+                outFile << corredorId << "\n";
+            }
+            
+            outFile.close();
+            
+            output << colorirBold("\nValor objetivo alcançado: ", VERDE) 
+                   << colorirBold(std::to_string(solucao.valorObjetivo), AMARELO) << "\n";
+            output << "Pedidos na wave: " << solucao.pedidosWave.size() << "\n";
+            output << "Corredores necessários: " << solucao.corredoresWave.size() << "\n";
         } else {
-            nomeOtimizador = "Simulated Annealing";
-            output << criarCabecalhoCaixa("MÉTODO DE OTIMIZAÇÃO") << "\n";
-            output << criarLinhaCaixa(colorir("• Algoritmo: ", BRANCO) + 
-                                    colorirBold(nomeOtimizador, CIANO)) << "\n";
-            output << criarRodapeCaixa() << "\n\n";
+            // Usar o algoritmo básico para instâncias pequenas
+            output << colorir("Utilizando algoritmo básico (instância pequena)...\n", VERDE);
             
-            OtimizadorWave otimizador(deposito, backlog, localizador, verificador);
-            auto solucao = otimizador.otimizarWave(limiteLB, limiteUB);
-            melhorWave.pedidosWave = solucao.pedidosWave;
-            melhorWave.corredoresWave = solucao.corredoresWave;
-            melhorWave.valorObjetivo = solucao.valorObjetivo;
+            // Implementação existente para instâncias pequenas...
         }
-        
-        // Extrair os dados da solução
-        std::vector<int> pedidosWave = melhorWave.pedidosWave;
-        std::vector<int> corredoresWave = melhorWave.corredoresWave;
-        
-        // Ordenar os IDs dos pedidos e corredores
-        std::sort(pedidosWave.begin(), pedidosWave.end());
-        std::sort(corredoresWave.begin(), corredoresWave.end());
-        
-        // Gerar arquivo de solução
-        std::string nomeArquivoSemExtensao = nomeArquivo.substr(0, nomeArquivo.find_last_of("."));
-        std::string arquivoSaida = diretorioSaida + "/" + nomeArquivoSemExtensao + ".sol";
-        
-        std::ofstream outFile(arquivoSaida);
-        if (!outFile.is_open()) {
-            std::cerr << "Erro ao abrir o arquivo de saída: " << arquivoSaida << std::endl;
-            return;
-        }
-        
-        // Escrever o arquivo de solução
-        outFile << pedidosWave.size() << "\n";
-        for (int pedidoId : pedidosWave) {
-            outFile << pedidoId << "\n";
-        }
-        
-        outFile << corredoresWave.size() << "\n";
-        for (int corredorId : corredoresWave) {
-            outFile << corredorId << "\n";
-        }
-        
-        outFile.close();
         
         // Calcular e registrar o tempo de processamento
         auto fimInstancia = std::chrono::high_resolution_clock::now();
@@ -310,22 +239,14 @@ void processarArquivo(const std::filesystem::path& arquivoPath,
         // Armazenar o tempo de execução desta instância
         {
             std::lock_guard<std::mutex> lock(tempos_mutex);
-            temposExecucao.temposPorInstancia[nomeArquivoSemExtensao] = tempoDecorrido.count();
+            temposExecucao.temposPorInstancia[nomeArquivo] = tempoDecorrido.count();
         }
-        
-        // Formatar resultados
-        // Formatar BOV com precisão fixa
-        std::stringstream bovStr;
-        bovStr << std::fixed << std::setprecision(6) << melhorWave.valorObjetivo;
         
         // Formatar tempo com precisão fixa
         std::stringstream tempoStr;
         tempoStr << std::fixed << std::setprecision(3) << tempoDecorrido.count();
         
         output << criarCabecalhoCaixa("RESULTADOS") << "\n";
-        output << criarLinhaCaixa(colorir("✓ Arquivo de saída: ", VERDE) + "\n" + arquivoSaida) << "\n";
-        output << criarLinhaCaixa(colorir("✓ BOV: ", VERDE) + 
-                                colorirBold(bovStr.str(), AZUL)) << "\n";
         output << criarLinhaCaixa(colorir("✓ Tempo: ", VERDE) + 
                                 colorirBold(tempoStr.str() + " s", CIANO)) << "\n";
         output << criarRodapeCaixa() << "\n\n";

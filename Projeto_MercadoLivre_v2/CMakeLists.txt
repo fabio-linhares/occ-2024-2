@@ -13,6 +13,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -Wextra -Wpedantic"
 # Suporte a threads
 find_package(Threads REQUIRED)
 
+# Definir flag para usar solver personalizado
+add_definitions(-DUSE_CUSTOM_PLI_SOLVER)
+
 # GoogleTest via FetchContent
 include(FetchContent)
 FetchContent_Declare(
@@ -23,30 +26,6 @@ FetchContent_Declare(
 set(gtest_disable_pthreads ON CACHE BOOL "" FORCE)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
-
-# Encontrar o caminho do OR-Tools no NixOS
-execute_process(
-  COMMAND bash -c "nix-env -q --out-path or-tools | awk '{print $2}'"
-  OUTPUT_VARIABLE OR_TOOLS_PATH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-if(OR_TOOLS_PATH)
-  message(STATUS "OR-Tools encontrado em: ${OR_TOOLS_PATH}")
-  include_directories(${OR_TOOLS_PATH}/include)
-  link_directories(${OR_TOOLS_PATH}/lib)
-  
-  # Definir flags de compilação para OR-Tools
-  add_definitions(-DUSE_ORTOOLS)
-  
-  # Adicionar a biblioteca ao linking
-  set(ORTOOLS_LIBRARIES ortools)
-else()
-  message(WARNING "OR-Tools não encontrado. Algumas funcionalidades serão desabilitadas.")
-  
-  # Forçar o uso do solver personalizado
-  add_definitions(-DNO_ORTOOLS)
-endif()
 
 # Habilitar testes
 enable_testing()
@@ -92,11 +71,11 @@ endif()
 # Criar biblioteca principal
 add_library(MercadoLivre_v2Core STATIC ${CORE_SOURCES})
 target_include_directories(MercadoLivre_v2Core PUBLIC ${INCLUDE_DIR})
-target_link_libraries(MercadoLivre_v2Core PRIVATE Threads::Threads ${ORTOOLS_LIBRARIES})
+target_link_libraries(MercadoLivre_v2Core PRIVATE Threads::Threads)
 
 # Criar executável principal
 add_executable(MercadoLivre_v2 ${MAIN_FILE})
-target_link_libraries(MercadoLivre_v2 PRIVATE MercadoLivre_v2Core Threads::Threads ${ORTOOLS_LIBRARIES})
+target_link_libraries(MercadoLivre_v2 PRIVATE MercadoLivre_v2Core Threads::Threads)
 
 # --- TESTES ---
 
