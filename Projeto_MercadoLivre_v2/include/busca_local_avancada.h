@@ -197,6 +197,25 @@ public:
      */
     void iniciarEstatisticas(const Solucao& solucaoInicial);
 
+    /**
+     * @brief Aplica uma perturbação à solução
+     * @param solucao Solução inicial
+     * @param intensidade Intensidade da perturbação
+     * @param LB Limite inferior para o número de unidades
+     * @param UB Limite superior para o número de unidades
+     * @return Solução perturbada
+     */
+    Solucao aplicarPerturbacao(const Solucao& solucao, double intensidade, int LB, int UB) {
+        return perturbarSolucao(solucao, intensidade, LB, UB);
+    }
+    
+    /**
+     * @brief Registra uma perturbação nas estatísticas
+     */
+    void registrarPerturbacao() {
+        estatisticas_.perturbacoes++;
+    }
+
 private:
     const Deposito& deposito_;
     const Backlog& backlog_;

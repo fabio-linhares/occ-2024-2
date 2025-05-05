@@ -383,7 +383,7 @@ std::map<std::string, std::string> BenchmarkManager::analisarPadroesDesempenho()
     // Para cada instância, determinar o melhor algoritmo
     for (const auto& [instancia, resultados] : resultadosPorInstancia) {
         std::string melhorAlgoritmo;
-        double melhorValor = -1.0;
+        double melhorValor = -std::numeric_limits<double>::infinity();
         
         for (const auto& resultado : resultados) {
             if (resultado.valorObjetivo > melhorValor) {
@@ -392,98 +392,8 @@ std::map<std::string, std::string> BenchmarkManager::analisarPadroesDesempenho()
             }
         }
         
-        // Extrair características da instância para criar um padrão
-        std::string padrao;
-        
-        // TODO: Determinar padrões baseados em características da instância
-        // Por exemplo: "pequena", "média", "grande", "densa", "esparsa", etc.
-        // Isso poderia ser feito analisando o nome da instância ou carregando-a
-        // para extrair suas propriedades
-        
-        if (instancia.find("small") != std::string::npos) {
-            padrao = "pequena";
-        } else if (instancia.find("medium") != std::string::npos) {
-            padrao = "média";
-        } else if (instancia.find("large") != std::string::npos) {
-            padrao = "grande";
-        } else {
-            // Analisar a instância para determinar o padrão com base em suas características reais
-            std::string caminhoInstancia = diretorioInstancias + "/" + instancia;
-            InputParser parser;
-            auto [deposito, backlog] = parser.parseFile(caminhoInstancia);
-            
-            // Analisar várias métricas para classificar a instância
-            int numItens = deposito.numItens;
-            int numPedidos = backlog.pedido.size();
-            int numCorredores = deposito.numCorredores;
-            
-            double densidadeMedia = 0.0;
-            if (numPedidos > 0) {
-                int totalItensBacklog = 0;
-                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-                    const auto& itens = backlog.pedido[pedidoId];
-                    totalItensBacklog += itens.size();
-                }
-                densidadeMedia = static_cast<double>(totalItensBacklog) / numPedidos;
-            }
-            
-            // Classificar com base nas métricas
-            if (numItens < 100) {
-                padrao = "pequena";
-            } else if (numItens < 1000) {
-                padrao = "média";
-            } else {
-                padrao = "grande";
-            }
-            
-            // Ajustar com base na densidade
-            if (densidadeMedia < 5.0) {
-                padrao += "-esparsa";
-            } else if (densidadeMedia > 20.0) {
-                padrao += "-densa";
-            } else {
-                padrao += "-regular";
-            }
-        }
-        
-        // Adicionar ou atualizar recomendação para este padrão
-        if (recomendacoes.find(padrao) == recomendacoes.end()) {
-            recomendacoes[padrao] = melhorAlgoritmo;
-        } else {
-            // Se já existe uma recomendação, verificar qual algoritmo tem melhor desempenho médio
-            // Por simplicidade, vamos substituir o algoritmo atual se encontrarmos um com valor melhor
-            double valorAtual = -1.0;
-            
-            // Procurar em todas as instâncias deste padrão para comparar desempenhos
-            for (const auto& [outraInstancia, outrosResultados] : resultadosPorInstancia) {
-                std::string outroPadrao;
-                
-                // Determinar o padrão da outra instância
-                if (outraInstancia.find("small") != std::string::npos) {
-                    outroPadrao = "pequena";
-                } else if (outraInstancia.find("medium") != std::string::npos) {
-                    outroPadrao = "média";
-                } else if (outraInstancia.find("large") != std::string::npos) {
-                    outroPadrao = "grande";
-                } else {
-                    outroPadrao = "genérica";
-                }
-                
-                if (outroPadrao == padrao) {
-                    // Buscar valor do algoritmo atual recomendado
-                    for (const auto& resultado : outrosResultados) {
-                        if (resultado.nomeAlgoritmo == recomendacoes[padrao]) {
-                            valorAtual = std::max(valorAtual, resultado.valorObjetivo);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // Atualizar recomendação se o novo algoritmo for melhor
-            if (melhorValor > valorAtual) {
-                recomendacoes[padrao] = melhorAlgoritmo;
-            }
+        if (!melhorAlgoritmo.empty()) {
+            recomendacoes[instancia] = melhorAlgoritmo;
         }
     }
     

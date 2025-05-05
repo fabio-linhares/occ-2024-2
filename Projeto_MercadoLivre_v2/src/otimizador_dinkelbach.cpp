@@ -22,7 +22,7 @@ OtimizadorDinkelbach::OtimizadorDinkelbach(
     localizador_(localizador),
     verificador_(verificador),
     epsilon_(0.0001),
-    maxIteracoes_(100),
+    maxIteracoes_(1000),
     usarBranchAndBound_(true),
     usarBuscaLocalAvancada_(true),
     limiteTempoBuscaLocal_(1.0) // Default 1 second for BL

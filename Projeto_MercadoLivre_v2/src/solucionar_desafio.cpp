@@ -995,7 +995,7 @@ void processarArquivo(const std::filesystem::path& arquivoPath,
             
             // Configurar Dinkelbach para execução mais longa e precisa
             OtimizadorDinkelbach otimizador(deposito, backlog, localizador, verificador);
-            otimizador.configurarParametros(0.00001, 150, false); // Mais iterações, sem BnB interno
+            otimizador.configurarParametros(0.00001, 1500, false); // Mais iterações, sem BnB interno
             otimizador.setUsarBuscaLocalAvancada(true);
             otimizador.setLimiteTempoBuscaLocal(10.0); // Tempo generoso para busca local
             
@@ -1040,9 +1040,9 @@ void processarArquivo(const std::filesystem::path& arquivoPath,
             
             // Criar configuração para ILS usando a estrutura definida na classe BuscaLocalAvancada
             BuscaLocalAvancada::ConfigILS configILS;
-            configILS.maxIteracoes = 2000;
-            configILS.perturbacoesSemMelhoria = 1000;
+            configILS.perturbacoesSemMelhoria = 2000;
             configILS.intensidadePerturbacaoBase = 0.3;
+            configILS.maxIteracoes = 50000;
             buscaLocal.configurarILS(configILS);
             
             // Converter Solucao para BuscaLocalAvancada::Solucao

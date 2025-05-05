@@ -157,9 +157,11 @@ std::string BuscaLocalAvancada::obterEstatisticas() const {
 }
 
 bool BuscaLocalAvancada::tempoExcedido() const {
-    if (limiteTempo_ <= 0) return false;
-    auto tempoAtual = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration<double>(tempoAtual - tempoInicio_).count() > limiteTempo_;
+    auto agora = std::chrono::high_resolution_clock::now();
+    double tempoDecorrido = std::chrono::duration<double>(agora - tempoInicio_).count();
+    
+    // Dar uma margem de segurança (90% do tempo total)
+    return tempoDecorrido > (limiteTempo_ * 0.9);
 }
 
 // --- Tabu Search Implementation ---
@@ -348,50 +350,59 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::vns(const Solucao& solucaoInicia
 
 // --- ILS Implementation ---
 BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao& solucaoInicial, int LB, int UB) {
-     Solucao solucaoAtual = buscaLocalBasica(solucaoInicial, 0, LB, UB); // Start from a local optimum
-     Solucao melhorSolucao = solucaoAtual;
-     int iter = 0;
-     int iterSemMelhoria = 0;
-
-     while (iter < configILS_.maxIteracoes && !tempoExcedido()) {
-         estatisticas_.iteracoesTotais++;
-         iter++;
-
-         // 1. Perturbation: Apply perturbation to the current solution s
-         double intensidadePert = configILS_.intensidadePerturbacaoBase + 
-                                  (double)iterSemMelhoria * 0.01; // Usar valor fixo em vez de fatorAumentoIntensidade
-         Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, intensidadePert, LB, UB);
-         estatisticas_.perturbacoes++;
-
-         // 2. Local Search: Apply local search to the perturbed solution s'
-         Solucao solucaoAposLS = buscaLocalBasica(solucaoPerturbada, 0, LB, UB);
-         estatisticas_.buscasLocais++;
-
-         // 3. Acceptance Criterion: Decide whether to accept s'' as the new current solution
-         // Accept if better or based on some probability (e.g., simulated annealing like)
-         // Simple acceptance: always accept if better, otherwise keep current
-         if (solucaoAposLS.valorObjetivo > solucaoAtual.valorObjetivo) {
-             solucaoAtual = solucaoAposLS;
-             iterSemMelhoria = 0; // Reset on improvement
-             if (solucaoAtual.valorObjetivo > melhorSolucao.valorObjetivo) {
-                 melhorSolucao = solucaoAtual;
-                 estatisticas_.melhorias++;
-                 // std::cout << "Nova melhor solucao (ILS) it " << iter << ": BOV = " << melhorSolucao.valorObjetivo << std::endl;
-             }
-         } else {
-             iterSemMelhoria++;
-             // Could add more sophisticated acceptance (e.g., accept worse with probability)
-         }
-
-         // Optional: Reset if stuck for too long
-         if (iterSemMelhoria > configILS_.perturbacoesSemMelhoria * 2) { // Usar um múltiplo dos parâmetros existentes
-              solucaoAtual = perturbarSolucao(melhorSolucao, configILS_.intensidadePerturbacaoBase * 5, LB, UB);
-              solucaoAtual = buscaLocalBasica(solucaoAtual, 0, LB, UB);
-              iterSemMelhoria = 0;
-              // std::cout << "ILS Resetting..." << std::endl;
-         }
-     }
-     return melhorSolucao;
+    Solucao melhorSolucao = solucaoInicial;
+    Solucao solucaoAtual = solucaoInicial;
+    
+    // Inicializar estatísticas
+    int iterSemMelhoria = 0;
+    
+    // Executar busca local na solução inicial
+    solucaoAtual = buscaLocalBasica(solucaoAtual, 0, LB, UB);
+    estatisticas_.buscasLocais++; // Incrementar contador de buscas locais
+    
+    if (avaliarMovimento(melhorSolucao, {TipoMovimento::SWAP, {}, {}}) < 
+        avaliarMovimento(solucaoAtual, {TipoMovimento::SWAP, {}, {}})) {
+        melhorSolucao = solucaoAtual;
+        estatisticas_.melhorias++;
+    }
+    
+    // Loop principal do ILS
+    for (int iter = 0; iter < configILS_.maxIteracoes; iter++) {
+        // Incrementar contador de iterações
+        estatisticas_.iteracoesTotais++;
+        
+        if (tempoExcedido()) break;
+        
+        // Perturbar solução atual
+        double intensidadePert = configILS_.intensidadePerturbacaoBase + 
+                               (double)iterSemMelhoria * 0.01;
+        Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, intensidadePert, LB, UB);
+        estatisticas_.perturbacoes++; // Incrementar contador de perturbações
+        
+        // Aplicar busca local na solução perturbada
+        Solucao candidata = buscaLocalBasica(solucaoPerturbada, 0, LB, UB);
+        estatisticas_.buscasLocais++; // Incrementar contador de buscas locais
+        
+        // Verificar se encontramos uma solução melhor
+        if (candidata.valorObjetivo > melhorSolucao.valorObjetivo) {
+            melhorSolucao = candidata;
+            solucaoAtual = candidata;
+            iterSemMelhoria = 0;
+            estatisticas_.melhorias++;
+        } else {
+            iterSemMelhoria++;
+        }
+        
+        // Reinicialização estratégica se estagnado
+        if (iterSemMelhoria > configILS_.perturbacoesSemMelhoria && 
+            configILS_.usarReinicializacaoEstrategica) {
+            solucaoAtual = aplicarPerturbacaoForte(melhorSolucao, LB, UB);
+            estatisticas_.perturbacoes++;
+            iterSemMelhoria = 0;
+        }
+    }
+    
+    return melhorSolucao;
 }
 
 

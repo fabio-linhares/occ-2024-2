@@ -1,0 +1,4 @@
+CMake Warning at CMakeLists.txt:102 (message):
+  Nenhum arquivo de teste encontrado! Criando teste vazio.
+
+
