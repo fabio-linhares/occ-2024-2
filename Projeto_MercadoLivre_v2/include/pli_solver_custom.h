@@ -25,8 +25,42 @@ public:
     ) override;
     
     std::string obterEstatisticas() const override;
+
+private:
+    Config config_;
+    struct Estatisticas {
+        int iteracoes = 0;
+        double tempoTotal = 0.0;
+        int nodesExplorados = 0;
+        int variaveisFixadas = 0;
+        int cortes = 0;
+        double valorOtimo = 0.0;
+        double gap = 0.0;
+    } estatisticas_;
     
-    // Métodos específicos para resolver com diferentes algoritmos
+    // Estrutura para o nó do Branch-and-Bound
+    struct Node {
+        std::vector<int> pedidosFixosIn;
+        std::vector<int> pedidosFixosOut;
+        std::vector<int> pedidosDisponiveis;
+        std::unordered_set<int> corredoresIncluidos;
+        double limiteSuperior;
+        int totalUnidades;
+        int nivel;
+        
+        // Operador para ordenação na fila de prioridade
+        bool operator<(const Node& outro) const {
+            return limiteSuperior < outro.limiteSuperior;
+        }
+    };
+    
+    // Estrutura para matriz PLI (para uso interno)
+    struct MatrizPLI {
+        std::vector<std::vector<double>> A;  // Matriz de coeficientes
+        std::vector<double> b;               // Lado direito
+        std::vector<double> c;               // Coeficientes da função objetivo
+    };
+    
     Solucao resolverPontosInteriores(
         const Deposito& deposito,
         const Backlog& backlog,
@@ -66,49 +100,7 @@ public:
         int LB, int UB,
         const Solucao* solucaoInicial = nullptr
     );
-
-private:
-    // Configurações
-    Config config_;
     
-    // Estatísticas
-    struct Estatisticas {
-        double tempoTotal;
-        double valorOtimo;
-        double gap;
-        int iteracoes;
-        int nodesExplorados;
-        int cortes;
-        int variaveisFixadas;
-    } estatisticas_;
-    
-    // Estrutura para nós da árvore de busca
-    struct Node {
-        std::vector<int> pedidosFixosIn;
-        std::vector<int> pedidosFixosOut;
-        std::vector<int> pedidosDisponiveis;
-        double limiteSuperior;
-        double limiteInferior;
-        std::unordered_set<int> corredoresIncluidos;
-        int totalUnidades;
-        int nivel;
-        double lambda;
-
-        // Operador de comparação para uso em std::priority_queue
-        // Para max-heap (maior valor no topo), usamos '>' em vez de '<'
-        bool operator<(const Node& other) const {
-            return limiteSuperior < other.limiteSuperior;
-        }
-    };
-    
-    // Estrutura para representar matriz sparse do PLI
-    struct MatrizPLI {
-        std::vector<std::vector<double>> A;
-        std::vector<double> b;
-        std::vector<double> c;
-    };
-    
-    // Métodos auxiliares para branch-and-bound
     Solucao resolverBranchAndBoundPersonalizado(
         const Deposito& deposito,
         const Backlog& backlog,
@@ -125,7 +117,6 @@ private:
         double lambda
     );
     
-    // Métodos para abordagens gulosas
     Solucao resolverGulosoComRelaxacao(
         const Deposito& deposito,
         const Backlog& backlog,
@@ -148,7 +139,5 @@ private:
     bool tempoExcedido() const;
     double calcularValorObjetivo(const std::vector<double>& solucao, const std::vector<double>& c);
     double dot(const std::vector<double>& a, const std::vector<double>& b);
-    
-    // Tempo de início para controle do limite de tempo
     std::chrono::time_point<std::chrono::high_resolution_clock> tempoInicio_;
 };

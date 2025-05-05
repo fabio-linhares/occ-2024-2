@@ -301,16 +301,15 @@ Solucao PLISolverCustom::resolverBranchAndBoundPersonalizado(
             }
         }
         
-        // Obter o ID do pedido selecionado
+        // Obter ID do pedido selecionado
         int pedidoId = no.pedidosDisponiveis[idxPedidoSelecionado];
         
-        // Criar dois nós: incluir ou excluir o pedido
+        // Nó incluir (adicionar o pedido à solução)
         Node noIncluir = no;
-        noIncluir.pedidosDisponiveis.erase(noIncluir.pedidosDisponiveis.begin() + idxPedidoSelecionado);
         noIncluir.pedidosFixosIn.push_back(pedidoId);
+        noIncluir.pedidosDisponiveis.erase(noIncluir.pedidosDisponiveis.begin() + idxPedidoSelecionado);
         noIncluir.nivel++;
         
-        // Atualizar unidades e corredores para o nó incluir
         int unidadesPedido = 0;
         for (const auto& [itemId, quantidade] : backlog.pedido[pedidoId]) {
             unidadesPedido += quantidade;

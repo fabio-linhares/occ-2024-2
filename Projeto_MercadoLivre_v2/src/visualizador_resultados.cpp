@@ -74,10 +74,12 @@ void VisualizadorResultados::visualizarWave(
     
     // Calcular estatísticas da wave
     int totalUnidades = 0;
-    std::unordered_map<int, int> itensNaWave; // itemId -> quantidade
+    std::unordered_map<int, int> itensNaWave;
     
     for (int pedidoId : pedidosWave) {
-        for (const auto& [itemId, quantidade] : backlog.pedido[pedidoId]) {
+        for (const auto& par : backlog.pedido[pedidoId]) {
+            int itemId = par.first;
+            int quantidade = par.second;
             totalUnidades += quantidade;
             itensNaWave[itemId] += quantidade;
         }
@@ -86,113 +88,71 @@ void VisualizadorResultados::visualizarWave(
     double razaoWave = corredoresWave.empty() ? 0.0 : 
                       static_cast<double>(totalUnidades) / corredoresWave.size();
     
-    // Cabeçalho do arquivo HTML
+    // Gerar HTML
     outFile << "<!DOCTYPE html>\n"
             << "<html>\n"
             << "<head>\n"
             << "    <title>Visualização da Wave</title>\n"
             << "    <style>\n"
-            << "        .wave-info { margin-bottom: 20px; }\n"
-            << "        .pedidos, .corredores { margin-bottom: 20px; }\n"
-            << "        .pedido, .corredor { margin: 5px; padding: 10px; border: 1px solid #ccc; }\n"
-            << "        .pedido-header, .corredor-header { font-weight: bold; margin-bottom: 10px; }\n"
-            << "        .item { margin: 5px; padding: 5px; background-color: #f0f0f0; border-radius: 5px; }\n"
-            << "        .corredor-item { display: inline-block; }\n"
-            << "        .item-quantidade { font-weight: bold; color: #007bff; }\n"
-            << "        .mapa-calor { margin-top: 30px; border-collapse: collapse; }\n"
-            << "        .mapa-calor td { width: 30px; height: 30px; text-align: center; }\n"
+            << "        body { font-family: Arial, sans-serif; margin: 20px; }\n"
+            << "        .wave-info { margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; }\n"
+            << "        .pedidos { margin-bottom: 20px; }\n"
+            << "        .corredores { margin-bottom: 20px; }\n"
+            << "        table { border-collapse: collapse; width: 100%; }\n"
+            << "        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }\n"
+            << "        th { background-color: #f2f2f2; }\n"
             << "    </style>\n"
             << "</head>\n"
             << "<body>\n"
-            << "    <h1>Visualização da Wave</h1>\n"
-            << "    <div class=\"wave-info\">\n"
-            << "        <p>Número de Pedidos: " << pedidosWave.size() << "</p>\n"
-            << "        <p>Número de Corredores: " << corredoresWave.size() << "</p>\n"
-            << "        <p>Total de Unidades: " << totalUnidades << "</p>\n"
-            << "        <p>Razão Unidades/Corredores: " << std::fixed << std::setprecision(2) 
-            << razaoWave << "</p>\n"
+            << "    <h1>Visualização da Wave</h1>\n";
+    
+    // Informações resumidas
+    outFile << "    <div class=\"wave-info\">\n"
+            << "        <h2>Resumo</h2>\n"
+            << "        <p><strong>Número de Pedidos:</strong> " << pedidosWave.size() << "</p>\n"
+            << "        <p><strong>Número de Corredores:</strong> " << corredoresWave.size() << "</p>\n"
+            << "        <p><strong>Total de Unidades:</strong> " << totalUnidades << "</p>\n"
+            << "        <p><strong>Razão Unidades/Corredores:</strong> " << std::fixed << std::setprecision(2) << razaoWave << "</p>\n"
             << "    </div>\n";
     
-    // Visualizar pedidos
-    outFile << "    <h2>Pedidos na Wave</h2>\n"
-            << "    <div class=\"pedidos\">\n";
+    // Lista de pedidos
+    outFile << "    <div class=\"pedidos\">\n"
+            << "        <h2>Pedidos na Wave</h2>\n"
+            << "        <table>\n"
+            << "            <tr><th>ID Pedido</th><th>Itens</th><th>Unidades</th></tr>\n";
     
     for (int pedidoId : pedidosWave) {
-        outFile << "        <div class=\"pedido\">\n"
-                << "            <div class=\"pedido-header\">Pedido " << pedidoId << " (" 
-                << backlog.pedido[pedidoId].size() << " tipos de itens)</div>\n";
-        
-        for (const auto& [itemId, quantidade] : backlog.pedido[pedidoId]) {
-            outFile << "            <div class=\"item\">Item " << itemId 
-                    << " <span class=\"item-quantidade\">(" << quantidade << ")</span></div>\n";
+        int unidadesPedido = 0;
+        for (const auto& par : backlog.pedido[pedidoId]) {
+            unidadesPedido += par.second;
         }
         
-        outFile << "        </div>\n";
+        outFile << "            <tr>\n"
+                << "                <td>" << pedidoId << "</td>\n"
+                << "                <td>" << backlog.pedido[pedidoId].size() << "</td>\n"
+                << "                <td>" << unidadesPedido << "</td>\n"
+                << "            </tr>\n";
     }
     
-    outFile << "    </div>\n";
+    outFile << "        </table>\n"
+            << "    </div>\n";
     
-    // Visualizar corredores
-    outFile << "    <h2>Corredores na Wave</h2>\n"
-            << "    <div class=\"corredores\">\n";
+    // Lista de corredores
+    outFile << "    <div class=\"corredores\">\n"
+            << "        <h2>Corredores Necessários</h2>\n"
+            << "        <table>\n"
+            << "            <tr><th>ID Corredor</th><th>Itens Distintos</th></tr>\n";
     
     for (int corredorId : corredoresWave) {
-        outFile << "        <div class=\"corredor\">\n"
-                << "            <div class=\"corredor-header\">Corredor " << corredorId << "</div>\n";
-        
-        for (const auto& [itemId, quantidade] : deposito.corredor[corredorId]) {
-            if (itensNaWave.find(itemId) != itensNaWave.end()) {
-                outFile << "            <div class=\"corredor-item item\">Item " << itemId 
-                        << " <span class=\"item-quantidade\">(" << quantidade << ")</span></div>\n";
-            }
-        }
-        
-        outFile << "        </div>\n";
+        outFile << "            <tr>\n"
+                << "                <td>" << corredorId << "</td>\n"
+                << "                <td>" << deposito.corredor[corredorId].size() << "</td>\n"
+                << "            </tr>\n";
     }
     
-    outFile << "    </div>\n";
+    outFile << "        </table>\n"
+            << "    </div>\n";
     
-    // Criar mapa de calor mostrando relação entre pedidos e corredores
-    outFile << "    <h2>Mapa de Relação Pedidos-Corredores</h2>\n"
-            << "    <table class=\"mapa-calor\">\n";
-    
-    // Cabeçalho da tabela (corredores)
-    outFile << "        <tr><td></td>";
-    for (int corredorId : corredoresWave) {
-        outFile << "<td>C" << corredorId << "</td>";
-    }
-    outFile << "</tr>\n";
-    
-    // Corpo da tabela (pedidos x corredores)
-    for (int pedidoId : pedidosWave) {
-        outFile << "        <tr><td>P" << pedidoId << "</td>";
-        
-        for (int corredorId : corredoresWave) {
-            // Contar quantos itens do pedido estão neste corredor
-            int itensComuns = 0;
-            
-            for (const auto& [itemId, _] : backlog.pedido[pedidoId]) {
-                if (deposito.corredor[corredorId].find(itemId) != deposito.corredor[corredorId].end()) {
-                    itensComuns++;
-                }
-            }
-            
-            // Definir cor com base na intensidade da relação
-            int intensidade = 255 - std::min(255, itensComuns * 50);
-            std::string cor = "rgb(" + std::to_string(intensidade) + "," 
-                           + std::to_string(intensidade) + "," 
-                           + std::to_string(255) + ")";
-            
-            outFile << "<td style=\"background-color: " << cor << "\">" 
-                    << itensComuns << "</td>";
-        }
-        
-        outFile << "</tr>\n";
-    }
-    
-    outFile << "    </table>\n";
-    
-    // Rodapé do arquivo HTML
     outFile << "</body>\n"
             << "</html>\n";
     

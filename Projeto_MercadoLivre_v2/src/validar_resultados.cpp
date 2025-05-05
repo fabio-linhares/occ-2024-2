@@ -193,54 +193,53 @@ SolucaoValidacao lerArquivoSolucao(const std::string& arquivoSolucao) {
         throw std::runtime_error("Não foi possível abrir o arquivo de solução: " + arquivoSolucao);
     }
 
-    // Ler número de pedidos na wave
-    int numPedidos;
-    if (std::getline(file, linha)) {
-        std::stringstream ss(linha);
-        if (!(ss >> numPedidos)) {
-            throw std::runtime_error("Erro ao ler o número de pedidos na wave");
-        }
-    } else {
-        throw std::runtime_error("Arquivo de solução incompleto: número de pedidos ausente");
-    }
-
-    // Ler IDs dos pedidos na wave
-    for (int i = 0; i < numPedidos; ++i) {
+    try {
+        // Ler número de pedidos na wave
         if (std::getline(file, linha)) {
-            std::stringstream ss(linha);
-            int pedidoId;
-            if (!(ss >> pedidoId)) {
-                throw std::runtime_error("Erro ao ler o ID do pedido na linha " + std::to_string(i + 2));
+            std::istringstream ss(linha);
+            int numPedidos;
+            if (!(ss >> numPedidos)) {
+                throw std::runtime_error("Erro ao ler o número de pedidos na wave");
             }
-            solucao.pedidosWave.push_back(pedidoId);
+        } else {
+            throw std::runtime_error("Arquivo de solução incompleto: número de pedidos ausente");
+        }
+
+        // Ler IDs dos pedidos na wave (todos na mesma linha)
+        if (std::getline(file, linha)) {
+            std::istringstream ss(linha);
+            int pedidoId;
+            while (ss >> pedidoId) {
+                solucao.pedidosWave.push_back(pedidoId);
+            }
         } else {
             throw std::runtime_error("Arquivo de solução incompleto: IDs de pedidos ausentes");
         }
-    }
 
-    // Ler número de corredores visitados
-    int numCorredores;
-    if (std::getline(file, linha)) {
-        std::stringstream ss(linha);
-        if (!(ss >> numCorredores)) {
-            throw std::runtime_error("Erro ao ler o número de corredores visitados");
-        }
-    } else {
-        throw std::runtime_error("Arquivo de solução incompleto: número de corredores ausente");
-    }
-
-    // Ler IDs dos corredores visitados
-    for (int i = 0; i < numCorredores; ++i) {
+        // Ler número de corredores visitados
         if (std::getline(file, linha)) {
-            std::stringstream ss(linha);
-            int corredorId;
-            if (!(ss >> corredorId)) {
-                throw std::runtime_error("Erro ao ler o ID do corredor na linha " + std::to_string(i + numPedidos + 3));
+            std::istringstream ss(linha);
+            int numCorredores;
+            if (!(ss >> numCorredores)) {
+                throw std::runtime_error("Erro ao ler o número de corredores visitados");
             }
-            solucao.corredoresWave.push_back(corredorId);
+        } else {
+            throw std::runtime_error("Arquivo de solução incompleto: número de corredores ausente");
+        }
+
+        // Ler IDs dos corredores visitados (todos na mesma linha)
+        if (std::getline(file, linha)) {
+            std::istringstream ss(linha);
+            int corredorId;
+            while (ss >> corredorId) {
+                solucao.corredoresWave.push_back(corredorId);
+            }
         } else {
             throw std::runtime_error("Arquivo de solução incompleto: IDs de corredores ausentes");
         }
+    } catch (const std::exception& e) {
+        file.close();
+        throw;
     }
 
     file.close();

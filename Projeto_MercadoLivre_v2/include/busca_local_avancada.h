@@ -78,6 +78,7 @@ public:
         bool usarMemoriaLongoPrazo = true;// Usar memória de longo prazo
         int ciclosIntensificacao = 5;     // Ciclos para iniciar intensificação
         int ciclosDiversificacao = 10;    // Ciclos para iniciar diversificação
+        int maxIteracoes = 1000;          // Adicionado campo que faltava
     };
     
     /**
@@ -87,42 +88,53 @@ public:
         int kMax = 4;                     // Número máximo de estruturas de vizinhança
         int maxIteracoesSemMelhoria = 100;// Máximo de iterações sem melhoria
         int iteracoesPorVizinhanca = 20;  // Iterações por estrutura de vizinhança
+        int maxIteracoes = 500;           // Adicionado campo que faltava
+        double intensidadeShakeBase = 0.3;// Adicionado campo que faltava
+        int numVizinhancas = 3;           // Adicionado campo que faltava
     };
-    
+
     /**
      * @brief Estrutura para configurar o ILS
      */
     struct ConfigILS {
-        int maxIteracoes = 100;
-        double nivelPerturbacao = 0.3;
-        int maxIteracoesSemMelhoria = 50;
-        double temperaturaInicial = 100.0;  // Adicionado
-        double taxaResfriamento = 0.95;     // Adicionado
+        int perturbacoesSemMelhoria = 500;        // Em vez de maxIteracoesSemMelhoria
+        int maxIteracoesBuscaLocal = 2000;
+        double intensidadePerturbacaoBase = 0.3;  // Em vez de nivelPerturbacao
+        double intensidadePerturbacaoMax = 0.7;
+        int maxIteracoes = 10000;
+        bool usarPerturbacaoAdaptativa = true;
+        bool usarReinicializacaoEstrategica = true;
+        int intervaloDiversificacao = 10000;
+        double fatorAumentoIntensidade = 0.01;    // Fator para aumentar a intensidade da perturbação
+        int maxIterSemMelhoriaReset = 1000;       // Máximo de iterações sem melhoria antes do reset
     };
     
     /**
      * @brief Estrutura para estatísticas de execução
      */
     struct Estatisticas {
-        int iteracoesTotais;
-        int melhorias;
-        int tempoExecucaoMs;
+        int iteracoesRealizadas = 0;
+        int movimentosGerados = 0;
+        int movimentosAplicados = 0;
+        double valorObjetivoInicial = 0.0;
+        double melhorValorObjetivo = 0.0;
+        double tempoTotalMs = 0.0;
         std::string algoritmoUsado;
-        int movimentosAceitos;
-        int movimentosRejeitados;
-        int iteracoesIntensificacao;
-        int iteracoesDiversificacao;
-        double melhorValorObjetivo;
-        double valorObjetivoInicial;
-        double melhoria;
-        int movimentosTabu;
-        int aspiracoesSucedidas;
-        int mudancasVizinhanca;
-        int shakesSucedidos;
-        int perturbacoes;
-        int buscasLocais;
-        int reiniciosForçados;               // Adicionado
-        int aceitacoesEstrategicas;          // Adicionado
+        
+        double tempoExecucaoMs = 0.0;
+        double melhoria = 0.0;
+        int iteracoesTotais = 0;
+        int melhorias = 0;
+        int movimentosAceitos = 0;
+        int movimentosRejeitados = 0;
+        int movimentosTabu = 0;
+        int aspiracoesSucedidas = 0;
+        int iteracoesIntensificacao = 0;
+        int iteracoesDiversificacao = 0;
+        int mudancasVizinhanca = 0;
+        int shakesSucedidos = 0;
+        int perturbacoes = 0;
+        int buscasLocais = 0;
     };
 
     /**
@@ -272,4 +284,8 @@ private:
         int tipoVizinhanca,
         int LB, int UB
     );
+
+    // Métodos adicionais
+    void recalcularSolucao(Solucao& solucao);
+    Solucao aplicarPerturbacaoForte(const Solucao& solucao, int LB, int UB);
 };

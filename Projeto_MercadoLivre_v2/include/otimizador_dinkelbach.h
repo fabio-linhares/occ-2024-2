@@ -3,151 +3,153 @@
 #include "armazem.h"
 #include "localizador_itens.h"
 #include "verificador_disponibilidade.h"
-#include "branch_and_bound_solver.h"
+#include "otimizador_wave.h"
 #include <vector>
 #include <unordered_set>
-#include <map>
-#include <cmath>
-#include <algorithm>
-#include <limits>
-#include <iostream>
+#include <utility>
+#include <chrono>
 
-/**
- * @brief Classe para otimização de waves usando o algoritmo de Dinkelbach
- * para problemas de programação fracionária (maximizar a razão unidades/corredores)
- */
-class OtimizadorDinkelbach {
+class OtimizadorDinkelbach : public OtimizadorWave {
 public:
-    /**
-     * @brief Estrutura para representar a solução de uma wave
-     */
     struct SolucaoWave {
-        std::vector<int> pedidosWave;        // IDs dos pedidos na wave
-        std::vector<int> corredoresWave;     // IDs dos corredores na wave
-        double valorObjetivo;                // Valor da função objetivo (unidades/corredores)
+        std::vector<int> pedidosWave;
+        std::vector<int> corredoresWave;
+        double valorObjetivo;
     };
-
-    /**
-     * @brief Estrutura para rastrear a convergência do algoritmo
-     */
+    
     struct InfoConvergencia {
-        std::vector<double> valoresLambda;       // Valores de lambda em cada iteração
-        std::vector<double> valoresObjetivo;     // Valores da função objetivo em cada iteração
-        int iteracoesRealizadas;                // Número de iterações realizadas
-        bool convergiu;                         // Indica se o algoritmo convergiu
-        double tempoTotal;                      // Tempo total de execução em segundos
+        std::vector<double> valoresLambda;
+        std::vector<double> valoresObjetivo;
+        int iteracoesRealizadas;
+        double tempoTotal;
+        bool convergiu;
     };
 
-    /**
-     * @brief Construtor
-     * @param deposito Dados do depósito
-     * @param backlog Dados do backlog de pedidos
-     * @param localizador Estrutura para localização de itens
-     * @param verificador Estrutura para verificação de disponibilidade
-     */
+    // Configuração para reinicializações múltiplas
+    struct ConfigReinicializacao {
+        int numReinicializacoes = 5;           // Número de reinicializações diferentes
+        bool usarSementesAleatorias = true;    // Usar sementes aleatórias diferentes
+        bool aumentarIteracoesProgressivamente = true; // Aumentar iterações a cada reinício
+        bool variarPerturbacao = true;         // Variar intensidade de perturbação
+        bool guardarMelhoresSolucoes = true;   // Manter as melhores soluções encontradas
+        int tamanhoPoolSolucoes = 3;           // Número de melhores soluções a manter
+    };
+    
     OtimizadorDinkelbach(
         const Deposito& deposito,
         const Backlog& backlog,
         const LocalizadorItens& localizador,
         const VerificadorDisponibilidade& verificador
     );
+    
+    void configurarParametros(double epsilon = 0.0001, int maxIteracoes = 10000, bool usarBranchAndBound = true) {
+        epsilon_ = epsilon;
+        maxIteracoes_ = maxIteracoes; // Aumentado para 10.000
+        usarBranchAndBound_ = usarBranchAndBound;
+    }
+    
+    void configurarBuscaLocal(bool usar, double tempoLimite) {
+        usarBuscaLocalAvancada_ = usar;
+        limiteTempoBuscaLocal_ = tempoLimite;
+    }
+    
+    SolucaoWave otimizarWave(int LB, int UB);
 
+    // Nova versão do método otimizarWave que usa reinicializações
+    SolucaoWave otimizarWaveComReinicializacoes(int LB, int UB);
+    
     /**
-     * @brief Configura os parâmetros de otimização
-     * @param epsilon Tolerância para convergência
-     * @param maxIteracoes Número máximo de iterações
-     * @param usarBranchAndBound Flag para usar branch-and-bound nas instâncias pequenas
+     * @brief Obtém informações sobre a convergência do algoritmo
+     * @return Referência constante à estrutura InfoConvergencia
      */
-    void configurarParametros(double epsilon, int maxIteracoes, bool usarBranchAndBound = true);
+    const InfoConvergencia& obterInfoConvergencia() const { return infoConvergencia_; }
+    
+    /**
+     * @brief Exibe detalhes da convergência no console
+     */
+    void exibirDetalhesConvergencia() const;
 
     /**
-     * @brief Define se deve usar Busca Local Avançada
-     * @param usar Verdadeiro para usar, falso caso contrário
+     * @brief Define se a busca local avançada deve ser usada
+     * @param usar True para usar busca local avançada, false caso contrário
      */
     void setUsarBuscaLocalAvancada(bool usar) {
         usarBuscaLocalAvancada_ = usar;
     }
     
     /**
-     * @brief Define limite de tempo para Busca Local Avançada
-     * @param limite Tempo em segundos
+     * @brief Define o limite de tempo para busca local
+     * @param limite Tempo limite em segundos
      */
     void setLimiteTempoBuscaLocal(double limite) {
         limiteTempoBuscaLocal_ = limite;
     }
 
-    /**
-     * @brief Otimiza a wave usando o algoritmo de Dinkelbach
-     * @param LB Limite inferior para o número de unidades
-     * @param UB Limite superior para o número de unidades
-     * @return Solução otimizada
-     */
-    SolucaoWave otimizarWave(int LB, int UB);
-
-    /**
-     * @brief Obtém informações sobre o processo de convergência
-     * @return Estrutura com informações de convergência
-     */
-    const InfoConvergencia& getInfoConvergencia() const;
-
-    /**
-     * @brief Exibe detalhes do processo de convergência
-     */
-    void exibirDetalhesConvergencia() const;
+    // Método para configurar as reinicializações múltiplas
+    void configurarReinicializacoes(const ConfigReinicializacao& config) {
+        configReinicializacao_ = config;
+    }
+    
+    // Método para habilitar/desabilitar reinicializações
+    void habilitarReinicializacoesMultiplas(bool habilitar) {
+        usarReinicializacoesMultiplas_ = habilitar;
+    }
 
 private:
     const Deposito& deposito_;
     const Backlog& backlog_;
     const LocalizadorItens& localizador_;
     const VerificadorDisponibilidade& verificador_;
+    
     double epsilon_;
     int maxIteracoes_;
     bool usarBranchAndBound_;
+    bool usarBuscaLocalAvancada_;
+    double limiteTempoBuscaLocal_;
+    
     InfoConvergencia infoConvergencia_;
 
-    // Controle para uso de busca local avançada
-    bool usarBuscaLocalAvancada_ = true;
+    ConfigReinicializacao configReinicializacao_;
+    bool usarReinicializacoesMultiplas_ = false;
     
-    // Limite de tempo para busca local (em segundos)
-    double limiteTempoBuscaLocal_ = 2.0;
-
-    /**
-     * @brief Resolve o subproblema linearizado usando branch-and-bound para instâncias pequenas
-     * @param lambda Valor atual de lambda
-     * @param LB Limite inferior para o número de unidades
-     * @param UB Limite superior para o número de unidades
-     * @return Par com a solução e o valor objetivo
-     */
+    int calcularTotalUnidades(const SolucaoWave& solucao);
+    
     std::pair<SolucaoWave, double> resolverSubproblemaComBranchAndBound(double lambda, int LB, int UB);
-
-    /**
-     * @brief Resolve o subproblema linearizado usando heurística gulosa para instâncias grandes
-     * @param lambda Valor atual de lambda
-     * @param LB Limite inferior para o número de unidades
-     * @param UB Limite superior para o número de unidades
-     * @return Par com a solução e o valor objetivo
-     */
     std::pair<SolucaoWave, double> resolverSubproblemaComHeuristica(double lambda, int LB, int UB);
-
+    
     /**
-     * @brief Calcula o valor da função objetivo fracionária: unidades/corredores
-     * @param pedidosWave IDs dos pedidos na wave
-     * @return Valor da função objetivo
+     * @brief Calcula o valor objetivo para um conjunto de pedidos
+     * @param pedidosWave Vetor de IDs dos pedidos
+     * @return Valor objetivo calculado
      */
     double calcularValorObjetivo(const std::vector<int>& pedidosWave);
-
+    
     /**
-     * @brief Constrói a lista de corredores necessários para os pedidos
-     * @param pedidosWave IDs dos pedidos na wave
-     * @return Lista de IDs dos corredores necessários
+     * @brief Constrói a lista de corredores necessários para um conjunto de pedidos
+     * @param pedidosWave Vetor de IDs dos pedidos
+     * @return Vetor de IDs dos corredores necessários
      */
     std::vector<int> construirListaCorredores(const std::vector<int>& pedidosWave);
-
+    
     /**
-     * @brief Calcula o valor do subproblema linearizado
+     * @brief Calcula o valor do subproblema linearizado F(x) - lambda*G(x)
      * @param solucao Solução a avaliar
      * @param lambda Valor atual de lambda
-     * @return Valor do subproblema (totalUnidades - lambda * numCorredores)
+     * @return Valor do subproblema
      */
     double calcularValorSubproblema(const SolucaoWave& solucao, double lambda);
+
+    // Métodos auxiliares para reinicializações
+    SolucaoWave gerarSolucaoInicialDiversificada(int indiceReinicializacao, int LB, int UB);
+    double ajustarParametrosDinamicos(int indiceReinicializacao, int totalReinicializacoes);
+
+    // Métodos para reinicializações múltiplas
+    double calcularBOV(const SolucaoWave& solucao);
+    int getTotalUnidades(const SolucaoWave& solucao);
+    SolucaoWave perturbarSolucao(const SolucaoWave& solucao, double nivelPerturbacao, std::mt19937& rng);
+    SolucaoWave recombinarSolucoes(const SolucaoWave& solucao1, const SolucaoWave& solucao2, int LB, int UB);
+    SolucaoWave otimizarWave(int LB, int UB, const SolucaoWave& solucaoInicial);
 };
+
+// Função para estimar um bom valor inicial de lambda
+double estimarLambdaInicial(const Deposito& deposito, const Backlog& backlog, const LocalizadorItens& localizador);

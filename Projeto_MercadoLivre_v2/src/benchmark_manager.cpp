@@ -11,6 +11,10 @@
 #include <functional>
 #include <algorithm>
 #include <numeric>
+#include <vector>
+#include <string>
+
+
 
 BenchmarkManager::BenchmarkManager(const std::string& dirInstancias, const std::string& dirResultados)
     : diretorioInstancias(dirInstancias), diretorioResultados(dirResultados) {
@@ -83,23 +87,39 @@ void BenchmarkManager::executarBenchmarkInstancia(const std::string& nomeInstanc
                 
                 resultado.valorObjetivo = solucao.valorObjetivo;
                 resultado.totalUnidades = 0;
-                for (int pedidoId : solucao.pedidosWave) {
-                    for (const auto& [_, quantidade] : backlog.pedido[pedidoId]) {
+                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                    const auto& itens = backlog.pedido[pedidoId];
+                    for (const auto& par : itens) {
+                        int itemId = par.first;
+                        int quantidade = par.second;
                         resultado.totalUnidades += quantidade;
                     }
                 }
                 resultado.totalCorredores = solucao.corredoresWave.size();
-                resultado.iteracoesRealizadas = otimizador.getInfoConvergencia().iteracoesRealizadas;
-                resultado.solucaoOtima = otimizador.getInfoConvergencia().convergiu;
+                const auto& infoConvergencia = otimizador.obterInfoConvergencia();
+                resultado.iteracoesRealizadas = infoConvergencia.iteracoesRealizadas;
+                resultado.solucaoOtima = infoConvergencia.convergiu;
                 
             } else if (algoritmo == "BuscaTabu") {
-                // Gerar solução inicial básica
-                Solucao solucaoInicial;
-                // ... (código para gerar solução inicial)
+                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
+                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
+                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
+                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
                 
-                BuscaLocalAvancada::Solucao solIni;
                 // Converter para formato da BuscaLocalAvancada
-                // ... (código de conversão)
+                BuscaLocalAvancada::Solucao solIni;
+                solIni.pedidosWave = solucaoInicial.pedidosWave;
+                solIni.corredoresWave = solucaoInicial.corredoresWave;
+                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
+                solIni.totalUnidades = 0;
+                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                    const auto& itens = backlog.pedido[pedidoId];
+                    for (const auto& par : itens) {
+                        int itemId = par.first;
+                        int quantidade = par.second;
+                        solIni.totalUnidades += quantidade;
+                    }
+                }
                 
                 BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
                 auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
@@ -111,11 +131,64 @@ void BenchmarkManager::executarBenchmarkInstancia(const std::string& nomeInstanc
                 // Outras estatísticas...
                 
             } else if (algoritmo == "VNS") {
-                // Similar ao BuscaTabu, mas com TipoBuscaLocal::VNS
-                // ...
+                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
+                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
+                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
+                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
+                
+                // Converter para formato da BuscaLocalAvancada
+                BuscaLocalAvancada::Solucao solIni;
+                solIni.pedidosWave = solucaoInicial.pedidosWave;
+                solIni.corredoresWave = solucaoInicial.corredoresWave;
+                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
+                solIni.totalUnidades = 0;
+                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                    const auto& itens = backlog.pedido[pedidoId];
+                    for (const auto& par : itens) {
+                        int itemId = par.first;
+                        int quantidade = par.second;
+                        solIni.totalUnidades += quantidade;
+                    }
+                }
+                
+                BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
+                auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
+                                                 BuscaLocalAvancada::TipoBuscaLocal::VNS);
+                
+                resultado.valorObjetivo = solucao.valorObjetivo;
+                resultado.totalUnidades = solucao.totalUnidades;
+                resultado.totalCorredores = solucao.corredoresWave.size();
+                // Outras estatísticas...
+                
             } else if (algoritmo == "ILS") {
-                // Similar ao BuscaTabu, mas com TipoBuscaLocal::ILS
-                // ...
+                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
+                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
+                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
+                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
+                
+                // Converter para formato da BuscaLocalAvancada
+                BuscaLocalAvancada::Solucao solIni;
+                solIni.pedidosWave = solucaoInicial.pedidosWave;
+                solIni.corredoresWave = solucaoInicial.corredoresWave;
+                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
+                solIni.totalUnidades = 0;
+                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                    const auto& itens = backlog.pedido[pedidoId];
+                    for (const auto& par : itens) {
+                        int itemId = par.first;
+                        int quantidade = par.second;
+                        solIni.totalUnidades += quantidade;
+                    }
+                }
+                
+                BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
+                auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
+                                                 BuscaLocalAvancada::TipoBuscaLocal::ILS);
+                
+                resultado.valorObjetivo = solucao.valorObjetivo;
+                resultado.totalUnidades = solucao.totalUnidades;
+                resultado.totalCorredores = solucao.corredoresWave.size();
+                // Outras estatísticas...
             }
             
             auto fim = std::chrono::high_resolution_clock::now();
@@ -334,11 +407,43 @@ std::map<std::string, std::string> BenchmarkManager::analisarPadroesDesempenho()
         } else if (instancia.find("large") != std::string::npos) {
             padrao = "grande";
         } else {
-            // Analisar a instância para determinar o padrão
-            // ...
+            // Analisar a instância para determinar o padrão com base em suas características reais
+            std::string caminhoInstancia = diretorioInstancias + "/" + instancia;
+            InputParser parser;
+            auto [deposito, backlog] = parser.parseFile(caminhoInstancia);
             
-            // Por enquanto, usar um padrão genérico
-            padrao = "genérica";
+            // Analisar várias métricas para classificar a instância
+            int numItens = deposito.numItens;
+            int numPedidos = backlog.pedido.size();
+            int numCorredores = deposito.numCorredores;
+            
+            double densidadeMedia = 0.0;
+            if (numPedidos > 0) {
+                int totalItensBacklog = 0;
+                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
+                    const auto& itens = backlog.pedido[pedidoId];
+                    totalItensBacklog += itens.size();
+                }
+                densidadeMedia = static_cast<double>(totalItensBacklog) / numPedidos;
+            }
+            
+            // Classificar com base nas métricas
+            if (numItens < 100) {
+                padrao = "pequena";
+            } else if (numItens < 1000) {
+                padrao = "média";
+            } else {
+                padrao = "grande";
+            }
+            
+            // Ajustar com base na densidade
+            if (densidadeMedia < 5.0) {
+                padrao += "-esparsa";
+            } else if (densidadeMedia > 20.0) {
+                padrao += "-densa";
+            } else {
+                padrao += "-regular";
+            }
         }
         
         // Adicionar ou atualizar recomendação para este padrão
@@ -346,7 +451,39 @@ std::map<std::string, std::string> BenchmarkManager::analisarPadroesDesempenho()
             recomendacoes[padrao] = melhorAlgoritmo;
         } else {
             // Se já existe uma recomendação, verificar qual algoritmo tem melhor desempenho médio
-            // ...
+            // Por simplicidade, vamos substituir o algoritmo atual se encontrarmos um com valor melhor
+            double valorAtual = -1.0;
+            
+            // Procurar em todas as instâncias deste padrão para comparar desempenhos
+            for (const auto& [outraInstancia, outrosResultados] : resultadosPorInstancia) {
+                std::string outroPadrao;
+                
+                // Determinar o padrão da outra instância
+                if (outraInstancia.find("small") != std::string::npos) {
+                    outroPadrao = "pequena";
+                } else if (outraInstancia.find("medium") != std::string::npos) {
+                    outroPadrao = "média";
+                } else if (outraInstancia.find("large") != std::string::npos) {
+                    outroPadrao = "grande";
+                } else {
+                    outroPadrao = "genérica";
+                }
+                
+                if (outroPadrao == padrao) {
+                    // Buscar valor do algoritmo atual recomendado
+                    for (const auto& resultado : outrosResultados) {
+                        if (resultado.nomeAlgoritmo == recomendacoes[padrao]) {
+                            valorAtual = std::max(valorAtual, resultado.valorObjetivo);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Atualizar recomendação se o novo algoritmo for melhor
+            if (melhorValor > valorAtual) {
+                recomendacoes[padrao] = melhorAlgoritmo;
+            }
         }
     }
     
