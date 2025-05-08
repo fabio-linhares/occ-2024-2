@@ -629,8 +629,8 @@ Solucao ajustarParaLimites(
                 unidades += qtd;
             }
             
-            double eficiencia = unidades; // Simplificado, podemos melhorar
-            pedidosAtuais.push_back({eficiencia, pedidoId});
+            double eficiência = unidades; // Simplificado, podemos melhorar
+            pedidosAtuais.push_back({eficiência, pedidoId});
         }
         
         // Ordenar por eficiência (menor primeiro)
@@ -760,7 +760,34 @@ void processarArquivo(const std::filesystem::path& arquivoPath,
         output << status("Validando instância...") << "\n\n";
         
         // Estratégia de solução baseada no tamanho da instância
-        if (backlog.numPedidos <= 200) {
+        if (backlog.numPedidos <= 20) {
+            std::cout << "Usando método exato com tempo estendido..." << std::endl;
+            
+            // Configurar Branch-and-Bound com mais tempo
+            BranchAndBoundSolver solver(deposito, backlog, localizador, verificador, 
+                                       300.0, // 5 minutos para instâncias muito pequenas
+                                       BranchAndBoundSolver::EstrategiaSelecionarVariavel::MAIOR_IMPACTO);
+            
+            // Obter solução otimizada
+            auto solucaoBnB = solver.resolver(0.0, limiteLB, limiteUB);
+            
+            // Converter para formato padrão
+            Solucao solucao;
+            solucao.pedidosWave = solucaoBnB.pedidosWave;
+            solucao.corredoresWave = solucaoBnB.corredoresWave;
+            solucao.valorObjetivo = solucaoBnB.valorObjetivo;
+            
+            // IMPORTANTE: Mover o salvamento da solução para depois da otimização
+            std::string nomeArquivoSaida = std::filesystem::path(arquivoPath).filename().string();
+            nomeArquivoSaida.replace(nomeArquivoSaida.rfind(".txt"), 4, ".sol");
+            std::string caminhoSaida = diretorioSaida + "/" + nomeArquivoSaida;
+            
+            // Salvar a solução otimizada
+            salvarSolucao(solucao.pedidosWave, solucao.corredoresWave, caminhoSaida);
+            
+            // Agora exibir a mensagem de salvamento
+            std::cout << "Solução salva em: " << caminhoSaida << std::endl;
+        } else if (backlog.numPedidos <= 200) {
             // MÉTODO EXATO: Para instâncias pequenas e médias, usar Branch-and-Bound
             output << colorir("Usando método exato (Branch-and-Bound) para instância pequena/média...\n", VERDE);
             
@@ -1125,11 +1152,7 @@ void solucionarDesafio(const std::string& diretorioEntrada, const std::string& d
     
     // Processamento paralelo
     unsigned int numThreads = std::thread::hardware_concurrency();
-    numThreads = std::max(1u, std::min(numThreads, 4u));  // Limitar a 4 threads para reduzir confusão na saída
-    
-    std::cout << colorir("• Utilizando ", CIANO) << 
-                 colorirBold(std::to_string(numThreads), AMARELO) << 
-                 colorir(" threads para processamento paralelo.", CIANO) << std::endl << std::endl;
+    std::cout << "• Utilizando " << numThreads << " threads para processamento paralelo." << std::endl;
     
     std::vector<std::thread> threads;
     std::mutex cout_mutex;

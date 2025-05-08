@@ -22,12 +22,16 @@ OtimizadorParalelo::OtimizadorParalelo(
     numThreads_ = numThreads;
     if (numThreads_ == 0) {
         numThreads_ = std::thread::hardware_concurrency();
-        if (numThreads_ == 0) numThreads_ = 4; // fallback
+        if (numThreads_ == 0) {
+            numThreads_ = 4; // Fallback se hardware_concurrency falhar
+        }
+        // Remover esta limitação abaixo para usar todas as threads disponíveis
+        // numThreads_ = std::min(numThreads_, 4u); // Limitar a 4 threads por padrão
     }
     
-    // Limitar threads para instâncias pequenas
+    // Você também pode querer remover ou ajustar esta limitação
     if (backlog.numPedidos < 100) {
-        numThreads_ = std::min(numThreads_, 2u);
+        numThreads_ = std::min(numThreads_, 2u); // Limitar a 2 threads para instâncias pequenas
     }
 }
 

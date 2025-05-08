@@ -19,8 +19,8 @@ GestorWaves::GestorWaves(const Deposito& dep, const Backlog& back)
 }
 
 SeletorWaves::WaveCandidata GestorWaves::selecionarMelhorWave() {
-    // Usar o novo método ordenarPorRelevancia em vez de getPedidosOrdenadosPorRelevancia
-    std::vector<int> pedidosOrdenados = analisador.ordenarPorRelevancia();
+    // Usar o novo método ordenarPedidos com a estratégia PARALELO
+    std::vector<int> pedidosOrdenados = analisador.ordenarPedidos(AnalisadorRelevancia::EstrategiaOrdenacao::PARALELO);
     
     // CORREÇÃO: Usar o construtor sem parâmetros para SeletorWaves
     SeletorWaves seletor;
@@ -34,7 +34,7 @@ bool GestorWaves::verificarPedido(int pedidoId) {
 }
 
 AnalisadorRelevancia::InfoPedido GestorWaves::getInfoPedido(int pedidoId) {
-    return analisador.infoPedidos[pedidoId];
+    return analisador.getInfoPedido(pedidoId);
 }
 
 const std::unordered_map<int, int>& GestorWaves::getCorredoresComItem(int itemId) {

@@ -16,10 +16,15 @@ AnalisadorRelevancia::AnalisadorRelevancia(int numPedidos) : infoPedidos(numPedi
     }
 }
 
-void AnalisadorRelevancia::calcularRelevancia(int pedidoId, const Backlog& backlog, const LocalizadorItens& localizador) {
+void AnalisadorRelevancia::calcularRelevancia(int pedidoId, const Backlog& backlog, const LocalizadorItens& localizador, bool forcarRecalculo) {
     // Verifica se o pedidoId é válido
     if (pedidoId < 0 || pedidoId >= infoPedidos.size() || pedidoId >= backlog.pedido.size()) {
         // Considerar lançar uma exceção ou logar um erro
+        return;
+    }
+
+    // Se não precisar recalcular e já tem pontuação, retorna
+    if (!forcarRecalculo && infoPedidos[pedidoId].pontuacaoRelevancia > 0.0) {
         return;
     }
 
@@ -51,6 +56,44 @@ void AnalisadorRelevancia::calcularRelevancia(int pedidoId, const Backlog& backl
     } else {
         info.pontuacaoRelevancia = 0.0; // Ou um valor muito alto se unidades > 0 e corredores = 0 for desejável
     }
+}
+
+void AnalisadorRelevancia::calcularRelevanciaEmLote(const std::vector<int>& pedidosIds, const Backlog& backlog, const LocalizadorItens& localizador) {
+    for (int pedidoId : pedidosIds) {
+        calcularRelevancia(pedidoId, backlog, localizador, false);
+    }
+}
+
+void AnalisadorRelevancia::atualizarRelevanciaSeNecessario(int pedidoId, const Backlog& backlog, const LocalizadorItens& localizador) {
+    // Verificar se o pedido foi modificado desde o último cálculo
+    if (relevanciaAtualizada(pedidoId, backlog)) {
+        // Se não foi modificado, não precisa recalcular
+        return;
+    }
+    
+    // Recalcular a relevância forçadamente
+    calcularRelevancia(pedidoId, backlog, localizador, true);
+}
+
+bool AnalisadorRelevancia::relevanciaAtualizada(int pedidoId, const Backlog& backlog) const {
+    // Verificar se o pedidoId é válido
+    if (pedidoId < 0 || pedidoId >= infoPedidos.size() || pedidoId >= backlog.pedido.size()) {
+        return false;
+    }
+    
+    // Implementação simples: verificar se o número de itens e unidades corresponde
+    // ao que está armazenado em infoPedidos
+    const InfoPedido& info = infoPedidos[pedidoId];
+    
+    // Contar itens e unidades no pedido atual
+    int numItensAtual = backlog.pedido[pedidoId].size();
+    int numUnidadesAtual = 0;
+    for (const auto& [_, quantidade] : backlog.pedido[pedidoId]) {
+        numUnidadesAtual += quantidade;
+    }
+    
+    // Se o número de itens ou unidades mudou, a relevância precisa ser atualizada
+    return (info.numItens == numItensAtual && info.numUnidades == numUnidadesAtual);
 }
 
 std::vector<int> AnalisadorRelevancia::ordenarPorRelevancia() const {
@@ -87,4 +130,61 @@ std::vector<int> AnalisadorRelevancia::ordenarPorRelevancia() const {
     }
 
     return pedidosOrdenados;
+}
+
+std::vector<int> AnalisadorRelevancia::ordenarPorRelevanciaParalelo() const {
+    // Criar vetor de índices
+    std::vector<int> pedidosOrdenados(infoPedidos.size());
+    
+    // Inicializar com valores de 0 a N-1
+    std::iota(pedidosOrdenados.begin(), pedidosOrdenados.end(), 0);
+    
+    try {
+        // Ordenar em paralelo usando comparador baseado na pontuação de relevância
+        std::sort(
+            std::execution::par,  // Política de execução paralela
+            pedidosOrdenados.begin(), 
+            pedidosOrdenados.end(),
+            [this](int a, int b) {
+                return infoPedidos[a].pontuacaoRelevancia > infoPedidos[b].pontuacaoRelevancia;
+            }
+        );
+    } 
+    catch (const std::exception& e) {
+        // Fallback para ordenação sequencial em caso de erro
+        std::cerr << "Aviso: Ordenação paralela falhou (" << e.what() << "). Usando ordenação sequencial." << std::endl;
+        std::sort(
+            pedidosOrdenados.begin(), 
+            pedidosOrdenados.end(),
+            [this](int a, int b) {
+                return infoPedidos[a].pontuacaoRelevancia > infoPedidos[b].pontuacaoRelevancia;
+            }
+        );
+    }
+    
+    return pedidosOrdenados;
+}
+
+std::vector<int> AnalisadorRelevancia::ordenarPedidos(EstrategiaOrdenacao estrategia) const {
+    if (estrategia == EstrategiaOrdenacao::PARALELO)
+        return ordenarPorRelevanciaParalelo();
+    return ordenarPorRelevancia();
+}
+
+std::vector<int> AnalisadorRelevancia::obterTopPedidos(int n) const {
+    auto pedidosOrdenados = ordenarPorRelevancia();
+    return std::vector<int>(
+        pedidosOrdenados.begin(),
+        pedidosOrdenados.begin() + std::min(n, static_cast<int>(pedidosOrdenados.size()))
+    );
+}
+
+std::vector<int> AnalisadorRelevancia::filtrarPorRelevancia(double limiarMinimo) const {
+    std::vector<int> pedidosFiltrados;
+    for (size_t i = 0; i < infoPedidos.size(); i++) {
+        if (infoPedidos[i].pontuacaoRelevancia >= limiarMinimo) {
+            pedidosFiltrados.push_back(i);
+        }
+    }
+    return pedidosFiltrados;
 }

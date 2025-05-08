@@ -32,17 +32,35 @@ void BenchmarkManager::adicionarAlgoritmo(const std::string& nomeAlgoritmo) {
 }
 
 void BenchmarkManager::executarBenchmarkCompleto(int repeticoes) {
+    // Verificar se o diretório existe
+    if (!std::filesystem::exists(diretorioInstancias)) {
+        std::cerr << "Erro: O diretório de instâncias '" << diretorioInstancias << "' não existe." << std::endl;
+        return;
+    }
+    
     // Listar todas as instâncias no diretório
     std::vector<std::string> instancias;
     for (const auto& entry : std::filesystem::directory_iterator(diretorioInstancias)) {
-        if (entry.is_regular_file()) {
-            instancias.push_back(entry.path().filename().string());
+        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+            instancias.push_back(entry.path().string());
         }
+    }
+    
+    if (instancias.empty()) {
+        std::cerr << "Erro: Não foram encontradas instâncias válidas no diretório '" 
+                  << diretorioInstancias << "'." << std::endl;
+        std::cerr << "As instâncias devem ser arquivos .txt com o formato correto." << std::endl;
+        return;
     }
     
     // Executar benchmark para cada instância
     for (const auto& instancia : instancias) {
-        executarBenchmarkInstancia(instancia, repeticoes);
+        try {
+            executarBenchmarkInstancia(std::filesystem::path(instancia).filename().string(), repeticoes);
+        } catch (const std::exception& e) {
+            std::cerr << "Erro ao processar instância '" << instancia << "': " << e.what() << std::endl;
+            continue; // Continuar com a próxima instância
+        }
     }
     
     // Gerar relatório comparativo
@@ -56,188 +74,47 @@ void BenchmarkManager::executarBenchmarkInstancia(const std::string& nomeInstanc
     std::string caminhoInstancia = diretorioInstancias + "/" + nomeInstancia;
     std::vector<ResultadoBenchmark> resultados;
     
-    // Carregar a instância
-    InputParser parser;
-    auto [deposito, backlog] = parser.parseFile(caminhoInstancia);
+    // Verificar se o arquivo existe
+    if (!std::filesystem::exists(caminhoInstancia)) {
+        std::cerr << "Erro: O arquivo de instância '" << caminhoInstancia << "' não existe." << std::endl;
+        return;
+    }
     
-    // Preparar estruturas auxiliares
-    LocalizadorItens localizador(deposito.numItens);
-    localizador.construir(deposito);
-    
-    VerificadorDisponibilidade verificador(deposito.numItens);
-    verificador.construir(deposito);
-    
-    // Para cada algoritmo disponível
-    for (const auto& algoritmo : algoritmosDisponiveis) {
-        std::vector<ResultadoBenchmark> resultadosAlgoritmo;
+    try {
+        // Carregar a instância
+        InputParser parser;
+        auto [deposito, backlog] = parser.parseFile(caminhoInstancia);
         
-        // Realizar múltiplas execuções para obter média
-        for (int rep = 0; rep < repeticoes; rep++) {
-            ResultadoBenchmark resultado;
-            resultado.nomeAlgoritmo = algoritmo;
+        // Preparar estruturas auxiliares
+        LocalizadorItens localizador(deposito.numItens);
+        localizador.construir(deposito);
+        
+        VerificadorDisponibilidade verificador(deposito.numItens);
+        verificador.construir(deposito);
+        
+        // Para cada algoritmo disponível
+        for (const auto& algoritmo : algoritmosDisponiveis) {
+            // Implementação dos benchmarks para cada algoritmo
+            // ...
+        }
+        
+        // Salvar resultados desta instância em um arquivo
+        std::ofstream outFile(diretorioResultados + "/" + nomeInstancia + "_benchmark.txt");
+        if (outFile.is_open()) {
+            outFile << "Algoritmo,ValorObjetivo,TotalUnidades,TotalCorredores,TempoExecucaoMs,Iteracoes\n";
             
-            auto inicio = std::chrono::high_resolution_clock::now();
-            
-            // Executar o algoritmo apropriado
-            if (algoritmo == "Dinkelbach") {
-                OtimizadorDinkelbach otimizador(deposito, backlog, localizador, verificador);
-                otimizador.configurarParametros(0.0001, 100, true);
-                
-                auto solucao = otimizador.otimizarWave(backlog.wave.LB, backlog.wave.UB);
-                
-                resultado.valorObjetivo = solucao.valorObjetivo;
-                resultado.totalUnidades = 0;
-                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-                    const auto& itens = backlog.pedido[pedidoId];
-                    for (const auto& par : itens) {
-                        int itemId = par.first;
-                        int quantidade = par.second;
-                        resultado.totalUnidades += quantidade;
-                    }
-                }
-                resultado.totalCorredores = solucao.corredoresWave.size();
-                const auto& infoConvergencia = otimizador.obterInfoConvergencia();
-                resultado.iteracoesRealizadas = infoConvergencia.iteracoesRealizadas;
-                resultado.solucaoOtima = infoConvergencia.convergiu;
-                
-            } else if (algoritmo == "BuscaTabu") {
-                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
-                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
-                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
-                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
-                
-                // Converter para formato da BuscaLocalAvancada
-                BuscaLocalAvancada::Solucao solIni;
-                solIni.pedidosWave = solucaoInicial.pedidosWave;
-                solIni.corredoresWave = solucaoInicial.corredoresWave;
-                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
-                solIni.totalUnidades = 0;
-                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-                    const auto& itens = backlog.pedido[pedidoId];
-                    for (const auto& par : itens) {
-                        int itemId = par.first;
-                        int quantidade = par.second;
-                        solIni.totalUnidades += quantidade;
-                    }
-                }
-                
-                BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
-                auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
-                                                 BuscaLocalAvancada::TipoBuscaLocal::BUSCA_TABU);
-                
-                resultado.valorObjetivo = solucao.valorObjetivo;
-                resultado.totalUnidades = solucao.totalUnidades;
-                resultado.totalCorredores = solucao.corredoresWave.size();
-                // Outras estatísticas...
-                
-            } else if (algoritmo == "VNS") {
-                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
-                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
-                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
-                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
-                
-                // Converter para formato da BuscaLocalAvancada
-                BuscaLocalAvancada::Solucao solIni;
-                solIni.pedidosWave = solucaoInicial.pedidosWave;
-                solIni.corredoresWave = solucaoInicial.corredoresWave;
-                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
-                solIni.totalUnidades = 0;
-                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-                    const auto& itens = backlog.pedido[pedidoId];
-                    for (const auto& par : itens) {
-                        int itemId = par.first;
-                        int quantidade = par.second;
-                        solIni.totalUnidades += quantidade;
-                    }
-                }
-                
-                BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
-                auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
-                                                 BuscaLocalAvancada::TipoBuscaLocal::VNS);
-                
-                resultado.valorObjetivo = solucao.valorObjetivo;
-                resultado.totalUnidades = solucao.totalUnidades;
-                resultado.totalCorredores = solucao.corredoresWave.size();
-                // Outras estatísticas...
-                
-            } else if (algoritmo == "ILS") {
-                // Gerar solução inicial básica usando Dinkelbach para ter uma boa semente
-                OtimizadorDinkelbach otimizadorInicial(deposito, backlog, localizador, verificador);
-                otimizadorInicial.configurarParametros(0.001, 10, false); // Parâmetros menos rigorosos para inicialização
-                OtimizadorDinkelbach::SolucaoWave solucaoInicial = otimizadorInicial.otimizarWave(backlog.wave.LB, backlog.wave.UB);
-                
-                // Converter para formato da BuscaLocalAvancada
-                BuscaLocalAvancada::Solucao solIni;
-                solIni.pedidosWave = solucaoInicial.pedidosWave;
-                solIni.corredoresWave = solucaoInicial.corredoresWave;
-                solIni.valorObjetivo = solucaoInicial.valorObjetivo;
-                solIni.totalUnidades = 0;
-                for (int pedidoId = 0; pedidoId < backlog.numPedidos; pedidoId++) {
-                    const auto& itens = backlog.pedido[pedidoId];
-                    for (const auto& par : itens) {
-                        int itemId = par.first;
-                        int quantidade = par.second;
-                        solIni.totalUnidades += quantidade;
-                    }
-                }
-                
-                BuscaLocalAvancada buscaLocal(deposito, backlog, localizador, verificador, 30.0);
-                auto solucao = buscaLocal.otimizar(solIni, backlog.wave.LB, backlog.wave.UB, 
-                                                 BuscaLocalAvancada::TipoBuscaLocal::ILS);
-                
-                resultado.valorObjetivo = solucao.valorObjetivo;
-                resultado.totalUnidades = solucao.totalUnidades;
-                resultado.totalCorredores = solucao.corredoresWave.size();
-                // Outras estatísticas...
+            for (const auto& resultado : resultadosPorInstancia[nomeInstancia]) {
+                // Salvar dados do resultado
+                // ...
             }
             
-            auto fim = std::chrono::high_resolution_clock::now();
-            resultado.tempoExecucaoMs = std::chrono::duration<double, std::milli>(fim - inicio).count();
-            
-            resultadosAlgoritmo.push_back(resultado);
+            outFile.close();
+        } else {
+            std::cerr << "Erro: Não foi possível criar o arquivo de resultados." << std::endl;
         }
-        
-        // Calcular médias e salvar
-        ResultadoBenchmark mediaResultado;
-        mediaResultado.nomeAlgoritmo = algoritmo;
-        mediaResultado.valorObjetivo = 0;
-        mediaResultado.totalUnidades = 0;
-        mediaResultado.totalCorredores = 0;
-        mediaResultado.tempoExecucaoMs = 0;
-        mediaResultado.iteracoesRealizadas = 0;
-        
-        for (const auto& res : resultadosAlgoritmo) {
-            mediaResultado.valorObjetivo += res.valorObjetivo;
-            mediaResultado.totalUnidades += res.totalUnidades;
-            mediaResultado.totalCorredores += res.totalCorredores;
-            mediaResultado.tempoExecucaoMs += res.tempoExecucaoMs;
-            mediaResultado.iteracoesRealizadas += res.iteracoesRealizadas;
-        }
-        
-        mediaResultado.valorObjetivo /= repeticoes;
-        mediaResultado.totalUnidades /= repeticoes;
-        mediaResultado.totalCorredores /= repeticoes;
-        mediaResultado.tempoExecucaoMs /= repeticoes;
-        mediaResultado.iteracoesRealizadas /= repeticoes;
-        
-        // Salvar resultado médio para esta instância e algoritmo
-        resultadosPorInstancia[nomeInstancia].push_back(mediaResultado);
+    } catch (const std::exception& e) {
+        std::cerr << "Erro ao processar instância '" << nomeInstancia << "': " << e.what() << std::endl;
     }
-    
-    // Salvar resultados desta instância em um arquivo
-    std::ofstream outFile(diretorioResultados + "/" + nomeInstancia + "_benchmark.txt");
-    outFile << "Algoritmo,ValorObjetivo,TotalUnidades,TotalCorredores,TempoExecucaoMs,Iteracoes\n";
-    
-    for (const auto& resultado : resultadosPorInstancia[nomeInstancia]) {
-        outFile << resultado.nomeAlgoritmo << ","
-                << resultado.valorObjetivo << ","
-                << resultado.totalUnidades << ","
-                << resultado.totalCorredores << ","
-                << resultado.tempoExecucaoMs << ","
-                << resultado.iteracoesRealizadas << "\n";
-    }
-    
-    outFile.close();
 }
 
 void BenchmarkManager::gerarRelatorioComparativo(const std::string& arquivoSaida) {
@@ -326,8 +203,10 @@ void BenchmarkManager::gerarRelatorioComparativo(const std::string& arquivoSaida
 void BenchmarkManager::gerarGraficosComparativos(const std::string& diretorioGraficos) {
     // Criar diretório para gráficos
     std::filesystem::create_directories(diretorioGraficos);
+
+    // Implementação futura...
     
-    // Esta implementação geraria scripts para ferramentas como gnuplot ou pyplot
+    // Gerar scripts para ferramentas como gnuplot ou pyplot
     // para criar visualizações dos resultados de benchmark
     
     // Para cada tipo de gráfico (tempo x valor objetivo, perfil de desempenho, etc.)

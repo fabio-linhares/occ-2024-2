@@ -1,4 +1,7 @@
 #include "busca_local_avancada.h"
+#include "verificador_disponibilidade.h"
+#include "localizador_itens.h"
+#include "armazem.h"
 #include <iostream>
 #include <algorithm>
 #include <unordered_map>
@@ -6,14 +9,27 @@
 #include <set>
 #include <numeric> // For std::iota
 
-// Helper struct for Tabu List Key
+
+
+/**
+ * @brief Key struct for Tabu List used in the Tabu Search algorithm.
+ * 
+ * This struct represents a unique key for a movement in the Tabu list.
+ * It combines movement type and affected pedidos (orders) to identify movements.
+ */
 struct MovimentoTabuKey {
     BuscaLocalAvancada::TipoMovimento tipo;
-    std::vector<int> pedidosAdd; // Sorted
-    std::vector<int> pedidosRem; // Sorted
+    std::vector<int> pedidosAdd; // Must be sorted before using as key
+    std::vector<int> pedidosRem; // Must be sorted before using as key
 
+    /**
+     * @brief Equality operator for comparing tabu keys
+     * Assumes vectors are sorted before comparison
+     */
     bool operator==(const MovimentoTabuKey& other) const {
-        return tipo == other.tipo && pedidosAdd == other.pedidosAdd && pedidosRem == other.pedidosRem;
+        return tipo == other.tipo && 
+               pedidosAdd == other.pedidosAdd && 
+               pedidosRem == other.pedidosRem;
     }
 };
 
@@ -174,29 +190,40 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::buscaTabu(const Solucao& solucao
     int iteracoesSemMelhoria = 0;
     bool modoIntensificacao = false;
     bool modoDiversificacao = false;
-
     while (iteracao < configTabu_.maxIteracoes && !tempoExcedido()) {
         estatisticas_.iteracoesTotais++;
         iteracao++;
 
         std::vector<Movimento> vizinhanca;
         if (modoIntensificacao) {
-             vizinhanca = gerarMovimentosIntensificacao(solucaoAtual, LB, UB); // Needs implementation
+             vizinhanca = gerarMovimentosIntensificacao(solucaoAtual, LB, UB);
              estatisticas_.iteracoesIntensificacao++;
         } else if (modoDiversificacao) {
-             vizinhanca = gerarMovimentosDiversificacao(solucaoAtual, LB, UB); // Needs implementation
+             vizinhanca = gerarMovimentosDiversificacao(solucaoAtual, LB, UB);
              estatisticas_.iteracoesDiversificacao++;
         } else {
-             vizinhanca = gerarVizinhanca(solucaoAtual, LB, UB); // Standard neighborhood
+             vizinhanca = gerarVizinhanca(solucaoAtual, LB, UB, 0); // Standard neighborhood
         }
+        
+        estatisticas_.movimentosGerados += vizinhanca.size();
 
 
         Movimento melhorMovimento;
         double melhorDelta = -std::numeric_limits<double>::infinity();
         bool encontrouNaoTabu = false;
 
+        // Pre-sort frequently accessed collections to avoid repeated sorting
+        std::vector<std::pair<double, Movimento>> candidatosPromissores;
+        candidatosPromissores.reserve(std::min(50, static_cast<int>(vizinhanca.size())));
+
         for (const auto& movimento : vizinhanca) {
-            // Create key for tabu check
+            // Quick feasibility check before more expensive operations
+            double deltaEstimado = movimento.deltaValorObjetivo;
+            if (deltaEstimado <= -std::numeric_limits<double>::infinity()) continue;
+
+            // Create tabu key only for potentially good moves
+            if (deltaEstimado > melhorDelta || deltaEstimado > 0) {
+            // Check if move is tabu
             MovimentoTabuKey key;
             key.tipo = movimento.tipo;
             key.pedidosAdd = movimento.pedidosAdicionar;
@@ -205,25 +232,41 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::buscaTabu(const Solucao& solucao
             std::sort(key.pedidosRem.begin(), key.pedidosRem.end());
 
             bool isTabu = listaTabu.count(key) && listaTabu[key] > iteracao;
-            estatisticas_.movimentosTabu += isTabu;
+            if (isTabu) estatisticas_.movimentosTabu++;
 
-            // Calculate objective after applying move (approximate or exact)
-            // double valorVizinho = solucaoAtual.valorObjetivo + movimento.deltaValorObjetivo; // Use pre-calculated delta
-            // For simplicity/robustness, let's recalculate (can be optimized)
-            Solucao solucaoVizinha = aplicarMovimento(solucaoAtual, movimento);
-            if (!solucaoViavel(solucaoVizinha, LB, UB)) continue; // Skip infeasible neighbors
-            recalcularSolucao(solucaoVizinha); // Calculate exact objective
-            double valorVizinho = solucaoVizinha.valorObjetivo;
-            double deltaAtual = valorVizinho - solucaoAtual.valorObjetivo;
-
-
-            bool aspiracao = valorVizinho > melhorSolucao.valorObjetivo;
+            // Check aspiration criterion - if better than best solution so far
+            double valorEstimado = solucaoAtual.valorObjetivo + deltaEstimado;
+            bool aspiracao = valorEstimado > melhorSolucao.valorObjetivo;
             if (aspiracao) estatisticas_.aspiracoesSucedidas++;
 
-            if ((!isTabu || aspiracao) && deltaAtual > melhorDelta) {
-                melhorDelta = deltaAtual;
-                melhorMovimento = movimento;
-                encontrouNaoTabu = !isTabu || aspiracao;
+            // Accept if not tabu or aspiration criteria met
+            if (!isTabu || aspiracao) {
+                // Store promising candidates for full evaluation
+                candidatosPromissores.emplace_back(deltaEstimado, movimento);
+            }
+            }
+        }
+
+        // Sort candidates by descending delta value
+        std::sort(candidatosPromissores.begin(), candidatosPromissores.end(),
+             [](const auto& a, const auto& b) { return a.first > b.first; });
+
+        // Evaluate top candidates with full recalculation (limit to top 10 for efficiency)
+        int candidatosAvaliados = 0;
+        for (const auto& [delta, movimento] : candidatosPromissores) {
+            if (candidatosAvaliados++ >= 10) break;
+
+            // Full evaluation with viability check
+            Solucao solucaoVizinha = aplicarMovimento(solucaoAtual, movimento);
+            if (!solucaoViavel(solucaoVizinha, LB, UB)) continue;
+            
+            recalcularSolucao(solucaoVizinha);
+            double deltaAtual = solucaoVizinha.valorObjetivo - solucaoAtual.valorObjetivo;
+
+            if (deltaAtual > melhorDelta) {
+            melhorDelta = deltaAtual;
+            melhorMovimento = movimento;
+            encontrouNaoTabu = true;
             }
         }
 
@@ -374,7 +417,7 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao& solucaoInicia
         if (tempoExcedido()) break;
         
         // Perturbar solução atual
-        double intensidadePert = configILS_.intensidadePerturbacaoBase + 
+        double intensidadePert = configILS_.intensidadePerturbacaoInicial + 
                                (double)iterSemMelhoria * 0.01;
         Solucao solucaoPerturbada = perturbarSolucao(solucaoAtual, intensidadePert, LB, UB);
         estatisticas_.perturbacoes++; // Incrementar contador de perturbações
@@ -393,9 +436,9 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao& solucaoInicia
             iterSemMelhoria++;
         }
         
-        // Reinicialização estratégica se estagnado
-        if (iterSemMelhoria > configILS_.perturbacoesSemMelhoria && 
-            configILS_.usarReinicializacaoEstrategica) {
+        // Reinicialização periódica se estagnado
+        if (iterSemMelhoria > configILS_.maxIteracoesSemMelhoria && 
+            configILS_.usarReinicioPeriodico) {
             solucaoAtual = aplicarPerturbacaoForte(melhorSolucao, LB, UB);
             estatisticas_.perturbacoes++;
             iterSemMelhoria = 0;
@@ -406,51 +449,223 @@ BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao& solucaoInicia
 }
 
 
-// --- Neighborhood Generation (Basic Example: Add/Remove) ---
+// --- State-of-the-Art Neighborhood Generation ---
 std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarVizinhanca(
     const Solucao& solucao, int LB, int UB, int tipoVizinhanca)
 {
     std::vector<Movimento> vizinhanca;
-    std::vector<int> pedidosFora;
+    // Track currently included and excluded orders
     std::unordered_set<int> pedidosDentro(solucao.pedidosWave.begin(), solucao.pedidosWave.end());
-
-    for(int i=0; i<backlog_.numPedidos; ++i) {
+    std::vector<int> pedidosFora;
+    
+    // Fast construction of candidate list
+    pedidosFora.reserve(backlog_.numPedidos - pedidosDentro.size());
+    for(int i = 0; i < backlog_.numPedidos; ++i) {
         if(pedidosDentro.find(i) == pedidosDentro.end()) {
             pedidosFora.push_back(i);
         }
     }
-
-    // 1. Add Moves: Try adding one order from outside
-    for (int pedidoAdd : pedidosFora) {
-        Movimento m;
-        m.tipo = TipoMovimento::ADICIONAR;
-        m.pedidosAdicionar = {pedidoAdd};
-        m.pedidosRemover = {};
-        // Evaluate delta efficiently (or mark for later evaluation)
-        m.deltaValorObjetivo = avaliarMovimento(solucao, m); // Needs implementation
-        vizinhanca.push_back(m);
+    
+    // Adaptive neighborhood selection based on search stage
+    switch(tipoVizinhanca) {
+        case 0: {  // Basic ADD/REMOVE operations
+            // Sophisticated sampling for large instances
+            const int MAX_CANDIDATES = 200;  // Limit to control computational effort
+            bool useSampling = pedidosFora.size() > MAX_CANDIDATES || solucao.pedidosWave.size() > MAX_CANDIDATES;
+            
+            // Prioritize promising candidates first using frequency/recency memory
+            std::vector<std::pair<double, int>> scoredCandidates;
+            
+            // Score "ADD" candidates
+            for (int pedidoAdd : pedidosFora) {
+                double score = 1.0;
+                // Use tabu memory to prioritize rarely used orders
+                if (!frequenciaPedidos_.empty()) {
+                    score += (1.0 / (frequenciaPedidos_[pedidoAdd] + 1.0)) * 10.0;
+                }
+                scoredCandidates.emplace_back(score, pedidoAdd);
+            }
+            
+            // Sort by score and select top candidates if sampling is enabled
+            std::sort(scoredCandidates.begin(), scoredCandidates.end(),
+                     [](const auto& a, const auto& b) { return a.first > b.first; });
+            
+            if (useSampling) {
+                // Keep some deterministic high-scoring candidates
+                int keep = MAX_CANDIDATES * 0.5;
+                // Add some random candidates for diversity
+                std::vector<std::pair<double, int>> topCandidates(
+                    scoredCandidates.begin(),
+                    scoredCandidates.begin() + std::min(keep, static_cast<int>(scoredCandidates.size()))
+                );
+                
+                // Randomly sample some additional candidates
+                if (scoredCandidates.size() > keep) {
+                    std::vector<std::pair<double, int>> remainingCandidates(
+                        scoredCandidates.begin() + keep, scoredCandidates.end()
+                    );
+                    std::shuffle(remainingCandidates.begin(), remainingCandidates.end(), rng_);
+                    
+                    int additionalSamples = std::min(MAX_CANDIDATES - keep, 
+                                                     static_cast<int>(remainingCandidates.size()));
+                    topCandidates.insert(topCandidates.end(), 
+                                         remainingCandidates.begin(), 
+                                         remainingCandidates.begin() + additionalSamples);
+                }
+                
+                scoredCandidates = std::move(topCandidates);
+            }
+            
+            // Generate ADD moves for selected candidates
+            for (const auto& [score, pedidoAdd] : scoredCandidates) {
+                // Fast feasibility check before creating move
+                int unidadesAdicionais = 0;
+                for (const auto& [_, quantidade] : backlog_.pedido[pedidoAdd]) {
+                    unidadesAdicionais += quantidade;
+                }
+                
+                // Skip if would exceed UB by more than 10%
+                if (solucao.totalUnidades + unidadesAdicionais > UB * 1.1) {
+                    continue;
+                }
+                
+                // Quick stock availability check
+                if (!verificador_.verificarDisponibilidade(backlog_.pedido[pedidoAdd])) {
+                    continue;
+                }
+                
+                Movimento m;
+                m.tipo = TipoMovimento::ADICIONAR;
+                m.pedidosAdicionar = {pedidoAdd};
+                m.pedidosRemover = {};
+                m.deltaValorObjetivo = avaliarMovimento(solucao, m);
+                
+                // Prioritize promising moves
+                if (m.deltaValorObjetivo > -std::numeric_limits<double>::infinity()) {
+                    vizinhanca.push_back(m);
+                }
+            }
+            
+            // Similar approach for REMOVE moves
+            scoredCandidates.clear();
+            for (int pedidoRem : solucao.pedidosWave) {
+                double score = 1.0;
+                if (!frequenciaPedidos_.empty()) {
+                    score += (frequenciaPedidos_[pedidoRem] + 1.0) * 5.0;  // Prefer removing frequently used
+                }
+                scoredCandidates.emplace_back(score, pedidoRem);
+            }
+            
+            std::sort(scoredCandidates.begin(), scoredCandidates.end(),
+                     [](const auto& a, const auto& b) { return a.first > b.first; });
+            
+            if (useSampling && scoredCandidates.size() > MAX_CANDIDATES) {
+                scoredCandidates.resize(MAX_CANDIDATES);
+            }
+            
+            for (const auto& [score, pedidoRem] : scoredCandidates) {
+                // Skip if removing would violate LB by more than 10%
+                int unidadesRemovidas = 0;
+                for (const auto& [_, quantidade] : backlog_.pedido[pedidoRem]) {
+                    unidadesRemovidas += quantidade;
+                }
+                
+                if (solucao.totalUnidades - unidadesRemovidas < LB * 0.9) {
+                    continue;
+                }
+                
+                Movimento m;
+                m.tipo = TipoMovimento::REMOVER;
+                m.pedidosAdicionar = {};
+                m.pedidosRemover = {pedidoRem};
+                m.deltaValorObjetivo = avaliarMovimento(solucao, m);
+                
+                if (m.deltaValorObjetivo > -std::numeric_limits<double>::infinity()) {
+                    vizinhanca.push_back(m);
+                }
+            }
+            break;
+        }
+        
+        case 1: {  // SWAP moves
+            auto swapMoves = gerarMovimentosSwap(solucao, LB, UB);
+            vizinhanca.insert(vizinhanca.end(), swapMoves.begin(), swapMoves.end());
+            break;
+        }
+        
+        case 2: {  // CHAIN_EXCHANGE moves
+            auto chainMoves = gerarMovimentosChainExchange(solucao, LB, UB);
+            vizinhanca.insert(vizinhanca.end(), chainMoves.begin(), chainMoves.end());
+            break;
+        }
+        
+        case 3: {  // Mixed neighborhood with probability-based selection
+            // Determine weights based on search history
+            double wAdd = 0.3, wRem = 0.2, wSwap = 0.3, wChain = 0.2;
+            
+            // Adjust weights based on recent success rates (if tracked)
+            if (estatisticas_.iteracoesTotais > 50) {
+                // Example: If we've had more success with swaps recently, increase their weight
+                wSwap *= 1.5;
+                double total = wAdd + wRem + wSwap + wChain;
+                wAdd /= total;
+                wRem /= total;
+                wSwap /= total;
+                wChain /= total;
+            }
+            
+            // Generate moves based on probability
+            std::uniform_real_distribution<double> dist(0.0, 1.0);
+            double rnd = dist(rng_);
+            
+            if (rnd < wAdd + wRem) {
+                // Generate a smaller basic neighborhood (ADD/REMOVE)
+                auto basicMoves = BuscaLocalAvancada::gerarVizinhanca(solucao, LB, UB, 0);
+                // Sample subset for efficiency
+                const int MAX_BASIC = 100;
+                if (basicMoves.size() > MAX_BASIC) {
+                    std::shuffle(basicMoves.begin(), basicMoves.end(), rng_);
+                    basicMoves.resize(MAX_BASIC);
+                }
+                vizinhanca.insert(vizinhanca.end(), basicMoves.begin(), basicMoves.end());
+            }
+            else if (rnd < wAdd + wRem + wSwap) {
+                auto swapMoves = gerarMovimentosSwap(solucao, LB, UB);
+                vizinhanca.insert(vizinhanca.end(), swapMoves.begin(), swapMoves.end());
+            }
+            else {
+                auto chainMoves = gerarMovimentosChainExchange(solucao, LB, UB);
+                vizinhanca.insert(vizinhanca.end(), chainMoves.begin(), chainMoves.end());
+            }
+            break;
+        }
+        
+        default: {  // Fallback to comprehensive neighborhood
+            // Generate all move types with controlled sampling
+            auto basicMoves = BuscaLocalAvancada::gerarVizinhanca(solucao, LB, UB, 0);
+            auto swapMoves = gerarMovimentosSwap(solucao, LB, UB);
+            auto chainMoves = gerarMovimentosChainExchange(solucao, LB, UB);
+            
+            // Combine and sample if too large
+            vizinhanca.reserve(basicMoves.size() + swapMoves.size() + chainMoves.size());
+            vizinhanca.insert(vizinhanca.end(), basicMoves.begin(), basicMoves.end());
+            vizinhanca.insert(vizinhanca.end(), swapMoves.begin(), swapMoves.end());
+            vizinhanca.insert(vizinhanca.end(), chainMoves.begin(), chainMoves.end());
+            
+            const int MAX_TOTAL = 300;
+            if (vizinhanca.size() > MAX_TOTAL) {
+                std::shuffle(vizinhanca.begin(), vizinhanca.end(), rng_);
+                vizinhanca.resize(MAX_TOTAL);
+            }
+        }
     }
-
-    // 2. Remove Moves: Try removing one order from inside
-    for (int pedidoRem : solucao.pedidosWave) {
-        Movimento m;
-        m.tipo = TipoMovimento::REMOVER;
-        m.pedidosAdicionar = {};
-        m.pedidosRemover = {pedidoRem};
-        m.deltaValorObjetivo = avaliarMovimento(solucao, m); // Needs implementation
-        vizinhanca.push_back(m);
-    }
-
-     // 3. Swap Moves (Optional, can be separate neighborhood)
-     if (tipoVizinhanca >= 1) {
-         auto swapMoves = gerarMovimentosSwap(solucao, LB, UB);
-         vizinhanca.insert(vizinhanca.end(), swapMoves.begin(), swapMoves.end());
-     }
-
-
-    // Filter out moves leading to obviously infeasible states (e.g., violating UB/LB drastically)
-    // More rigorous check happens when evaluating the move in the main loop
-
+    
+    // Final sorting - prioritize promising moves for evaluation
+    std::sort(vizinhanca.begin(), vizinhanca.end(), 
+              [](const Movimento& a, const Movimento& b) {
+                  return a.deltaValorObjetivo > b.deltaValorObjetivo;
+              });
+    
     return vizinhanca;
 }
 
@@ -885,4 +1100,130 @@ std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosDi
 // Adicionar após os outros métodos de configuração
 void BuscaLocalAvancada::configurarILS(const ConfigILS& config) {
     configILS_ = config;
+}
+
+// Implementar vizinhança focada em minimizar corredores
+std::vector<BuscaLocalAvancada::Movimento> BuscaLocalAvancada::gerarMovimentosReducaoCorredores(
+    const Solucao& solucao, int LB, int UB) {
+    
+    std::vector<Movimento> movimentos;
+    
+    // Mapear quais corredores são usados por quais pedidos
+    std::unordered_map<int, std::vector<int>> pedidosPorCorredor;
+    
+    // E quais corredores cada pedido usa
+    std::unordered_map<int, std::unordered_set<int>> corredoresPorPedido;
+    
+    for (int pedidoId : solucao.pedidosWave) {
+        std::unordered_set<int> corredores;
+        
+        for (const auto& [itemId, qtd] : backlog_.pedido[pedidoId]) {
+            for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
+                corredores.insert(corredorId);
+                pedidosPorCorredor[corredorId].push_back(pedidoId);
+            }
+        }
+        
+        corredoresPorPedido[pedidoId] = corredores;
+    }
+    
+    // Encontrar corredores com poucos pedidos (potenciais candidatos à eliminação)
+    std::vector<std::pair<int, int>> corredoresPoucoUtilizados;
+    for (const auto& [corredorId, pedidos] : pedidosPorCorredor) {
+        corredoresPoucoUtilizados.push_back({corredorId, pedidos.size()});
+    }
+    
+    // Ordenar por utilização (crescente)
+    std::sort(corredoresPoucoUtilizados.begin(), corredoresPoucoUtilizados.end(),
+             [](const auto& a, const auto& b) { return a.second < b.second; });
+    
+    // Para cada corredor pouco utilizado, tentar eliminar trocando seus pedidos
+    for (const auto& [corredorId, numPedidos] : corredoresPoucoUtilizados) {
+        // Se for usado por apenas um pedido, tentar removê-lo
+        if (numPedidos == 1) {
+            int pedidoId = pedidosPorCorredor[corredorId][0];
+            
+            // Verificar se podemos remover este pedido mantendo LB
+            int totalUnidadesSemPedido = 0;
+            for (int pid : solucao.pedidosWave) {
+                if (pid != pedidoId) {
+                    for (const auto& [_, qtd] : backlog_.pedido[pid]) {
+                        totalUnidadesSemPedido += qtd;
+                    }
+                }
+            }
+            
+            if (totalUnidadesSemPedido >= LB) {
+                // Criar movimento para remover este pedido
+                Movimento mov;
+                mov.tipo = TipoMovimento::REMOVER;
+                mov.pedidosRemover = {pedidoId};
+                mov.pedidosAdicionar = {};
+                movimentos.push_back(mov);
+            }
+        }
+        // Se for usado por múltiplos pedidos, tentar substituí-los
+        else if (numPedidos > 1 && numPedidos <= 3) { // Limitar para não explodir em combinações
+            // Identificar pedidos candidatos a substituir os atuais
+            std::vector<int> pedidosDoCorretor = pedidosPorCorredor[corredorId];
+            
+            // Calcular total de unidades desses pedidos
+            int totalUnidadesPedidos = 0;
+            for (int pid : pedidosDoCorretor) {
+                for (const auto& [_, qtd] : backlog_.pedido[pid]) {
+                    totalUnidadesPedidos += qtd;
+                }
+            }
+            
+            // Buscar pedidos alternativos que não usem este corredor
+            std::vector<std::pair<int, int>> pedidosAlternativos;
+            for (int p = 0; p < backlog_.numPedidos; p++) {
+                // Pular se já está na solução
+                if (std::find(solucao.pedidosWave.begin(), solucao.pedidosWave.end(), p) != solucao.pedidosWave.end()) {
+                    continue;
+                }
+                
+                // Verificar se este pedido não usa o corredor em questão
+                bool usaCorreidor = false;
+                for (const auto& [itemId, _] : backlog_.pedido[p]) {
+                    if (localizador_.getCorredoresComItem(itemId).find(corredorId) != 
+                        localizador_.getCorredoresComItem(itemId).end()) {
+                        usaCorreidor = true;
+                        break;
+                    }
+                }
+                
+                if (!usaCorreidor) {
+                    // Calcular total de unidades desse pedido
+                    int unidades = 0;
+                    for (const auto& [_, qtd] : backlog_.pedido[p]) {
+                        unidades += qtd;
+                    }
+                    
+                    pedidosAlternativos.push_back({p, unidades});
+                }
+            }
+            
+            // Ordenar alternativas por unidades (decrescente)
+            std::sort(pedidosAlternativos.begin(), pedidosAlternativos.end(),
+                     [](const auto& a, const auto& b) { return a.second > b.second; });
+            
+            // Tentar diferentes combinações de substituição
+            // Aqui poderia ser implementado um algoritmo mais sofisticado de knapsack
+            // Para simplificar, apenas verifico se existe algum pedido com unidades similares
+            for (const auto& [pedidoAlt, unidades] : pedidosAlternativos) {
+                // Se for próximo em unidades, propor substituição
+                if (std::abs(unidades - totalUnidadesPedidos) <= totalUnidadesPedidos * 0.2) {
+                    Movimento mov;
+                    mov.tipo = TipoMovimento::SWAP;
+                    mov.pedidosRemover = pedidosDoCorretor;
+                    mov.pedidosAdicionar = {pedidoAlt};
+                    movimentos.push_back(mov);
+                    break;
+                }
+            }
+        }
+    }
+    
+    return movimentos;
 }

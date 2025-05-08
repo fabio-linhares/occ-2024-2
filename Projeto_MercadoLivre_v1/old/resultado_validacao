@@ -1,0 +1,374 @@
+=== RESULTADO DA VALIDAÇÃO: instance_0007.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.96721
+- Total de Itens Coletados: 362
+- Número de Corredores Visitados: 122
+- Limites (LB, UB): (1306, 3847)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 8320
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0014.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.99403
+- Total de Itens Coletados: 1003
+- Número de Corredores Visitados: 335
+- Limites (LB, UB): (1947, 7739)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0009.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.00000
+- Total de Itens Coletados: 50
+- Número de Corredores Visitados: 50
+- Limites (LB, UB): (52, 153)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 70
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0004.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.40000
+- Total de Itens Coletados: 2
+- Número de Corredores Visitados: 5
+- Limites (LB, UB): (4, 40)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0001.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.28571
+- Total de Itens Coletados: 9
+- Número de Corredores Visitados: 7
+- Limites (LB, UB): (30, 68)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0012.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.28571
+- Total de Itens Coletados: 6
+- Número de Corredores Visitados: 21
+- Limites (LB, UB): (35, 177)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0003.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.25000
+- Total de Itens Coletados: 15
+- Número de Corredores Visitados: 12
+- Limites (LB, UB): (33, 106)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0005.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 4.35556
+- Total de Itens Coletados: 392
+- Número de Corredores Visitados: 90
+- Limites (LB, UB): (1322, 4395)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0019.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.91489
+- Total de Itens Coletados: 43
+- Número de Corredores Visitados: 47
+- Limites (LB, UB): (152, 999)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 134
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0016.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.56897
+- Total de Itens Coletados: 149
+- Número de Corredores Visitados: 58
+- Limites (LB, UB): (149, 686)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 88
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0020.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.60000
+- Total de Itens Coletados: 3
+- Número de Corredores Visitados: 5
+- Limites (LB, UB): (5, 12)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: OK
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 5
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0017.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.50000
+- Total de Itens Coletados: 54
+- Número de Corredores Visitados: 36
+- Limites (LB, UB): (54, 175)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 83
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0018.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 5.12821
+- Total de Itens Coletados: 400
+- Número de Corredores Visitados: 78
+- Limites (LB, UB): (537, 1205)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 90
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0002.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 0.00000
+- Total de Itens Coletados: 0
+- Número de Corredores Visitados: 0
+- Limites (LB, UB): (0, 2)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): OK
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: OK
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO VÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0006.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.13953
+- Total de Itens Coletados: 49
+- Número de Corredores Visitados: 43
+- Limites (LB, UB): (452, 3892)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0008.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 4.20430
+- Total de Itens Coletados: 391
+- Número de Corredores Visitados: 93
+- Limites (LB, UB): (1304, 2840)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0011.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.22930
+- Total de Itens Coletados: 193
+- Número de Corredores Visitados: 157
+- Limites (LB, UB): (330, 2045)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0010.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.52299
+- Total de Itens Coletados: 265
+- Número de Corredores Visitados: 174
+- Limites (LB, UB): (416, 1746)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0013.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 2.84940
+- Total de Itens Coletados: 946
+- Número de Corredores Visitados: 332
+- Limites (LB, UB): (1510, 4583)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: FALHA
+
+IDs INVÁLIDOS DETECTADOS:
+- ID: 413
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+=== RESULTADO DA VALIDAÇÃO: instance_0015.txt ===
+Data/Hora: 2025-04-29 13:59:30
+
+MÉTRICAS:
+- Razão (Itens/Corredores): 1.08247
+- Total de Itens Coletados: 105
+- Número de Corredores Visitados: 97
+- Limites (LB, UB): (384, 3679)
+
+VALIDAÇÃO DE RESTRIÇÕES:
+- Limite Inferior (LB): FALHA
+- Limite Superior (UB): OK
+- Disponibilidade de Itens: FALHA
+- IDs Válidos: OK
+
+RESULTADO FINAL: SOLUÇÃO INVÁLIDA
+------------------------------------------------------
+
+===== RESUMO DA VALIDAÇÃO =====
+Total de instâncias: 20
+Instâncias com soluções válidas: 1
+Taxa de sucesso: 5.00%
+
+MÉTRICAS PARA SOLUÇÕES VÁLIDAS:
+- Razão média (Itens/Corredores): 0.00000
+- Total de itens coletados: 0
+- Total de corredores visitados: 0

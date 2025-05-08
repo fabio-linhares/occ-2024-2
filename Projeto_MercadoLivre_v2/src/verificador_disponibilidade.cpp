@@ -21,7 +21,7 @@ void VerificadorDisponibilidade::construir(const Deposito& deposito) {
 }
 
 // Check if a single order is fulfillable based on total stock
-bool VerificadorDisponibilidade::verificarDisponibilidade(const std::map<int, int>& pedido) const {
+bool VerificadorDisponibilidade::verificarDisponibilidade(const std::unordered_map<int, int>& pedido) const {
     for (const auto& [itemId, quantidade] : pedido) {
         if (itemId < 0 || itemId >= estoqueTotal.size()) {
             // std::cerr << "Erro: Pedido contem item ID invalido " << itemId << std::endl;

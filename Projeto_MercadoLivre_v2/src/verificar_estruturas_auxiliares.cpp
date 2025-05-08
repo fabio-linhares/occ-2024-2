@@ -63,13 +63,13 @@ void verificarEstruturasAuxiliares(const std::string& filePath) {
         }
         
         // CORREÇÃO: Usar ordenarPorRelevancia em vez de getPedidosOrdenadosPorRelevancia
-        auto pedidosOrdenados = analisador.ordenarPorRelevancia();
+        auto pedidosOrdenados = analisador.ordenarPedidos(AnalisadorRelevancia::EstrategiaOrdenacao::PARALELO);
         
         // Mostrar os pedidos ordenados por relevância
         std::cout << "Pedidos ordenados por relevância (top 10):\n";
         int contador = 0;
         for (int pedidoId : pedidosOrdenados) {
-            auto& info = analisador.infoPedidos[pedidoId];
+            auto& info = analisador.getInfoPedido(pedidoId);
             std::cout << "Pedido #" << pedidoId 
                       << " - Itens: " << info.numItens
                       << ", Unidades: " << info.numUnidades

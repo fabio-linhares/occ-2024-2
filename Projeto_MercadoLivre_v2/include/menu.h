@@ -10,3 +10,10 @@ void mostrarMenu();
  * @param choice Opção escolhida pelo usuário
  */
 void processarEscolhaMenu(int choice);
+
+/**
+ * @brief Realiza pré-processamento e otimização usando PLI-ALM
+ * @param caminhoEntrada Caminho para o arquivo de entrada
+ * @param diretorioSaida Diretório para salvar o resultado
+ */
+void preprocessamentoPLI(const std::string& caminhoEntrada, const std::string& diretorioSaida);

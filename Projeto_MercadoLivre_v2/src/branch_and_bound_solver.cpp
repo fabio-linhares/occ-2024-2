@@ -270,7 +270,7 @@ BranchAndBoundSolver::Solucao BranchAndBoundSolver::resolver(double lambda, int 
     return melhorSolucao_;
 }
 
-// Implementação corrigida do método calcularLimiteSuperior
+// Melhorar o cálculo do limite superior para podas mais eficientes
 double BranchAndBoundSolver::calcularLimiteSuperior(Node& node) {
     // Inicializa limite com valor da solução parcial atual
     double limite = node.totalUnidades - node.lambda * node.corredoresIncluidos.size();
@@ -281,6 +281,7 @@ double BranchAndBoundSolver::calcularLimiteSuperior(Node& node) {
         double contribuicao;
         int unidades;
         std::unordered_set<int> novosCorredores;
+        double eficiencia; // Nova métrica: unidades/corredores
     };
     std::vector<PedidoContrib> contribs;
 
@@ -309,10 +310,18 @@ double BranchAndBoundSolver::calcularLimiteSuperior(Node& node) {
         }
     }
 
-    // Ordenar pedidos por contribuição decrescente
-    std::sort(contribs.begin(), contribs.end(), [](const PedidoContrib& a, const PedidoContrib& b) {
-        return a.contribuicao > b.contribuicao;
-    });
+    // Calcular eficiência para cada pedido
+    for (auto& pc : contribs) {
+        pc.eficiencia = pc.novosCorredores.empty() ? 
+                      std::numeric_limits<double>::max() : 
+                      static_cast<double>(pc.unidades) / pc.novosCorredores.size();
+    }
+
+    // Ordenar por eficiência em vez de contribuição bruta
+    std::sort(contribs.begin(), contribs.end(), 
+            [](const PedidoContrib& a, const PedidoContrib& b) {
+                return a.eficiencia > b.eficiencia;
+            });
 
     // Adicionar contribuições positivas ao limite
     for (const auto& pc : contribs) {
@@ -345,42 +354,47 @@ int BranchAndBoundSolver::selecionarPedidoParaRamificacao(const Node& node) {
     return -1; // Não encontrado
 }
 
+// Melhorar a estratégia de seleção de variáveis
 int BranchAndBoundSolver::selecionarPedidoPorMaiorImpacto(const Node& node) {
-    double maxImpacto = -std::numeric_limits<double>::infinity();
-    int melhorPedido = -1;
-
-    for (int i = 0; i < backlog_.numPedidos; ++i) {
-        if (node.pedidosFixados[i] == Estado::LIVRE) {
-            int unidadesPedido = 0;
-            std::unordered_set<int> corredoresAdicionais;
+    // Implementar estratégia que priorize pedidos com maior BOV potencial
+    // Focar em pedidos que maximizem a relação unidades/corredores
+    
+    std::vector<std::pair<int, double>> impactosPedidos;
+    
+    for (int i = 0; i < backlog_.numPedidos; i++) {
+        if (node.pedidosFixados[i] != Estado::LIVRE) continue;
+        
+        // Calcular unidades e corredores adicionais
+        int unidadesAdicionais = 0;
+        std::unordered_set<int> corredoresNovos;
+        
+        for (const auto& [itemId, quantidade] : backlog_.pedido[i]) {
+            unidadesAdicionais += quantidade;
             
-            // Calcular unidades e corredores adicionais
-            for (const auto& [itemId, quant] : backlog_.pedido[i]) {
-                unidadesPedido += quant;
-                for (const auto& [corredorId, _] : localizador_.getCorredoresComItem(itemId)) {
-                    if (node.corredoresIncluidos.find(corredorId) == node.corredoresIncluidos.end()) {
-                        corredoresAdicionais.insert(corredorId);
-                    }
+            // Verificar se precisamos de novos corredores
+            for (const auto& [corredorId, qtd] : localizador_.getCorredoresComItem(itemId)) {
+                if (node.corredoresIncluidos.find(corredorId) == node.corredoresIncluidos.end()) {
+                    corredoresNovos.insert(corredorId);
                 }
             }
-            
-            // Calcular impacto no valor objetivo
-            double impacto = unidadesPedido - node.lambda * corredoresAdicionais.size();
-            if (impacto > maxImpacto) {
-                maxImpacto = impacto;
-                melhorPedido = i;
-            }
         }
+        
+        // Calcular BOV incremental
+        double bovAtual = (node.totalUnidades == 0 || node.corredoresIncluidos.empty()) ? 0 : 
+                         (double)node.totalUnidades / node.corredoresIncluidos.size();
+        
+        double bovNovo = (double)(node.totalUnidades + unidadesAdicionais) / 
+                       (node.corredoresIncluidos.size() + corredoresNovos.size());
+        
+        double impacto = bovNovo - bovAtual;
+        impactosPedidos.push_back({i, impacto});
     }
-
-    // Fallback para o primeiro livre se não encontrou
-    if (melhorPedido == -1) {
-        for (int i = 0; i < backlog_.numPedidos; ++i) {
-            if (node.pedidosFixados[i] == Estado::LIVRE) return i;
-        }
-    }
-
-    return melhorPedido;
+    
+    // Ordenar por impacto no BOV (decrescente)
+    std::sort(impactosPedidos.begin(), impactosPedidos.end(),
+             [](const auto& a, const auto& b) { return a.second > b.second; });
+    
+    return !impactosPedidos.empty() ? impactosPedidos[0].first : -1;
 }
 
 int BranchAndBoundSolver::selecionarPedidoPorPseudoCusto(const Node& node) {

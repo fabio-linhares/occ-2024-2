@@ -8,6 +8,17 @@
 #include <unordered_set>
 #include <utility>
 #include <chrono>
+#include <random>
+#include <map>
+#include <set>
+
+// Nova enumeração para estratégias de perturbação
+enum class EstrategiaPerturbacao {
+    REMOVER_ALEATORIO,
+    REMOVER_MENOS_EFICIENTES,
+    REMOVER_MAIS_REDUNDANTES,
+    REMOVER_MAIS_CONFLITUOSOS
+};
 
 class OtimizadorDinkelbach : public OtimizadorWave {
 public:
@@ -15,6 +26,12 @@ public:
         std::vector<int> pedidosWave;
         std::vector<int> corredoresWave;
         double valorObjetivo;
+        int totalUnidades;
+        
+        // Operador para comparação e uso em containers ordenados
+        bool operator<(const SolucaoWave& other) const {
+            return valorObjetivo < other.valorObjetivo;
+        }
     };
     
     struct InfoConvergencia {
@@ -23,16 +40,19 @@ public:
         int iteracoesRealizadas;
         double tempoTotal;
         bool convergiu;
+        std::map<double, int> frequenciaLambda; // Rastreamento de repetições de lambda
     };
 
     // Configuração para reinicializações múltiplas
     struct ConfigReinicializacao {
-        int numReinicializacoes = 5;           // Número de reinicializações diferentes
-        bool usarSementesAleatorias = true;    // Usar sementes aleatórias diferentes
+        int numReinicializacoes = 1000;           // Aumentado para maior diversificação
+        bool usarSementesAleatorias = true;      // Usar sementes aleatórias diferentes
         bool aumentarIteracoesProgressivamente = true; // Aumentar iterações a cada reinício
-        bool variarPerturbacao = true;         // Variar intensidade de perturbação
-        bool guardarMelhoresSolucoes = true;   // Manter as melhores soluções encontradas
-        int tamanhoPoolSolucoes = 3;           // Número de melhores soluções a manter
+        bool variarPerturbacao = true;           // Variar intensidade de perturbação
+        bool guardarMelhoresSolucoes = true;     // Manter as melhores soluções encontradas
+        int tamanhoPoolSolucoes = 500;            // Aumentado o número de melhores soluções a manter
+        double limiarDiversidade = 0.3;          // Novo: limiar para garantir diversidade
+        int maxTentativasSemMelhoria = 2000;       // Novo: limite de reinicializações sem melhoria
     };
     
     OtimizadorDinkelbach(
@@ -42,9 +62,9 @@ public:
         const VerificadorDisponibilidade& verificador
     );
     
-    void configurarParametros(double epsilon = 0.0001, int maxIteracoes = 10000, bool usarBranchAndBound = true) {
+    void configurarParametros(double epsilon = 0.002, int maxIteracoes = 200000, bool usarBranchAndBound = true) {
         epsilon_ = epsilon;
-        maxIteracoes_ = maxIteracoes; // Aumentado para 10.000
+        maxIteracoes_ = maxIteracoes;
         usarBranchAndBound_ = usarBranchAndBound;
     }
     
@@ -53,16 +73,27 @@ public:
         limiteTempoBuscaLocal_ = tempoLimite;
     }
     
+    // Método principal de otimização (versão original)
     SolucaoWave otimizarWave(int LB, int UB);
 
-    // Nova versão do método otimizarWave que usa reinicializações
+    // Versão melhorada com reinicializações e diversificação
     SolucaoWave otimizarWaveComReinicializacoes(int LB, int UB);
+    
+    // Interface unificada - escolhe automaticamente a melhor abordagem
+    SolucaoWave otimizarWaveAutomatico(int LB, int UB) {
+        if (usarReinicializacoesMultiplas_ && backlog_.numPedidos > 20) {
+            return otimizarWaveComReinicializacoes(LB, UB);
+        }
+        return otimizarWave(LB, UB);
+    }
     
     /**
      * @brief Obtém informações sobre a convergência do algoritmo
      * @return Referência constante à estrutura InfoConvergencia
      */
-    const InfoConvergencia& obterInfoConvergencia() const { return infoConvergencia_; }
+    const InfoConvergencia& obterInfoConvergencia() const {
+        return infoConvergencia_;
+    }
     
     /**
      * @brief Exibe detalhes da convergência no console
@@ -110,46 +141,50 @@ private:
     InfoConvergencia infoConvergencia_;
 
     ConfigReinicializacao configReinicializacao_;
-    bool usarReinicializacoesMultiplas_ = false;
+    bool usarReinicializacoesMultiplas_ = true;
+    std::set<SolucaoWave> poolMelhoresSolucoes_; // Usando set para ordenar automaticamente
+    std::mt19937 geradorPrincipal_; // Gerador principal para números aleatórios
     
+    // Cache para evitar recálculos
+    mutable std::unordered_map<int, int> cacheTotalUnidades_;
+    mutable std::unordered_map<std::string, std::vector<int>> cacheCorredores_;
+
+    // Histórico para detectar ciclos e oscilações
+    std::vector<double> historicoLambda_;
+    std::vector<SolucaoWave> historicoSolucoes_;
+    int contadorCiclos_ = 0;
+    
+    // Métodos auxiliares melhorados
     int calcularTotalUnidades(const SolucaoWave& solucao);
-    
     std::pair<SolucaoWave, double> resolverSubproblemaComBranchAndBound(double lambda, int LB, int UB);
     std::pair<SolucaoWave, double> resolverSubproblemaComHeuristica(double lambda, int LB, int UB);
-    
-    /**
-     * @brief Calcula o valor objetivo para um conjunto de pedidos
-     * @param pedidosWave Vetor de IDs dos pedidos
-     * @return Valor objetivo calculado
-     */
     double calcularValorObjetivo(const std::vector<int>& pedidosWave);
-    
-    /**
-     * @brief Constrói a lista de corredores necessários para um conjunto de pedidos
-     * @param pedidosWave Vetor de IDs dos pedidos
-     * @return Vetor de IDs dos corredores necessários
-     */
     std::vector<int> construirListaCorredores(const std::vector<int>& pedidosWave);
-    
-    /**
-     * @brief Calcula o valor do subproblema linearizado F(x) - lambda*G(x)
-     * @param solucao Solução a avaliar
-     * @param lambda Valor atual de lambda
-     * @return Valor do subproblema
-     */
     double calcularValorSubproblema(const SolucaoWave& solucao, double lambda);
 
-    // Métodos auxiliares para reinicializações
+    // Novos métodos para melhorar a convergência
+    bool detectarOscilacao(double novoLambda, double limiar = 0.00001);
+    bool detectarCiclo(const std::vector<double>& lambdas, int janela = 4);
+    SolucaoWave quebrarCicloOuOscilacao(const SolucaoWave& solucaoAtual, double lambda, int LB, int UB);
+    double calcularNovoLambda(const SolucaoWave& solucao, double lambdaAnterior, int iteracao);
+    
+    // Métodos para reinicializações e diversificação
     SolucaoWave gerarSolucaoInicialDiversificada(int indiceReinicializacao, int LB, int UB);
     double ajustarParametrosDinamicos(int indiceReinicializacao, int totalReinicializacoes);
-
-    // Métodos para reinicializações múltiplas
-    double calcularBOV(const SolucaoWave& solucao);
-    int getTotalUnidades(const SolucaoWave& solucao);
-    SolucaoWave perturbarSolucao(const SolucaoWave& solucao, double nivelPerturbacao, std::mt19937& rng);
-    SolucaoWave recombinarSolucoes(const SolucaoWave& solucao1, const SolucaoWave& solucao2, int LB, int UB);
-    SolucaoWave otimizarWave(int LB, int UB, const SolucaoWave& solucaoInicial);
+    
+    // Métodos para calcular diversidade e recombinar soluções
+    double calcularDiversidade(const SolucaoWave& s1, const SolucaoWave& s2);
+    SolucaoWave recombinarSolucoes(const SolucaoWave& sol1, const SolucaoWave& sol2, int LB, int UB);
+    SolucaoWave perturbarSolucao(const SolucaoWave& solucao, double nivelPerturbacao, std::mt19937& rng, 
+                               EstrategiaPerturbacao estrategia = EstrategiaPerturbacao::REMOVER_ALEATORIO);
+    
+    // Métodos para melhorar as soluções iniciais
+    SolucaoWave construirSolucaoInicial(int LB, int UB);
+    SolucaoWave construirSolucaoGulosaPonderada(int LB, int UB, double alpha);
+    
+    // Métodos para otimizar o processo de busca
+    SolucaoWave otimizarWaveInterno(double lambdaInicial, int LB, int UB, int maxIter, bool logProgress = false);
 };
 
-// Função para estimar um bom valor inicial de lambda
+// Função melhorada para estimar um bom valor inicial de lambda
 double estimarLambdaInicial(const Deposito& deposito, const Backlog& backlog, const LocalizadorItens& localizador);

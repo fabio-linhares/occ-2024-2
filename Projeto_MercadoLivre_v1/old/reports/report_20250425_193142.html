@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Estruturas - Mercado Livre Otimizador</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2, h3 { color: #333; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .chart-container { height: 400px; margin-bottom: 30px; }
+        .metric-box { display: inline-block; width: 200px; margin: 10px; padding: 15px; text-align: center; background-color: #f0f0f0; border-radius: 5px; }
+        .metric-box .value { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .metric-box .label { font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <h1>Relatório de Estruturas Auxiliares - Mercado Livre</h1>
+    <div class="section">
+        <h2>Resumo da Instância</h2>
+        <div class="metric-box">
+            <div class="label">Pedidos</div>
+            <div class="value">7</div>
+        </div>
+        <div class="metric-box">
+            <div class="label">Itens</div>
+            <div class="value">7</div>
+        </div>
+        <div class="metric-box">
+            <div class="label">Corredores</div>
+            <div class="value">33</div>
+        </div>
+        <div class="metric-box">
+            <div class="label">Limite Inferior (LB)</div>
+            <div class="value">0</div>
+        </div>
+        <div class="metric-box">
+            <div class="label">Limite Superior (UB)</div>
+            <div class="value">2</div>
+        </div>
+    </div>
+    <div class="section">
+        <h2>Análise de Pedidos</h2>
+        <h3>Top Pedidos por Eficiência</h3>
+        <table id="topOrdersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Itens Diferentes</th>
+                    <th>Itens Totais</th>
+                    <th>Corredores Necessários</th>
+                    <th>Eficiência (itens/corredores)</th>
+                    <th>Contribuição</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>3</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1.00</td>
+                    <td>1.00</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1.00</td>
+                    <td>1.00</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>1</td>
+                    <td>2</td>
+                    <td>2</td>
+                    <td>0.50</td>
+                    <td>0.50</td>
+                </tr>
+                <tr>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>3</td>
+                    <td>3</td>
+                    <td>0.33</td>
+                    <td>0.00</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>3</td>
+                    <td>0.33</td>
+                    <td>0.33</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>2</td>
+                    <td>4</td>
+                    <td>0.25</td>
+                    <td>0.25</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>22</td>
+                    <td>0.05</td>
+                    <td>0.05</td>
+                </tr>
+            </tbody>
+        </table>
+        <h3>Distribuição de Eficiência dos Pedidos</h3>
+        <div class="chart-container">
+            <canvas id="efficiencyDistChart"></canvas>
+        </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('efficiencyDistChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['0.00-0.10', '0.10-0.20', '0.20-0.30', '0.30-0.40', '0.40-0.50', '0.50-0.60', '0.60-0.70', '0.70-0.80', '0.80-0.90', '0.90-1.00'],
+                datasets: [{
+                    label: 'Distribuição de Eficiência',
+                    data: [1, 0, 1, 2, 0, 1, 0, 0, 0, 2],
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribuição de Eficiência'
+                    }
+                }
+            }
+        });
+    });
+</script>    </div>
+    <div class="section">
+        <h2>Análise de Itens</h2>
+        <h3>Top Itens por Importância Estratégica</h3>
+        <table id="topItemsTable">
+            <thead>
+                <tr>
+                    <th>Item ID</th>
+                    <th>Frequência</th>
+                    <th>Leverage Score</th>
+                    <th>Escassez (Demanda/Oferta)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>5</td>
+                    <td>1</td>
+                    <td>1.000</td>
+                    <td>0.12</td>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>1</td>
+                    <td>1.000</td>
+                    <td>0.01</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>1</td>
+                    <td>0.500</td>
+                    <td>0.07</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>1</td>
+                    <td>0.333</td>
+                    <td>0.01</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>1</td>
+                    <td>0.333</td>
+                    <td>0.04</td>
+                </tr>
+                <tr>
+                    <td>0</td>
+                    <td>1</td>
+                    <td>0.250</td>
+                    <td>0.05</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>1</td>
+                    <td>0.045</td>
+                    <td>0.00</td>
+                </tr>
+            </tbody>
+        </table>
+        <h3>Itens Mais Escassos (Demanda/Oferta)</h3>
+        <div class="chart-container">
+            <canvas id="itemScarcityChart"></canvas>
+        </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('itemScarcityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Item 5', 'Item 4', 'Item 0', 'Item 2', 'Item 1', 'Item 3', 'Item 6'],
+                datasets: [{
+                    label: 'Escassez dos Itens',
+                    data: [0.125, 0.0740741, 0.0526316, 0.0357143, 0.0102041, 0.00641026, 0.00406504],
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Escassez dos Itens'
+                    }
+                }
+            }
+        });
+    });
+</script>    </div>
+    <div class="section">
+        <h2>Análise de Corredores</h2>
+        <p>Esta seção mostraria análises detalhadas sobre os corredores, como:</p>
+        <ul>
+            <li>Corredores mais utilizados por pedidos eficientes</li>
+            <li>Densidade de itens por corredor</li>
+            <li>Visualização da matriz de cobertura corredor-item</li>
+        </ul>
+    </div>
+    <div class="section">
+        <h2>Métricas e Estatísticas</h2>
+        <p>Esta seção incluiria métricas adicionais e estatísticas globais da instância.</p>
+    </div>
+    <footer style="margin-top: 30px; text-align: center; color: #777;">
+        <p>Gerado pelo Otimizador de Wave - Mercado Livre</p>
+    </footer>
+</body>
+</html>

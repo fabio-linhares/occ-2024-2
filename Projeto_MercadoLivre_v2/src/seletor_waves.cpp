@@ -14,7 +14,7 @@ SeletorWaves::WaveCandidata SeletorWaves::selecionarWaveOtima(
     
     for (int pedidoId : pedidosOrdenados) {
         // Verificar se adicionar este pedido excederia o limite superior (UB)
-        int unidadesPedido = analisador.infoPedidos[pedidoId].numUnidades;
+        int unidadesPedido = analisador.getInfoPedido(pedidoId).numUnidades;
         if (waveAtual.totalUnidades + unidadesPedido > backlog.wave.UB) {
             // Se já atingimos o limite inferior (LB), esta wave é válida
             if (waveAtual.totalUnidades >= backlog.wave.LB) {

@@ -1,26 +1,7 @@
 #!/usr/bin/env bash
 
 # Script para compilar e testar o projeto MercadoLivre_v2
-# Autor: GitHub Copilot
-# Data: 1 de maio de 2025
 # Uso: ./compila.sh [limpar] [testar] [executar] [ajuda] [paralelo=N] [relatorio] [instalar] [depurar]
-#
-#
-# compila.sh na raiz do projeto (torne-o executável com chmod +x compila.sh)
-# Execute o script de compilação: ./compila.sh
-# Para ver todas as opções disponíveis: ./compila.sh ajuda
-# Exemplos de uso:
-# ./compila.sh limpar executar  # Limpa, compila e executa
-# ./compila.sh testar           # Compila e executa testes
-# ./compila.sh depurar          # Compila em modo debug
-# ./compila.sh relatorio        # Gera relatório do projeto
-
-#O CMakeLists.txt é genérico e detectará automaticamente novos arquivos adicionados ao projeto sem 
-# necessidade de modificação. O script compila.sh também cria automaticamente arquivos e diretórios 
-# necessários caso não existam.
-
-# O script verifica se o arquivo main.cpp existe e, se não existir, cria um arquivo padrão.
-
 
 # Cores para melhorar a visualização
 GREEN='\033[0;32m'
@@ -80,8 +61,6 @@ show_help() {
     echo "Exemplos:"
     echo -e "  ${GREEN}./compila.sh limpar testar${NC}       - Limpa, compila e testa o projeto"
     echo -e "  ${GREEN}./compila.sh executar${NC}            - Compila e executa o projeto"
-    echo -e "  ${GREEN}./compila.sh depurar executar${NC}    - Compila em modo de depuração e executa"
-    echo -e "  ${GREEN}./compila.sh paralelo=4${NC}          - Compila usando 4 threads"
 }
 
 # Parâmetros
@@ -143,14 +122,6 @@ check_dependencies() {
         error_msg "Compilador g++ não encontrado. Por favor, instale-o antes de continuar."
     fi
     
-    # Verificar versão do compilador
-    GXX_VERSION=$(g++ --version | head -n1 | cut -d")" -f2 | xargs)
-    print_msg "Compilador g++ versão $GXX_VERSION encontrado."
-    
-    # Verificar versão do CMake
-    CMAKE_VERSION=$(cmake --version | head -n1 | cut -d" " -f3)
-    print_msg "CMake versão $CMAKE_VERSION encontrado."
-    
     print_msg "Todas as dependências estão instaladas." "${GREEN}"
 }
 
@@ -164,7 +135,6 @@ create_directories() {
     mkdir -p "${PROJECT_DIR}/test"
     mkdir -p "${PROJECT_DIR}/data/input"
     mkdir -p "${PROJECT_DIR}/data/output"
-    mkdir -p "${PROJECT_DIR}/docs"
     
     print_msg "Diretórios criados com sucesso." "${GREEN}"
 }
@@ -178,7 +148,7 @@ clean_build() {
     fi
 }
 
-# Atualizar a função build_project para distinguir entre avisos e erros
+# Build do projeto
 build_project() {
     print_msg "Configurando projeto com CMake (modo: $CMAKE_BUILD_TYPE)..." "${YELLOW}"
     
@@ -193,21 +163,28 @@ build_project() {
     print_msg "Redirecionando erros para: $ERROS_FILE" "${YELLOW}"
     
     # Configurar CMake com redirecionamento de erros
-    cmake -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE .. 2>> "$ERROS_FILE"
+    cmake -DCMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" .. 2>> "$ERROS_FILE" || { 
+        print_msg "Falha na configuração do CMake. Verifique $ERROS_FILE" "${RED}"; 
+        grep -i -E "error:|erro:|fatal:" "$ERROS_FILE"
+        exit 1; 
+    }
     
-    # Compilar
+    # Compilar com redirecionamento de erros
     if [ "$PARALLEL_LEVEL" -eq 0 ]; then
         PARALLEL_LEVEL=$NUM_THREADS
     fi
     
     print_msg "Compilando projeto usando $PARALLEL_LEVEL threads..." "${YELLOW}"
-    cmake --build . -- -j$PARALLEL_LEVEL 2>> "$ERROS_FILE"
+    cmake --build . -- -j"$PARALLEL_LEVEL" 2>> "$ERROS_FILE" || {
+        print_msg "Falha na compilação do projeto. Verifique $ERROS_FILE" "${RED}"; 
+        grep -i -E "error:|erro:|fatal:" "$ERROS_FILE"
+        exit 1;
+    }
     
     # Verificar se houve erros reais (não apenas avisos)
     if grep -q -i "error:" "$ERROS_FILE" || grep -q -i "erro:" "$ERROS_FILE" || grep -q -i "fatal:" "$ERROS_FILE"; then
         print_msg "⚠️  Ocorreram erros durante a compilação. Verifique o arquivo: $ERROS_FILE" "${RED}"
         # Exibir os erros encontrados
-        print_msg "Erros encontrados:" "${RED}"
         grep -i -E "error:|erro:|fatal:" "$ERROS_FILE"
     else
         if [ -s "$ERROS_FILE" ]; then
@@ -249,124 +226,6 @@ run_executable() {
     fi
 }
 
-# Gerar relatório do projeto
-generate_report() {
-    if [ $GENERATE_REPORT -eq 1 ]; then
-        print_msg "Gerando relatório do projeto..." "${YELLOW}"
-        
-        REPORT_FILE="${PROJECT_DIR}/docs/relatorio_projeto.md"
-        
-        # Contar número de arquivos por tipo
-        NUM_CPP=$(find "${PROJECT_DIR}/src" -name "*.cpp" | wc -l)
-        NUM_H=$(find "${PROJECT_DIR}/include" -name "*.h" | wc -l)
-        NUM_TEST=$(find "${PROJECT_DIR}/test" -name "*.cpp" | wc -l)
-        
-        # Contar total de linhas de código
-        TOTAL_LINES=$(find "${PROJECT_DIR}" -name "*.cpp" -o -name "*.h" | xargs cat | wc -l)
-        
-        # Gerar o relatório
-        mkdir -p "${PROJECT_DIR}/docs"
-        
-        {
-            echo "# Relatório do Projeto MercadoLivre_v2"
-            echo ""
-            echo "Data de geração: $(date)"
-            echo ""
-            echo "## Estatísticas"
-            echo ""
-            echo "* Arquivos de código fonte (.cpp): $NUM_CPP"
-            echo "* Arquivos de cabeçalho (.h): $NUM_H"
-            echo "* Arquivos de teste: $NUM_TEST"
-            echo "* Total de linhas de código: $TOTAL_LINES"
-            echo ""
-            echo "## Arquivos do Projeto"
-            echo ""
-            echo "### Arquivos de Código Fonte"
-            echo ""
-            find "${PROJECT_DIR}/src" -name "*.cpp" | sort | while read -r file; do
-                rel_path=$(realpath --relative-to="${PROJECT_DIR}" "$file")
-                echo "* $rel_path"
-            done
-            echo ""
-            echo "### Arquivos de Cabeçalho"
-            echo ""
-            find "${PROJECT_DIR}/include" -name "*.h" | sort | while read -r file; do
-                rel_path=$(realpath --relative-to="${PROJECT_DIR}" "$file")
-                echo "* $rel_path"
-            done
-            echo ""
-            echo "### Arquivos de Teste"
-            echo ""
-            find "${PROJECT_DIR}/test" -name "*.cpp" | sort | while read -r file; do
-                rel_path=$(realpath --relative-to="${PROJECT_DIR}" "$file")
-                echo "* $rel_path"
-            done
-        } > "$REPORT_FILE"
-        
-        print_msg "Relatório gerado em $REPORT_FILE" "${GREEN}"
-    fi
-}
-
-# Instalar o programa
-install_program() {
-    if [ $INSTALL_PROGRAM -eq 1 ]; then
-        print_msg "Instalando o programa..." "${YELLOW}"
-        
-        cd "$BUILD_DIR"
-        
-        if [ -f "./MercadoLivre_v2" ]; then
-            # Verificar se o usuário tem permissões de sudo
-            if [ "$EUID" -ne 0 ];then
-                print_msg "Instalação requer permissões de superusuário." "${YELLOW}"
-                if sudo -v; then
-                    sudo cp ./MercadoLivre_v2 /usr/local/bin/
-                    print_msg "Programa instalado com sucesso em /usr/local/bin/" "${GREEN}"
-                else
-                    print_msg "Não foi possível obter permissões para instalar o programa." "${RED}"
-                fi
-            else
-                cp ./MercadoLivre_v2 /usr/local/bin/
-                print_msg "Programa instalado com sucesso em /usr/local/bin/" "${GREEN}"
-            fi
-        else
-            print_msg "Executável 'MercadoLivre_v2' não encontrado." "${RED}"
-        fi
-    fi
-}
-
-# Verificar arquivo main.cpp
-check_main_file() {
-    if [ ! -f "${PROJECT_DIR}/src/main.cpp" ]; then
-        print_msg "Arquivo main.cpp não encontrado. Criando arquivo padrão..." "${YELLOW}"
-        
-        cat > "${PROJECT_DIR}/src/main.cpp" << 'EOL'
-#include <iostream>
-#include "menu.h"
-
-/**
- * @brief Função principal do programa
- * @return Código de saída (0 = sucesso)
- */
-int main() {
-    std::cout << "Projeto MercadoLivre v2 - SBPO 2025\n";
-    std::cout << "Sistema de Otimização de Waves para Processamento de Pedidos\n\n";
-    
-    int choice = 0;
-    do {
-        mostrarMenu();
-        std::cout << "Digite sua escolha: ";
-        std::cin >> choice;
-        processarEscolhaMenu(choice);
-    } while (choice != 0);
-    
-    return 0;
-}
-EOL
-        
-        print_msg "Arquivo main.cpp criado com sucesso." "${GREEN}"
-    fi
-}
-
 # Execução principal
 main() {
     show_banner
@@ -379,13 +238,10 @@ main() {
     # Executar as etapas
     check_dependencies
     create_directories
-    check_main_file
     clean_build
     build_project
     run_tests
     run_executable
-    generate_report
-    install_program
     
     print_msg "======== SCRIPT DE COMPILAÇÃO CONCLUÍDO ========" "${CYAN}"
 }

@@ -1,4 +1,36 @@
-CMake Warning at CMakeLists.txt:102 (message):
-  Nenhum arquivo de teste encontrado! Criando teste vazio.
+CMake Warning at CMakeLists.txt:171 (message):
+  Nenhum teste encontrado em
+  /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/test
 
 
+In file included from /home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/otimizador_pli_alm.cpp:17:
+/nix/store/drmk3vzd4gshs5akrp8mkfmr04gshp5i-user-environment/include/ortools/linear_solver/linear_solver.h:149:10: fatal error: absl/base/port.h: No such file or directory
+  149 | #include "absl/base/port.h"
+      |          ^~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [CMakeFiles/MercadoLivre_v2Core.dir/build.make:300: CMakeFiles/MercadoLivre_v2Core.dir/src/otimizador_pli_alm.cpp.o] Error 1
+make[2]: ** Esperando que outros processos terminem.
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/otimizador_dinkelbach.cpp: In function ‘double estimarLambdaInicial(const Deposito&, const Backlog&, const LocalizadorItens&)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/otimizador_dinkelbach.cpp:104:71: error: ‘const struct Backlog’ has no member named ‘numCorredores’
+  104 |                              (2.0 * backlog.wave.UB) / (3.0 * backlog.numCorredores) :
+      |                                                                       ^~~~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/otimizador_dinkelbach.cpp: At global scope:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/otimizador_dinkelbach.cpp:186:1: error: ‘SolucaoWave’ does not name a type
+  186 | SolucaoWave OtimizadorDinkelbach::quebrarCicloOuOscilacao(const SolucaoWave& solucaoAtual, double lambda, int LB, int UB) {
+      | ^~~~~~~~~~~
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/busca_local_avancada.cpp: In member function ‘BuscaLocalAvancada::Solucao BuscaLocalAvancada::ils(const Solucao&, int, int)’:
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/busca_local_avancada.cpp:420:45: error: ‘struct BuscaLocalAvancada::ConfigILS’ has no member named ‘intensidadePerturbacaoBase’; did you mean ‘intensidadePerturbacaoInicial’?
+  420 |         double intensidadePert = configILS_.intensidadePerturbacaoBase +
+      |                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                                             intensidadePerturbacaoInicial
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/busca_local_avancada.cpp:440:42: error: ‘struct BuscaLocalAvancada::ConfigILS’ has no member named ‘perturbacoesSemMelhoria’; did you mean ‘maxIteracoesSemMelhoria’?
+  440 |         if (iterSemMelhoria > configILS_.perturbacoesSemMelhoria &&
+      |                                          ^~~~~~~~~~~~~~~~~~~~~~~
+      |                                          maxIteracoesSemMelhoria
+/home/zerocopia/Projetos/occ-2024-2/Projeto_MercadoLivre_v2/src/busca_local_avancada.cpp:441:24: error: ‘struct BuscaLocalAvancada::ConfigILS’ has no member named ‘usarReinicializacaoEstrategica’
+  441 |             configILS_.usarReinicializacaoEstrategica) {
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+make[2]: *** [CMakeFiles/MercadoLivre_v2Core.dir/build.make:230: CMakeFiles/MercadoLivre_v2Core.dir/src/otimizador_dinkelbach.cpp.o] Error 1
+make[2]: *** [CMakeFiles/MercadoLivre_v2Core.dir/build.make:118: CMakeFiles/MercadoLivre_v2Core.dir/src/busca_local_avancada.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:87: CMakeFiles/MercadoLivre_v2Core.dir/all] Error 2
+make: *** [Makefile:101: all] Error 2

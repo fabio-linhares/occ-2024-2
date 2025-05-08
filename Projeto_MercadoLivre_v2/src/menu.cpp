@@ -1,10 +1,13 @@
+#include "armazem.h"
 #include "menu.h"
 #include "verificar_instancias.h"
 #include "verificar_estruturas_auxiliares.h"
 #include "solucionar_desafio.h"
 #include "validar_resultados.h"
+#include "benchmark_manager.h"
 #include "desafio_info.h"
 #include "formatacao_terminal.h"
+#include "otimizador_pli_alm.h"
 #include <iostream>
 #include <vector>
 #include <filesystem>
@@ -38,6 +41,8 @@ void mostrarMenu() {
     std::cout << colorir("│", AZUL) << " " << colorirBold("3.", AMARELO) << " " << colorir("Solucionar o desafio", BRANCO) << std::string(30, ' ') << colorir("│", AZUL) << std::endl;
     std::cout << colorir("│", AZUL) << " " << colorirBold("4.", AMARELO) << " " << colorir("Validar resultados", BRANCO) << std::string(32, ' ') << colorir("│", AZUL) << std::endl;
     std::cout << colorir("│", AZUL) << " " << colorirBold("5.", AMARELO) << " " << colorir("Exibir informações do desafio", BRANCO) << std::string(22, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("6.", AMARELO) << " " << colorir("Executar benchmarks", BRANCO) << std::string(32, ' ') << colorir("│", AZUL) << std::endl;
+    std::cout << colorir("│", AZUL) << " " << colorirBold("7.", AMARELO) << " " << colorir("Otimização via Programação Linear Inteira", BRANCO) << std::string(14, ' ') << colorir("│", AZUL) << std::endl;
     std::cout << colorir("│", AZUL) << " " << colorirBold("0.", AMARELO) << " " << colorir("Sair", BRANCO) << std::string(46, ' ') << colorir("│", AZUL) << std::endl;
     std::cout << colorir("└────────────────────────────────────────────────────┘", AZUL) << std::endl;
 }
@@ -156,11 +161,109 @@ void processarEscolhaMenu(int escolha) {
         case 5:
             exibirInformacoesDesafio();
             break;
+        case 6: {
+            std::cout << cabecalho("EXECUTAR BENCHMARKS") << std::endl;
+            
+            // Verificar diretórios
+            std::string dirEntrada = "data/input";
+            std::string dirSaida = "data/output/benchmarks";
+            
+            // Perguntar ao usuário se deseja personalizar os diretórios
+            std::string resposta;
+            std::cout << "Usar diretórios padrão? (s/n): ";
+            std::cin >> resposta;
+            
+            if (resposta[0] == 'n' || resposta[0] == 'N') {
+                std::cout << "Digite o caminho para o diretório de entrada: ";
+                std::cin >> dirEntrada;
+                std::cout << "Digite o caminho para o diretório de saída: ";
+                std::cin >> dirSaida;
+            }
+            
+            // Verificar se o diretório de entrada existe
+            if (!std::filesystem::exists(dirEntrada)) {
+                std::cerr << erro("O diretório de entrada não existe: " + dirEntrada) << std::endl;
+                std::cout << "Deseja criar o diretório? (s/n): ";
+                std::cin >> resposta;
+                if (resposta[0] == 's' || resposta[0] == 'S') {
+                    std::filesystem::create_directories(dirEntrada);
+                    std::cout << sucesso("Diretório criado com sucesso.") << std::endl;
+                    std::cout << "Por favor, coloque os arquivos de instância no diretório antes de continuar." << std::endl;
+                    break;
+                } else {
+                    break;
+                }
+            }
+            
+            // Criar diretório de saída se não existir
+            std::filesystem::create_directories(dirSaida);
+            
+            // Executar benchmarks
+            std::cout << "Quantas repetições por instância? (recomendado: 3-5): ";
+            int repeticoes;
+            std::cin >> repeticoes;
+            repeticoes = std::max(1, repeticoes); // Garantir pelo menos 1 repetição
+            
+            BenchmarkManager benchManager(dirEntrada, dirSaida);
+            benchManager.adicionarAlgoritmo("Dinkelbach");
+            benchManager.adicionarAlgoritmo("BuscaLocal");
+            benchManager.adicionarAlgoritmo("BranchAndBound");
+            
+            try {
+                benchManager.executarBenchmarkCompleto(repeticoes);
+                std::cout << sucesso("Benchmarks concluídos com sucesso!") << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << erro("Erro durante execução dos benchmarks: ") << e.what() << std::endl;
+            }
+            
+            break;
+        }
+        case 7: {
+            std::cout << cabecalho("OTIMIZAÇÃO VIA PROGRAMAÇÃO LINEAR INTEIRA (ALM)") << std::endl;
+            
+            // Verificar o diretório de instâncias
+            if (!std::filesystem::exists(DIR_ENTRADA)) {
+                std::cout << colorir("Erro: Diretório de entrada não encontrado.", VERMELHO) << std::endl;
+                break;
+            }
+            
+            // Listar arquivos disponíveis
+            std::cout << colorir("Instâncias disponíveis:", VERDE) << std::endl;
+            std::vector<std::string> arquivos;
+            for (const auto& entry : std::filesystem::directory_iterator(DIR_ENTRADA)) {
+                if (entry.path().extension() == ".txt") {
+                    arquivos.push_back(entry.path().filename().string());
+                }
+            }
+            
+            // Exibir arquivos em formato de tabela
+            std::cout << separador() << std::endl;
+            for (size_t i = 0; i < arquivos.size(); ++i) {
+                std::cout << colorirBold(std::to_string(i+1) + ".", AMARELO) << " " 
+                          << colorir(arquivos[i], BRANCO) << std::endl;
+            }
+            std::cout << separador() << std::endl;
+            
+            // Solicitar escolha do usuário
+            std::cout << colorir("Digite o número da instância ou 0 para voltar: ", VERDE);
+            int escolhaArquivo;
+            std::cin >> escolhaArquivo;
+            
+            if (escolhaArquivo > 0 && escolhaArquivo <= static_cast<int>(arquivos.size())) {
+                std::string caminhoInstancia = DIR_ENTRADA + "/" + arquivos[escolhaArquivo-1];
+                
+                std::cout << colorir("Iniciando pré-processamento e otimização PLI para: ", CIANO)
+                          << colorirBold(arquivos[escolhaArquivo-1], BRANCO) << std::endl;
+                
+                preprocessamentoPLI(caminhoInstancia, DIR_SAIDA);
+            }
+            break;
+        }
         case 0:
-            std::cout << colorirBold("Obrigado por usar o Sistema de Otimização de Waves!", VERDE) << std::endl;
+            std::cout << colorir("Saindo...", VERDE) << std::endl;
             break;
         default:
-            std::cout << colorir("Opção inválida. Por favor, tente novamente.", VERMELHO) << std::endl;
+            std::cout << colorir("Opção inválida. Tente novamente.", VERMELHO) << std::endl;
     }
     
     if (escolha != 0) {

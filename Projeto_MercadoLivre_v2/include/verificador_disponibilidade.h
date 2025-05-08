@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include "armazem.h"
 
 // Declaração antecipada para evitar inclusão circular
@@ -31,7 +32,7 @@ struct VerificadorDisponibilidade {
      * @param pedido Mapa de itens e quantidades solicitadas
      * @return true se há estoque suficiente, false caso contrário
      */
-    bool verificarDisponibilidade(const std::map<int, int>& pedido) const;
+    bool verificarDisponibilidade(const std::unordered_map<int, int>& pedido) const;
     
     /**
      * @brief Verifica se há estoque suficiente para um conjunto de pedidos
