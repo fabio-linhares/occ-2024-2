@@ -41,7 +41,7 @@ Aqui estão alguns exemplos de visualizações e resultados obtidos com nossa im
 ### Solução
 #### Seleção da instância
 ![Solução exata](data/images/9.png)
-#### Exibição dos bins
+#### Exibição dos bins 
 ![Comparação com heurísticas](data/images/10.png)
 #### Detalhes dos bins
 ![Análise de desempenho](data/images/11.png)
@@ -153,7 +153,7 @@ Nossa implementação inclui os seguintes problemas de otimização:
    - **Formato**: CSV com colunas: de, para, capacidade.
 
       **Screenshots:**
-   - ![Interface do problema](data/images/30png)
+   - ![Interface do problema](data/images/30.png)
    - ![Visualização da solução ótima](data/images/31.png)
 
 10. **Problema de Escalonamento de Horários**
