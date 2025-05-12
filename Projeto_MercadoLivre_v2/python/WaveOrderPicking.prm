@@ -1,0 +1,10 @@
+CPXPARAM_ParamDisplay=1
+CPXPARAM_Threads=0
+CPXPARAM_Parallel=0
+CPXPARAM_MIP_Strategy_HeuristicFreq=10
+CPXPARAM_MIP_Strategy_Presolve=2
+CPXPARAM_MIP_Cuts_LiftProj=3
+CPXPARAM_OptimalityTarget=1
+CPXPARAM_LPMethod=4
+CPXPARAM_Barrier_Algorithm=3
+CPXPARAM_TimeLimit=599.9999992847443

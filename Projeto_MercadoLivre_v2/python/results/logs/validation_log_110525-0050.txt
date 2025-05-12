@@ -1,0 +1,26 @@
+=== Relatório de Validação dos Resultados ===
+
+Arquivo de entrada: datasets/a/instance_0005.txt
+Arquivo de solução: results/a/instance_0005_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 1765, Limites LB e UB: 1322 - 4395: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 160.45
+     BOV oficial: 177.88
+     Diferença: -17.43 (-9.80% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+
+=== Resumo da Validação ===
+Total de instâncias: 1
+Soluções aprovadas: 1 (100.0%)
+Soluções reprovadas: 0 (0.0%)
+Erros de validação: 0 (0.0%)
+
+=== Valores Objetivo (BOVs) ===
++---------------+---------------+-------------+-----------------+--------+
+|   Instância   | BOV Calculado | BOV Oficial |    Diferença    | Status |
++---------------+---------------+-------------+-----------------+--------+
+| instance_0005 |     160.45    |    177.88   | -17.43 (-9.80%) | Viável |
++---------------+---------------+-------------+-----------------+--------+

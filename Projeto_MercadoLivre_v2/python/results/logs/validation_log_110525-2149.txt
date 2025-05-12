@@ -1,0 +1,254 @@
+=== Relatório de Validação dos Resultados ===
+
+Arquivo de entrada: datasets/a/instance_0007.txt
+Arquivo de solução: results/a/instance_0007_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 1569, Limites LB e UB: 1306 - 3847: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 392.25
+     BOV oficial: 392.25
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0014.txt
+Arquivo de solução: results/a/instance_0014_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 1998, Limites LB e UB: 1947 - 7739: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 181.64
+     BOV oficial: 181.64
+     Diferença: -0.00 (-0.00% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0009.txt
+Arquivo de solução: results/a/instance_0009_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 53, Limites LB e UB: 52 - 153: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 4.42
+     BOV oficial: 4.42
+     Diferença: -0.00 (-0.08% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0004.txt
+Arquivo de solução: results/a/instance_0004_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 7, Limites LB e UB: 4 - 40: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 3.50
+     BOV oficial: 3.50
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0001.txt
+Arquivo de solução: results/a/instance_0001_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 45, Limites LB e UB: 30 - 68: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 15.00
+     BOV oficial: 15.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0012.txt
+Arquivo de solução: results/a/instance_0012_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 45, Limites LB e UB: 35 - 177: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 11.25
+     BOV oficial: 11.25
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0003.txt
+Arquivo de solução: results/a/instance_0003_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 48, Limites LB e UB: 33 - 106: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 12.00
+     BOV oficial: 12.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0005.txt
+Arquivo de solução: results/a/instance_0005_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 3265, Limites LB e UB: 1322 - 4395: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 136.04
+     BOV oficial: 177.88
+     Diferença: -41.84 (-23.52% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0019.txt
+Arquivo de solução: results/a/instance_0019_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 202, Limites LB e UB: 152 - 999: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 202.00
+     BOV oficial: 202.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0016.txt
+Arquivo de solução: results/a/instance_0016_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 170, Limites LB e UB: 149 - 686: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 85.00
+     BOV oficial: 85.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0020.txt
+Arquivo de solução: results/a/instance_0020_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 10, Limites LB e UB: 5 - 12: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 5.00
+     BOV oficial: 5.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0017.txt
+Arquivo de solução: results/a/instance_0017_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 73, Limites LB e UB: 54 - 175: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 36.50
+     BOV oficial: 36.50
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0018.txt
+Arquivo de solução: results/a/instance_0018_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 586, Limites LB e UB: 537 - 1205: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 117.20
+     BOV oficial: 117.20
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0002.txt
+Arquivo de solução: results/a/instance_0002_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 2, Limites LB e UB: 0 - 2: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 2.00
+     BOV oficial: 2.00
+     Diferença: 0.00 (igual ao BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0006.txt
+Arquivo de solução: results/a/instance_0006_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 3892, Limites LB e UB: 452 - 3892: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 121.62
+     BOV oficial: 691.00
+     Diferença: -569.38 (-82.40% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0008.txt
+Arquivo de solução: results/a/instance_0008_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 2840, Limites LB e UB: 1304 - 2840: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 22.36
+     BOV oficial: 162.94
+     Diferença: -140.58 (-86.28% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0011.txt
+Arquivo de solução: results/a/instance_0011_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 765, Limites LB e UB: 330 - 2045: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 15.94
+     BOV oficial: 16.85
+     Diferença: -0.91 (-5.42% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0010.txt
+Arquivo de solução: results/a/instance_0010_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 1746, Limites LB e UB: 416 - 1746: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 9.92
+     BOV oficial: 16.79
+     Diferença: -6.87 (-40.91% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0013.txt
+Arquivo de solução: results/a/instance_0013_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 4583, Limites LB e UB: 1510 - 4583: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 14.15
+     BOV oficial: 117.38
+     Diferença: -103.23 (-87.95% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+Arquivo de entrada: datasets/a/instance_0015.txt
+Arquivo de solução: results/a/instance_0015_result.txt
+  1. Validação dos IDs dos pedidos: Aprovada
+  2. Validação dos IDs dos corredores: Aprovada
+  3. Validação do número total de unidades na wave: Total de unidades na wave: 3679, Limites LB e UB: 384 - 3679: Aprovada
+  4. Validação de estoque suficiente: Aprovada
+  5. Valor objetivo (BOV): 18.77
+     BOV oficial: 149.33
+     Diferença: -130.56 (-87.43% abaixo do BOV oficial)
+Validação: Aprovada
+----------------------------------------
+
+=== Resumo da Validação ===
+Total de instâncias: 20
+Soluções aprovadas: 20 (100.0%)
+Soluções reprovadas: 0 (0.0%)
+Erros de validação: 0 (0.0%)
+
+=== Valores Objetivo (BOVs) ===
++---------------+---------------+-------------+-------------------+--------+
+|   Instância   | BOV Calculado | BOV Oficial |     Diferença     | Status |
++---------------+---------------+-------------+-------------------+--------+
+| instance_0001 |     15.00     |     15.0    |   +0.00 (+0.00%)  | Viável |
+| instance_0002 |      2.00     |     2.0     |   +0.00 (+0.00%)  | Viável |
+| instance_0003 |     12.00     |     12.0    |   +0.00 (+0.00%)  | Viável |
+| instance_0004 |      3.50     |     3.5     |   +0.00 (+0.00%)  | Viável |
+| instance_0005 |     136.04    |    177.88   |  -41.84 (-23.52%) | Viável |
+| instance_0006 |     121.62    |    691.0    | -569.38 (-82.40%) | Viável |
+| instance_0007 |     392.25    |    392.25   |   +0.00 (+0.00%)  | Viável |
+| instance_0008 |     22.36     |    162.94   | -140.58 (-86.28%) | Viável |
+| instance_0009 |      4.42     |     4.42    |   -0.00 (-0.08%)  | Viável |
+| instance_0010 |      9.92     |    16.79    |  -6.87 (-40.91%)  | Viável |
+| instance_0011 |     15.94     |    16.85    |   -0.91 (-5.42%)  | Viável |
+| instance_0012 |     11.25     |    11.25    |   +0.00 (+0.00%)  | Viável |
+| instance_0013 |     14.15     |    117.38   | -103.23 (-87.95%) | Viável |
+| instance_0014 |     181.64    |    181.64   |   -0.00 (-0.00%)  | Viável |
+| instance_0015 |     18.77     |    149.33   | -130.56 (-87.43%) | Viável |
+| instance_0016 |     85.00     |     85.0    |   +0.00 (+0.00%)  | Viável |
+| instance_0017 |     36.50     |     36.5    |   +0.00 (+0.00%)  | Viável |
+| instance_0018 |     117.20    |    117.2    |   +0.00 (+0.00%)  | Viável |
+| instance_0019 |     202.00    |    202.0    |   +0.00 (+0.00%)  | Viável |
+| instance_0020 |      5.00     |     5.0     |   +0.00 (+0.00%)  | Viável |
++---------------+---------------+-------------+-------------------+--------+

@@ -1,0 +1,16 @@
+# Arquivo de configuração do menu
+# Formato: Título da opção:caminho_do_arquivo.md
+
+Exibir informações do desafio:docs/desafio.md
+Exibir informações do problema:docs/problema.md
+Exibir informações da função objetivo e restrições:docs/funcao_objetivo.md
+Exibir informações das instâncias:docs/instancias.md
+Exibir informações de validação:docs/validacao.md
+Verificar instâncias:verificar_instancias
+Verificar instalação do CPLEX:verificar_cplex
+Verificar suporte a CUDA/GPU:verificar_gpu
+Configurar meta-heurísticas:configurar_metaheuristica
+Resolver com meta-heurística:resolver_com_metaheuristica
+Validar resultados:validar_resultados
+Comparar resultados:comparar_resultados
+Resolver desafio:solve_challenge
