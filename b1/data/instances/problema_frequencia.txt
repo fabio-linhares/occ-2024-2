@@ -1,0 +1,6 @@
+# Problema de Frequência (Frequency Assignment) - Formato: número de células, número de frequências, matriz de interferência
+4 5
+0 1 0 2
+1 0 1 0
+0 1 0 1
+2 0 1 0

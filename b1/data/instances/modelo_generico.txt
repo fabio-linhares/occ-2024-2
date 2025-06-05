@@ -1,0 +1,6 @@
+# Modelo Genérico - Formato: variáveis, restrições, coeficientes objetivo, matriz de coeficientes, termos independentes
+2 3
+3 4
+2 3 1
+1 1 3
+5 2

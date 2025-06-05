@@ -1,0 +1,5 @@
+# Problema de Padrões (Cutting Stock) - Formato: comprimento total, número de itens, comprimentos, demandas
+100
+5
+25 30 45 15 60
+10 5 8 15 3

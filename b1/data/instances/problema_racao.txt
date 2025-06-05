@@ -1,0 +1,9 @@
+# Problema da Ração - Formato: número de ingredientes, número de nutrientes, custos, requisitos nutricionais mínimos, máximos, matriz nutricional
+5 4
+30 20 25 35 15
+200 150 350 100
+300 250 500 200
+25 10 30 15 20
+5 8 12 4 6
+15 20 30 10 15
+8 6 12 4 9

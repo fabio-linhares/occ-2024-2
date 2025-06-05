@@ -1,0 +1,5 @@
+componente,disponivel
+Pigmento1,500
+Pigmento2,600
+Solvente1,400
+Solvente2,300

@@ -1,0 +1,7 @@
+# Problema de Facility Location - Formato: número de instalações, número de clientes, custos fixos, matriz de custos de atribuição
+4 5
+100 150 120 200
+20 15 25 30 10
+15 10 20 25 15
+25 20 10 15 20
+10 30 15 20 25

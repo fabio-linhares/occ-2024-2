@@ -1,0 +1,7 @@
+# Problema das Tintas - Formato: número de produtos, número de matérias-primas, lucro por unidade, disponibilidade das matérias-primas, requisitos por unidade
+3 4
+120 150 100
+500 600 400 300
+2 3 1 4
+3 2 5 1
+4 1 2 2

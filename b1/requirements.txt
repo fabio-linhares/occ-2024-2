@@ -1,0 +1,35 @@
+# Core
+matplotlib
+networkx
+numpy
+scipy
+pandas
+python-dotenv
+streamlit
+streamlit-folium
+tqdm
+
+# Visualização de dados
+altair
+plotly
+
+cartopy>=0.21.0
+
+# Processamento de texto (para formatação)
+markdown>=3.4.0
+
+# Funcionalidades de data e hora
+python-dateutil>=2.8.2
+
+# Utilitários
+Pillow>=9.4.0
+jsonpickle>=3.0.0
+requests>=2.28.0
+
+# Extensões do Streamlit
+streamlit-extras>=0.3.0
+streamlit-lottie>=0.0.5
+streamlit-option-menu>=0.3.6
+streamlit-shadcn-ui>=0.1.7
+
+pulp

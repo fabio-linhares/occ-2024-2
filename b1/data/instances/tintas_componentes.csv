@@ -1,0 +1,13 @@
+produto,componente,proporcao
+TintaA,Pigmento1,2
+TintaA,Pigmento2,3
+TintaA,Solvente1,1
+TintaA,Solvente2,4
+TintaB,Pigmento1,3
+TintaB,Pigmento2,2
+TintaB,Solvente1,5
+TintaB,Solvente2,1
+TintaC,Pigmento1,4
+TintaC,Pigmento2,1
+TintaC,Solvente1,2
+TintaC,Solvente2,2

@@ -1,0 +1,6 @@
+produto,lucro
+Produto1,30
+Produto2,20
+Produto3,25
+Produto4,35
+Produto5,15

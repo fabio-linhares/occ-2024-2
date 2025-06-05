@@ -1,0 +1,402 @@
+/* Estilos gerais para aplicação de Bin Packing */
+:root {
+    --primary-color: rgba(109, 40, 217, 1);
+    --secondary-color: rgba(16, 185, 129, 1);
+    --accent-color: rgba(239, 68, 68, 1);
+    --text-color: #FFFFFF;
+    --background-dark: rgba(31, 41, 55, 1);
+    --background-light: rgba(31, 41, 55, 0.5);
+    --tertiary-color: #F59E0B;
+    --success-color: #10B981;
+    --danger-color: #EF4444;
+    --warning-color: #F59E0B;
+    --background-color: #111827;
+    --surface-color: #1F2937;
+    --on-surface-color: #F9FAFB;
+    --muted-color: #6B7280;
+}
+
+/* Ocultar os links de navegação nativos do Streamlit */
+[data-testid="stSidebarNavItems"] {
+    display: none !important;
+}
+
+/* Remover a linha destacada no topo da barra lateral */
+div.css-1544g2n.e1fqkh3o4,
+div.css-1q1n0ol.egzxvld0 {
+    display: none !important;
+}
+
+.stApp {
+    background-color: #111827;
+}
+
+/* Ajustar o espaçamento da barra lateral */
+.css-1d391kg, .css-1cypcdb, [data-testid="stSidebar"] {
+    padding-top: 0 !important;
+}
+
+/* Estilos para título na barra lateral */
+[data-testid="stSidebar"] h1 {
+    margin-top: 0 !important;
+    padding-top: 0.5rem !important;
+}
+
+/* Título da aplicação */
+h1:first-of-type {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    font-size: 2.5rem !important;
+    color: var(--primary-color) !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Subtítulos e cabeçalhos */
+h2, h3, h4 {
+    color: white !important;
+    font-weight: 600 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Textos e parágrafos */
+p, li, label {
+    color: #D1D5DB !important;
+}
+
+/* Cards do Dashboard */
+.dashboard-card {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+}
+
+.card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
+}
+
+.card-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.card-subtitle {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.card-purple {
+    background: linear-gradient(135deg, rgba(109, 40, 217, 0.9) 0%, rgba(76, 29, 149, 0.9) 100%);
+    border-left: 4px solid rgba(139, 92, 246, 1);
+}
+
+.card-green {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9) 0%, rgba(5, 150, 105, 0.9) 100%);
+    border-left: 4px solid rgba(52, 211, 153, 1);
+}
+
+.card-blue {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(30, 64, 175, 0.9) 100%);
+    border-left: 4px solid rgba(96, 165, 250, 1);
+}
+
+.card-orange {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.9) 0%, rgba(194, 65, 12, 0.9) 100%);
+    border-left: 4px solid rgba(251, 146, 60, 1);
+}
+
+.card-red {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.9) 100%);
+    border-left: 4px solid rgba(248, 113, 113, 1);
+}
+
+/* Visualização dos Bins */
+.bin-container {
+    background-color: rgba(31, 41, 55, 0.5);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.bin {
+    background-color: rgba(109, 40, 217, 0.1);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.bin-header {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.bin-capacity {
+    width: 100%;
+    height: 10px;
+    background-color: #374151;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.bin-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.item {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 3px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    background-color: var(--primary-color);
+}
+
+/* Tabelas e DataFrames estilizados */
+[data-testid="stDataFrame"] table {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+[data-testid="stDataFrame"] th {
+    background-color: rgba(109, 40, 217, 0.2) !important;
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="stDataFrame"] td {
+    background-color: rgba(31, 41, 55, 0.5) !important;
+    color: #E5E7EB !important;
+}
+
+/* Configuração da Busca Local */
+.config-container {
+    background-color: rgba(31, 41, 55, 0.5);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+/* Botões estilizados */
+.stButton button {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    background-color: #6D28D9;
+    color: white;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.stButton button:hover {
+    background-color: #5B21B6;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Abas estilizadas */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: rgba(31, 41, 55, 0.5);
+    border-radius: 8px;
+    padding: 5px;
+    gap: 2px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #D1D5DB;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #6D28D9 !important;
+    color: white !important;
+    font-weight: 600;
+}
+
+.stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+    font-size: 16px;
+}
+
+/* Barra de progresso estilizada */
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #374151;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #6D28D9;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #9CA3AF;
+    margin-bottom: 20px;
+}
+
+/* Containers de alerta personalizados */
+.info-box {
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-box h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.info-box p {
+    margin-bottom: 0.5rem;
+}
+
+.info-box ul {
+    padding-left: 1.5rem;
+}
+
+.info-box.primary {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+    border-left: 4px solid rgba(37, 99, 235, 0.8);
+}
+
+.info-box.success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+    border-left: 4px solid rgba(16, 185, 129, 0.8);
+}
+
+.info-box.warning {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%);
+    border-left: 4px solid rgba(245, 158, 11, 0.8);
+}
+
+.info-box.danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left-color: #EF4444;
+}
+
+.info-box.blue {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+    border-left: 4px solid rgba(59, 130, 246, 0.8);
+}
+
+/* Código */
+.info-box code {
+    display: block;
+    background-color: rgba(31, 41, 55, 0.5);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+}
+
+/* Resultado Summary */
+.result-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(31, 41, 55, 0.05);
+    border-radius: 0.5rem;
+}
+
+.result-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: rgba(31, 41, 55, 0.03);
+    border: 1px solid rgba(31, 41, 55, 0.1);
+}
+
+.result-label {
+    font-size: 0.875rem;
+    color: rgba(31, 41, 55, 0.7);
+    margin-bottom: 0.25rem;
+}
+
+.result-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(31, 41, 55, 0.9);
+}
+
+/* Ajustes para Streamlit */
+.css-1d391kg {
+    background-color: #1F2937;
+}
+
+#MainMenu, footer, header {
+    visibility: hidden;
+}
+
+/* Para remover paddings extras */
+.block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.delay-1 { animation-delay: 0s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.2s; }
+.delay-4 { animation-delay: 0.3s; }
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .card-value {
+        font-size: 1.5rem;
+    }
+}
