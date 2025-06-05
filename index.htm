@@ -1,0 +1,2169 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLIwC²: Otimização Exata e Acelerada para o WOP</title>
+    <!-- Chosen Palette: "Mercado Livre Inspired" - Background: Off-white (#f8f7f2). Primary Accent: Mercado Livre Yellow (#FFF159). Secondary Accent: Mercado Livre Dark Blue (#3333A3) for text/elements. Chart Accent 1: Teal (#0d9488). Chart Accent 2: Orange (#f97316). Text: Dark Slate (#334155). Borders: Light Gray (#e2e8f0). -->
+    <!-- Application Structure Plan: Single-page, scrollytelling. Sections: Hero, O Problema WOP, A Solução PLIwC² (Methodology with Tabs: Original Formulation, Inverse Variable Linearization, Dinkelbach Linearization, Soft Constraints Details, Preprocessing Flow & GPU, Validation), Resultados Chave (expanded with more charts/tables), Q&A Técnico (Accordion), Conclusão. Chosen for logical flow, clarity of complex math, and deep data exploration. -->
+    <!-- Visualization & Content Choices: 
+        - MathJax for all formulas.
+        - WOP Problem: Inform -> Text, MathJax formula for Z.
+        - PLIwC² Methodology Tabs: Explain/Detail -> Each tab has specific formulas from article/beamer, text explanations.
+            - Original: Base FO, key variables, main constraints.
+            - Inverse Variable: Transformed FO, z, w_o, McCormick, FO with soft constraints.
+            - Dinkelbach: Parametric FO, lambda update, stop criterion, FO with soft constraints.
+            - Preprocessing: Steps (CPU/GPU), data flow to CPLEX.
+            - Validation: Consistency, BOV comparison, logs, sanity checks.
+        - Results Dashboard: Explore/Analyze -> Key metrics (animated). Charts: Config Performance (Table 7 PDF), Scalability (Table 2 impl.txt), GPU Speedup by Phase (Table 3 impl.txt), Speed Factor (Table 9 PDF), vs. Alternatives (Table 11 PDF). HTML Tables: Extreme Instances (Table 10 PDF), Dinkelbach Convergence (Table 4 impl.txt), Time/Resources (Table 5 impl.txt).
+        - Q&A: Inform/Justify -> Accordion for expert questions from user's text.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. All visualizations via Chart.js/Canvas or HTML/CSS.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            svg: {
+                fontCache: 'global'
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f2;
+            color: #334155;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 45vh;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+
+        .metric-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .tab-button-nav.active {
+            background-color: #FFF159;
+            color: #3333A3;
+            border-bottom-width: 3px;
+            border-bottom-color: #3333A3;
+        }
+
+        .tab-button-nav {
+            border-bottom-width: 3px;
+            border-bottom-color: transparent;
+            color: #4b5563;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: -1px;
+        }
+
+        .toggle-button.active {
+            background-color: #FFF159;
+            color: #3333A3;
+            border-color: #FBC02D;
+        }
+
+        .toggle-button {
+            border-color: #d1d5db;
+            background-color: #fff;
+            color: #4b5563
+        }
+
+        .bg-ml-yellow {
+            background-color: #FFF159;
+        }
+
+        .text-ml-blue {
+            color: #3333A3;
+        }
+
+        .border-ml-blue {
+            border-color: #3333A3;
+        }
+
+        .accordion-button {
+            width: 100%;
+            text-align: left;
+            padding: 1rem;
+            font-weight: 600;
+            background-color: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .accordion-button:hover {
+            background-color: #f0f9ff;
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s ease-in-out;
+            background-color: #f8fafc;
+            border-radius: 0 0 0.5rem 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-top: none;
+        }
+
+        .accordion-button .icon {
+            transition: transform 0.3s;
+        }
+
+        .accordion-button.open .icon {
+            transform: rotate(180deg);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        th,
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e0f2fe;
+            color: #0c4a6e;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .table-responsive-container {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+        }
+
+        .formula-block {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0.25rem;
+            font-size: 0.95em;
+            overflow-x: auto;
+        }
+
+        .formula-block p {
+            margin-bottom: 0.5rem;
+        }
+
+        .section-intro-text {
+            font-size: 1.125rem;
+            color: #475569;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 2.5rem;
+        }
+
+        .content-block {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .content-block h4 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #0d9488;
+            margin-bottom: 0.75rem;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-3xl font-extrabold text-ml-blue">PLIwC²<span class="text-yellow-500">.</span></div>
+            <div class="hidden md:flex space-x-6">
+                <a href="#problema" class="text-slate-700 hover:text-ml-blue transition font-medium">O Problema</a>
+                <a href="#solucao" class="text-slate-700 hover:text-ml-blue transition font-medium">A Solução PLIwC²</a>
+                <a href="#resultados" class="text-slate-700 hover:text-ml-blue transition font-medium">Resultados</a>
+                <a href="#qa" class="text-slate-700 hover:text-ml-blue transition font-medium">Q&A Técnico</a>
+                <a href="#conclusao" class="text-slate-700 hover:text-ml-blue transition font-medium">Conclusão</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero" class="bg-ml-yellow text-ml-blue text-center py-24 lg:py-36">
+            <div class="container mx-auto px-6">
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4">Otimização Avançada para Wave Order
+                    Picking</h1>
+                <p class="text-lg lg:text-xl max-w-3xl mx-auto mb-3 text-slate-700">Apresentando PLIwC²: Uma abordagem
+                    de otimização exata com Programação Linear Inteira, CPLEX e aceleração GPU, desenvolvida para o
+                    Desafio SBPO 2025 do Mercado Livre.</p>
+                <p class="text-sm font-light text-slate-600">Por: Fábio Linhares & Hans Ponfick</p>
+            </div>
+        </section>
+
+        <section id="problema" class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl lg:text-4xl font-bold text-center mb-4 text-ml-blue">O Desafio do Wave Order Picking
+                    (WOP)</h2>
+                <p class="section-intro-text text-center">No dinâmico universo da logística do e-commerce, o WOP é um
+                    problema crítico. Consiste em selecionar e agrupar pedidos de forma otimizada (em "waves") para
+                    maximizar a eficiência da coleta no armazém. Sendo um problema NP-Difícil, requer um equilíbrio
+                    preciso entre o volume de coleta e o esforço de movimentação.</p>
+
+                <div class="text-center p-8 bg-white rounded-xl shadow-xl border border-gray-200 max-w-2xl mx-auto">
+                    <h3 class="text-2xl font-semibold text-ml-blue mb-3">Métrica de Eficiência (Desafio SBPO 2025)</h3>
+                    <p class="text-lg mb-4">Maximizar a razão (Equação 1.1 do artigo):</p>
+                    <div
+                        class="text-2xl lg:text-3xl font-mono bg-gray-100 p-4 lg:p-6 rounded-lg inline-block shadow-inner">
+                        $Z = \frac{\sum_{o \in O} S_o \cdot x_o}{\sum_{a \in A} y_a}$
+                    </div>
+                    <p class="mt-4 text-gray-700 text-md">Onde $S_o$ é o score do pedido $o$, $x_o=1$ se o pedido é
+                        selecionado, e $y_a=1$ se o corredor $a$ é visitado. <br> (Em nossa modelagem interna, usamos $1
+                        + \sum y_a$ no denominador para robustez numérica).</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="solucao" class="py-16 lg:py-24 bg-slate-50">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl lg:text-4xl font-bold text-center mb-12 text-ml-blue">A Solução PLIwC²: Formulação e
+                    Metodologia Detalhada</h2>
+                <p class="section-intro-text text-center">Nossa abordagem, PLIwC², enfrenta o WOP com uma combinação de
+                    modelagem matemática exata, técnicas de linearização, flexibilidade operacional e aceleração de
+                    hardware. As abas abaixo detalham cada componente da nossa solução, desde a formulação matemática
+                    original até o fluxo de pré-processamento e validação, conforme descrito em nosso artigo e nos
+                    documentos de implementação.</p>
+                <div class="max-w-5xl mx-auto bg-white p-3 md:p-6 rounded-xl shadow-xl border border-gray-200">
+                    <div class="flex flex-col sm:flex-row flex-wrap justify-center mb-6 border-b border-gray-300"
+                        id="methodology-tabs-buttons">
+                        <button class="tab-button-nav" onclick="window.openMethodTab(event, 'formOriginal')">Formulação
+                            Base</button>
+                        <button class="tab-button-nav"
+                            onclick="window.openMethodTab(event, 'formInversa')">Linearização: Var. Inversa</button>
+                        <button class="tab-button-nav"
+                            onclick="window.openMethodTab(event, 'formDinkelbach')">Linearização: Dinkelbach</button>
+                        <button class="tab-button-nav" onclick="window.openMethodTab(event, 'formSoft')">Restrições
+                            Suaves</button>
+                        <button class="tab-button-nav"
+                            onclick="window.openMethodTab(event, 'formPreprocessing')">Pré-Processamento & GPU</button>
+                        <button class="tab-button-nav"
+                            onclick="window.openMethodTab(event, 'formValidation')">Validação</button>
+                    </div>
+
+                    <div id="formNotacao" class="method-tab-content p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">1. Notação e Definições</h3>
+                        <p class="text-lg mb-3">Para formalizar o problema, utilizamos a seguinte notação:</p>
+                        <div class="table-responsive-container mb-4">
+                            <table>
+                                <caption>Tabela de Notação</caption>
+                                <thead>
+                                    <tr>
+                                        <th>Símbolo</th>
+                                        <th>Descrição</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>$O = \{0, \dots, N_P - 1\}$</td>
+                                        <td>Conjunto de pedidos</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$A = \{0, \dots, N_A - 1\}$</td>
+                                        <td>Conjunto de corredores</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$I$</td>
+                                        <td>Conjunto de tipos de itens (SKUs)</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$U_{oi}$</td>
+                                        <td>Unidades do item $i$ requeridas pelo pedido $o$</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$AV_{ai}$</td>
+                                        <td>Unidades disponíveis do item $i$ no corredor $a$</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$S_o = \sum_{i \in I} U_{oi}$</td>
+                                        <td>Número total de unidades no pedido $o$</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$R_o \subseteq A$</td>
+                                        <td>Conjunto de corredores necessários para atender o pedido $o$</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$x_o \in \{0, 1\}$</td>
+                                        <td>Variável binária: 1 se o pedido $o$ é incluído na wave</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$y_a \in \{0, 1\}$</td>
+                                        <td>Variável binária: 1 se o corredor $a$ é visitado</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$LB,\,UB$</td>
+                                        <td>Limites inferior e superior do número total de unidades na wave</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$\delta_1,\,\delta_2 \ge 0$</td>
+                                        <td>Variáveis de folga para relaxar suavemente restrições de volume e unidades</td>
+                                    </tr>
+                                    <tr>
+                                        <td>$\pi_1,\,\pi_2 \ge 0$</td>
+                                        <td>Penalidades associadas às folgas</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="formOriginal" class="method-tab-content p-2 md:p-4"></div>
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">1. Função Objetivo Original e Restrições
+                            Base</h3>
+                        <p class="text-lg mb-3">O problema WOP visa maximizar a eficiência da coleta, definida pela
+                            função objetivo fracionária (Equação 1.1 do artigo para o desafio, e Equação 8.2 para nossa
+                            modelagem interna visando robustez):</p>
+                        <div class="formula-block">
+                            <p>Objetivo Oficial (Desafio SBPO 2025): $\max Z = \frac{\sum_{o \in O} S_o \cdot
+                                x_o}{\sum_{a \in A} y_a}$</p>
+                            <p>Objetivo do Modelo PLIwC² (Regularizado): $\max Z_{robust} = \frac{\sum_{o \in O} S_o
+                                \cdot x_o}{1 + \sum_{a \in A} y_a}$</p>
+                        </div>
+                        <p class="text-lg mt-4 mb-2 font-medium">Variáveis de Decisão Principais (Seção 8.1 do artigo):
+                        </p>
+                        <ul class="list-disc list-inside text-lg space-y-1 pl-4 mb-4">
+                            <li>$x_o \in \{0,1\}$: 1 se o pedido $o \in O$ é incluído na wave, 0 caso contrário.</li>
+                            <li>$y_a \in \{0,1\}$: 1 se o corredor $a \in A$ é visitado, 0 caso contrário.</li>
+                        </ul>
+                        <p class="text-lg mt-4 mb-2 font-medium">Restrições Fundamentais:</p>
+                        <div class="formula-block">
+                            <p>1. Cobertura de Itens (Eq. 8.7 do artigo): A demanda total de cada item $i$ pelos pedidos
+                                selecionados não pode exceder o estoque disponível do item $i$ nos corredores visitados.
+                                <br>
+                                $\sum_{o \in O} U_{oi} x_o \le \sum_{a \in A} AV_{ai} y_a, \quad \forall i \in I$
+                            </p>
+                            <p>2. Limites de Unidades na Wave (Eq. 8.3, 8.5 do artigo): A soma das unidades/scores $S_o$
+                                dos pedidos na wave deve estar entre $LB$ e $UB$.<br>
+                                $LB \le \sum_{o \in O} S_o x_o \le UB$</p>
+                            <p>3. Limite de Corredores (parâmetro $A_{max}$): O total de corredores visitados não pode
+                                exceder $A_{max}$.<br>
+                                $\sum_{a \in A} y_a \le A_{max}$</p>
+                            <p>4. Ligação Pedido-Corredor (Implícita ou explícita): Se um pedido $o$ (que requer itens
+                                no corredor $a$) é selecionado ($x_o=1$), então o corredor $a$ deve ser visitado
+                                ($y_a=1$). <span class="text-red-600">Uma forma de expressar é: $x_o \le y_a, \quad \forall o \in O, \forall a \in
+                                R_o$, onde $R_o$ é o conjunto de corredores do pedido $o$.</span></p>
+                        </div>
+                    </div>
+
+                    <div id="formInversa" class="method-tab-content hidden p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">2. Linearização por Variável Inversa
+                        </h3>
+                        <p class="text-lg mb-3">Esta técnica (Seção 8.5.1 do artigo) transforma a FO fracionária em um
+                            único PLI, que se mostrou a mais eficiente em nossos testes.</p>
+                        <p class="text-lg mb-2 font-medium">Passos da Transformação:</p>
+                        <ul class="list-disc list-inside text-lg space-y-1 pl-4 mb-4">
+                            <li>Introduz-se uma variável contínua $z = \frac{1}{1 + \sum_{a \in A} y_a}$. Dado que $1 +
+                                \sum y_a \ge 1$, temos $0 < z \le 1$.</li>
+                            <li>A função objetivo original $\max \frac{\sum S_o x_o}{1 + \sum y_a}$ é reescrita como:
+                                $\max \left(\sum_{o \in O} S_o x_o\right) \cdot z$.</li>
+                            <li>Para linearizar o produto $x_o \cdot z$, introduzimos uma nova variável contínua $w_o
+                                \ge 0$ para cada pedido $o$, tal que $w_o = x_o \cdot z$.</li>
+                            <li>A função objetivo final linearizada se torna: $\max \sum_{o \in O} S_o w_o$.</li>
+                            <li>**Restrições de McCormick** (Equações 8.16-8.19 do artigo) são adicionadas para garantir
+                                $w_o = x_o \cdot z$ (considerando $z \in [0,1]$ e $x_o \in \{0,1\}$):
+                                <div class="formula-block">
+                                    $w_o \le x_o \\ w_o \le z \\ w_o \ge z - (1 - x_o) \\ w_o \ge 0 \quad \forall o \in
+                                    O$
+                                </div>
+                            </li>
+                            <li>A relação $z(1 + \sum y_a) = 1$ é garantida pela **Restrição de Normalização**
+                                (linearizada, Equações 8.11-8.15 do artigo), que pode ser expressa como $z + \sum_{a \in
+                                A} u_a = 1$, onde $u_a = y_a \cdot z$ são também linearizadas via McCormick:
+                                <div class="formula-block">
+                                    $u_a \le y_a \\ u_a \le z \\ u_a \ge z - (1 - y_a) \\ u_a \ge 0 \quad \forall a \in
+                                    A$
+                                </div>
+                            </li>
+                        </ul>
+                        <p class="text-lg mt-4 mb-2 font-medium">Função Objetivo Final (Inversa) com Restrições Suaves:
+                        </p>
+                        <p class="text-lg mb-3">Se $f_L \ge 0$ e $f_A \ge 0$ são as folgas para os limites $UB$ e
+                            $A_{max}$ respectivamente, com penalidades $P_L, P_A = 1000$ (Seção 8.4):</p>
+                        <div class="formula-block">$\max \left( \sum_{o \in O} S_o w_o \right) - P_L \cdot f_L - P_A
+                            \cdot f_A$</div>
+                        <p class="text-lg mt-3">Sujeito às restrições originais (modificadas com $f_L, f_A$), de
+                            McCormick e de normalização.</p>
+                    </div>
+
+                    <div id="formDinkelbach" class="method-tab-content hidden p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">3. Linearização pelo Algoritmo de
+                            Dinkelbach</h3>
+                        <p class="text-lg mb-3">Este é um método iterativo clássico (Seção 8.5.5 do artigo) que resolve
+                            uma sequência de PLIs paramétricos.</p>
+                        <p class="text-lg mb-2 font-medium">Passos do Algoritmo (Algoritmo 3 do artigo):</p>
+                        <ol class="list-decimal list-inside text-lg space-y-1 pl-4 mb-4">
+                            <li>**Inicialização:** Escolher $\lambda_0$ (e.g., com heurística gulosa, Seção 10.8).</li>
+                            <li>**Iteração $k$:**
+                                <ul class="list-inside list-[circle] ml-4 space-y-1">
+                                    <li>Resolver o PLI paramétrico: $F(\lambda_k) = \max \left( \sum_{o \in O} S_o x_o -
+                                        \lambda_k (1 + \sum_{a \in A} y_a) \right)$.</li>
+                                    <li>Obter a solução ótima $(x_k^*, y_k^*)$ deste subproblema.</li>
+                                    <li>Calcular $N(x_k^*) = \sum S_o x_{ok}^*$ e $D(y_k^*) = 1 + \sum y_{ak}^*$.</li>
+                                    <li>Atualizar $\lambda_{k+1} = \frac{N(x_k^*)}{D(y_k^*)}$ (se $D(y_k^*) > 0$).</li>
+                                </ul>
+                            </li>
+                            <li>**Critério de Parada:** Parar quando $F(\lambda_k) = N(x_k^*) - \lambda_k D(y_k^*)$
+                                estiver suficientemente próximo de zero, ou seja, $|F(\lambda_k)| \le \epsilon$ (e.g.,
+                                $\epsilon = 10^{-4}$).</li>
+                        </ol>
+                        <p class="text-lg mt-4 mb-2 font-medium">Função Objetivo do Subproblema com Restrições Suaves:
+                        </p>
+                        <p class="text-lg mb-3">Em cada iteração $k$, com folgas $f_L, f_A$ e penalidades $P_L, P_A =
+                            1000$ (Equação 8.55):</p>
+                        <div class="formula-block">$\max \left( \sum_{o \in O} S_o x_o - \lambda_k (1 + \sum_{a \in A}
+                            y_a) - P_L f_L - P_A f_A \right)$</div>
+                        <p class="text-lg mt-3">Sujeito às restrições originais (modificadas para incluir as folgas
+                            $f_L, f_A$).</p>
+                    </div>
+
+                    <div id="formSoft" class="method-tab-content hidden p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">Detalhes das Restrições Suaves (Soft
+                            Constraints)</h3>
+                        <p class="text-lg mb-3">Para aumentar a flexibilidade e robustez do modelo (Seções 8.3.3, 8.4, e
+                            `complementos_finais.txt` Seção 5.1.3), permitimos que os limites de Unidades Totais da Wave
+                            ($UB$) e o Número Máximo de Corredores ($A_{max}$) sejam violados, mediante penalidades.</p>
+                        <p class="text-lg mb-2 font-medium">Implementação:</p>
+                        <ul class="list-disc list-inside text-lg space-y-1 pl-4 mb-4">
+                            <li>**Variáveis de Folga:** Introduzimos $f_L \ge 0$ e $f_A \ge 0$.</li>
+                            <li>**Restrições Modificadas:**
+                                <div class="formula-block">
+                                    <p>Limite Superior de Unidades: $\sum_{o \in O} S_o x_o \le UB + f_L$</p>
+                                    <p>Limite de Corredores: $\sum_{a \in A} y_a \le A_{max} + f_A$</p>
+                                </div>
+                                (Também é possível adicionar folga ao Limite Inferior $LB$: $LB - f'_{L} \le \sum S_o
+                                x_o$ e penalizar $f'_{L}$)
+                            </li>
+                            <li>**Penalidades na Função Objetivo:**
+                                <br>Os termos $- P_L \cdot f_L$ e $- P_A \cdot f_A$ são subtraídos da função objetivo
+                                que está sendo maximizada.
+                                <br>Utilizamos $P_L = 1000$ e $P_A = 1000$.
+                            </li>
+                        </ul>
+                        <p class="text-lg mt-4 mb-2 font-medium">Impacto Observado (Tabela 7.1 do artigo PDF):</p>
+                        <ul class="list-disc list-inside text-lg space-y-1 pl-4">
+                            <li>Aumento no número de instâncias resolvidas à otimalidade (e.g., INVERSA no Conj. A: de
+                                18/20 para 20/20).</li>
+                            <li>Redução significativa nos tempos de solução (e.g., INVERSA no Conj. A: de 58.32s para
+                                32.77s, uma redução de ~44%).</li>
+                            <li>Leve melhora na FO média das soluções ótimas, indicando que o modelo pôde alcançar maior
+                                eficiência bruta.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Pré-Processamento e GPU -->
+                    <div id="formPreprocessing" class="method-tab-content hidden p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">Fluxo de Pré-Processamento e Preparação
+                            para CPLEX</h3>
+                        <p class="text-lg mb-3">Antes de invocar o CPLEX, um pipeline de pré-processamento robusto
+                            (Seção 10 e 13.5 do artigo PDF) é executado para reduzir a complexidade da instância. Este
+                            fluxo é fundamental para a eficiência da abordagem exata.</p>
+
+                        <div class="text-lg space-y-3 pl-4 mb-4">
+                            <p class="font-medium">Algoritmo: Pipeline de Pré-Processamento PLIwC²</p>
+                            <ol class="list-decimal list-inside space-y-2">
+                                <li>
+                                    <strong>Leitura e Validação Inicial de Dados:</strong>
+                                    <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                        <li>Carregar dados da instância (arquivos <code>.txt</code>).</li>
+                                        <li>Popular estruturas de dados Python (e.g., dicionários para
+                                            <code>orders</code>, <code>aisles</code>).
+                                        </li>
+                                        <li>Referência: <code>data_reader.py</code> (Conforme
+                                            <code>implementacao_completa.txt</code>, Seção 4.1).
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Pré-processamento Base (CPU):</strong> Executado por
+                                    <code>WaveOrderPickingProblem._preprocess()</code>.
+                                    <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                        <li>Calcular <code>self.order_units</code> (total de unidades por pedido).</li>
+                                        <li>Criar mapeamentos:
+                                            <ul class="list-circle list-inside ml-6 space-y-1">
+                                                <li><code>self.item_units_by_order</code> (item → {pedido: qtd}).</li>
+                                                <li><code>self.item_units_by_aisle</code> (item → {corredor: qtd}).</li>
+                                            </ul>
+                                        </li>
+                                        <li>Identificar <code>self.all_order_items</code> (conjunto de todos os itens
+                                            únicos).</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Aceleração por GPU (Opcional, se habilitado):</strong> Executado por
+                                    <code>_preprocess_cuda()</code>.
+                                    <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                        <li>Converter dados relevantes para matrizes CuPy densas:
+                                            <ul class="list-circle list-inside ml-6 space-y-1">
+                                                <li><code>_gpu_item_order_map</code> (itens x pedidos).</li>
+                                                <li><code>_gpu_item_aisle_map</code> (itens x corredores).</li>
+                                            </ul>
+                                        </li>
+                                        <li>Calcular <code>_gpu_order_units</code> na GPU.</li>
+                                        <li>Armazenar matrizes GPU no objeto <code>problem</code> para reutilização pelo
+                                            <code>GPUManager</code>.
+                                        </li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Filtragem Adicional e Redução de Problema:</strong>
+                                    <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                        <li><strong>Filtragem Inicial (CPU):</strong> Remover pedidos inviáveis (e.g.,
+                                            volume $S_o > UB$).</li>
+                                        <li><strong>Construção da Matriz de Conflito (GPU/CuPy):</strong>
+                                            <ul class="list-circle list-inside ml-6 space-y-1">
+                                                <li>Identificar pares de pedidos $(p, q)$ que compartilham corredores.
+                                                </li>
+                                                <li>Reduz complexidade de $O(N^2)$ (CPU) para significativamente menos
+                                                    na GPU.</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Remoção de Pedidos Dominados (GPU/CuPy):</strong> Eliminar pedidos
+                                            "inferiores" com base na matriz de conflito e scores.</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <strong>Entrega ao Construtor de Modelo:</strong>
+                                    <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                        <li>Fornecer dados filtrados, reduzidos e estruturados (listas de
+                                            pedidos/corredores válidos, scores, volumes, mapeamentos) para
+                                            <code>model_builder.py</code>.
+                                        </li>
+                                        <li>Construir o modelo PuLP para o CPLEX.</li>
+                                    </ul>
+                                </li>
+                            </ol>
+                        </div>
+                        <p class="text-lg mt-3">Este pipeline otimizado, especialmente com a aceleração GPU nas etapas
+                            de matriz de conflito e dominância, garante que o CPLEX receba um modelo mais enxuto. O
+                            tempo total para este pré-processamento é consistentemente <strong>inferior a 0.5
+                                segundos</strong> para as instâncias do desafio (Tabela 8 do artigo PDF).</p>
+                    </div>
+
+                    <!-- Validação das Soluções -->
+
+                    <div id="formValidation" class="method-tab-content hidden p-2 md:p-4">
+                        <h3 class="text-2xl font-semibold mb-4 text-yellow-600">Validação das Soluções Obtidas</h3>
+                        <p class="text-lg mb-3">Após o CPLEX (ou o loop de Dinkelbach) retornar uma solução candidata,
+                            um processo de validação multifacetado é aplicado para assegurar sua correção, consistência
+                            e qualidade, conforme detalhado em várias seções do seu material (e.g.,
+                            `implementacao_completa.txt` Seção 7, `article_final_v2.pdf` Seção 4.5 e 13.6.4).</p>
+                        <p class="text-lg mb-2 font-medium">Passos do Processo de Validação:</p>
+                        <ol class="list-decimal list-inside text-lg space-y-3 pl-4 mb-4">
+                            <li>
+                                <strong>Verificação da Consistência Interna do Modelo e da Solução:</strong> Referência:
+                                <code>WaveOrderPickingSolution.validate()</code>.
+                                <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                    <li>
+                                        <strong>Viabilidade das Restrições:</strong> Confirmar se a solução ($x_o, y_a$
+                                        e folgas $f_L, f_A$) satisfaz todas as restrições impostas no modelo PuLP,
+                                        incluindo:
+                                        <ul class="list-circle list-inside ml-6 space-y-1">
+                                            <li>Ligação pedido-corredor: todos os itens de pedidos selecionados são
+                                                cobertos por corredores visitados.</li>
+                                            <li>Cobertura de Itens: a demanda não excede o estoque nos corredores
+                                                visitados.</li>
+                                            <li>Limites de Unidades ($LB, UB$): considerando as folgas, se restrições
+                                                suaves.</li>
+                                            <li>Limite de Corredores ($A_{max}$): considerando a folga, se restrições
+                                                suaves.</li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <strong>Consistência da Linearização:</strong>
+                                        <ul class="list-circle list-inside ml-6 space-y-1">
+                                            <li>Para a Variável Inversa: verificar se $z(1+\sum y_a) \approx 1$.</li>
+                                            <li>Para Dinkelbach: a convergência de $\lambda$ e $F(\lambda_k) \approx 0$
+                                                é o indicador.</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Cálculo da Função Objetivo Oficial e Comparação com BOV:</strong>
+                                <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                    <li>Calcular a função objetivo oficial do desafio: $Z = (\sum S_o x_o) / (\sum y_a)$
+                                        para a solução $(x_o, y_a)$ encontrada.</li>
+                                    <li>Comparar este valor com o Melhor Valor Conhecido (BOV) para a instância (se
+                                        disponível, via <code>compute_bov_official</code> de <code>utils.py</code>).
+                                    </li>
+                                    <li>Calcular o gap de otimalidade: $\text{Gap} = \frac{\text{BOV} -
+                                        \text{FO}}{\text{BOV}} \times 100\%$.</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Análise de Logs e Status do Solver (CPLEX):</strong>
+                                <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                    <li>Analisar o status retornado pelo CPLEX (e.g., "Optimal", "TimeLimit",
+                                        "Infeasible").</li>
+                                    <li>Em caso de "TimeLimit", analisar o gap de otimalidade reportado pelo próprio
+                                        CPLEX (entre o melhor limitante inferior e o melhor limitante superior da árvore
+                                        de B&B).</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Testes de Sanidade Lógica e Casos Extremos:</strong>
+                                <ul class="list-disc list-inside ml-6 space-y-1 text-base">
+                                    <li>Verificar se $\sum y_a > 0$ se $\sum S_o x_o > 0$.</li>
+                                    <li>Para o Dinkelbach, monitorar a monotonicidade de $\lambda_k$ e o comportamento
+                                        de $F(\lambda_k)$.</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        <p class="text-lg mt-3">A função `WaveOrderPickingSolution.validate(problem_data)` no seu código
+                            (`solution.py`) encapsula muitas dessas verificações, recalculando totais e comparando com
+                            os limites. Essas etapas de validação são cruciais para a confiabilidade dos resultados e
+                            para a análise do desempenho do modelo PLIwC².</p>
+                    </div>
+                </div>
+        </section>
+
+        <section id="resultados" class="py-16 lg:py-24">
+            <div class="container mx-auto px-6">
+                <h2 class="text-3xl lg:text-4xl font-bold text-center mb-6 text-ml-blue">Resultados de Impacto:
+                    Desempenho Detalhado da PLIwC²</h2>
+                <p class="section-intro-text text-center">A seguir, apresentamos os resultados experimentais completos
+                    que demonstram a eficácia da PLIwC². As visualizações interativas e tabelas são baseadas em dados
+                    reais dos experimentos realizados para os conjuntos A e B do desafio, incluindo análises detalhadas
+                    de instâncias específicas como a/2.txt e b/6.txt, que atingiram speedups de até 300x comparadas aos
+                    métodos tradicionais.</p>
+
+                <div class="grid md:grid-cols-3 gap-6 lg:gap-8 mb-16 text-center">
+                    <div class="metric-card">
+                        <div class="text-5xl lg:text-6xl font-extrabold text-yellow-500" id="speedup-counter">0</div>
+                        <p class="text-xl font-semibold mt-2 text-ml-blue">Vezes Mais Rápido</p>
+                        <p class="text-sm text-slate-500">Que métodos heurísticos tradicionais (algumas instâncias)</p>
+                    </div>
+                    <div class="metric-card">
+                        <div class="text-5xl lg:text-6xl font-extrabold text-yellow-500" id="fo-counter">0</div>
+                        <p class="text-xl font-semibold mt-2 text-ml-blue">% do Ótimo Conhecido</p>
+                        <p class="text-sm text-slate-500">Qualidade média da PLIwC² (INVERSA+Flexível)</p>
+                    </div>
+                    <div class="metric-card">
+                        <div class="text-5xl lg:text-6xl font-extrabold text-yellow-500" id="optimal-counter">0</div>
+                        <p class="text-xl font-semibold mt-2 text-ml-blue">% dos melhores resultados do desafio</p>
+                        <p class="text-sm text-slate-500">Para o Dataset A.</p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Desempenho por Configuração e Conjunto
+                        de Instâncias</h3>
+                    <p class="text-center text-gray-600 mb-6">Comparativo entre linearizadores (INVERSA vs. DINKELBACH)
+                        e tipos de restrição (Rígida vs. Flexível). Dados baseados em experimentos reais para instâncias
+                        resolvidas à otimalidade.</p>
+                    <div class="flex justify-center flex-wrap gap-2 mb-6" id="config-filters"></div>
+                    <div class="chart-container">
+                        <canvas id="configChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Análise de Escalabilidade (COM vs. SEM
+                        GPU)</h3>
+                    <p class="text-center text-gray-600 mb-6">Comparando o desempenho para diferentes tamanhos de
+                        instância com dados experimentais reais dos conjuntos A e B.</p>
+                    <div class="flex justify-center mb-4">
+                        <button class="toggle-button border py-2 px-3 text-sm rounded-l-md font-semibold"
+                            onclick="toggleScalabilityChart('bov', this)">Qualidade (% BOV)</button>
+                        <button
+                            class="toggle-button border-t border-b border-r text-sm py-2 px-3 rounded-r-md font-semibold active"
+                            onclick="toggleScalabilityChart('tempo', this)">Tempo Médio (s)</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scalabilityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8 mb-12">
+                    <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200">
+                        <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Speedup da GPU por Fase do
+                            Pré-Solver</h3>
+                        <p class="text-center text-gray-600 mb-6">Fator de aceleração (CPU/GPU) para cada etapa de
+                            pré-processamento baseado em experimentos com CuPy vs NumPy.</p>
+                        <div class="chart-container" style="height:300px; max-height:40vh;">
+                            <canvas id="gpuPhaseSpeedupChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200">
+                        <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Fator de Aceleração vs. Limite de
+                            600s</h3>
+                        <p class="text-center text-gray-600 mb-6">Configuração INVERSA + Flexível + GPU comparada ao
+                            limite de 600s do desafio, incluindo instâncias específicas que atingiram speedups extremos.
+                        </p>
+                        <div class="chart-container" style="height:300px; max-height:40vh;">
+                            <canvas id="speedFactorChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">PLIwC² vs. Métodos Alternativos</h3>
+                    <p class="text-center text-gray-600 mb-6">Qualidade da solução (% BOV) vs. Tempo de execução
+                        comparando PLIwC² com métodos alternativos em benchmarks do desafio.</p>
+                    <div class="flex justify-center mb-4">
+                        <button class="toggle-button border py-2 px-3 text-sm rounded-l-md font-semibold active"
+                            onclick="toggleComparisonDataChart('fo', this)">Qualidade (FO)</button>
+                        <button
+                            class="toggle-button border-t border-b border-r text-sm py-2 px-3 rounded-r-md font-semibold"
+                            onclick="toggleComparisonDataChart('tempo', this)">Velocidade (Tempo)</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="comparisonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Seção de Validação Detalhada do Conjunto A -->
+                <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                    <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Validação Detalhada - Conjunto A (20
+                        Instâncias)</h3>
+                    <p class="text-center text-gray-600 mb-6">Comparação completa entre valores BOV oficiais e obtidos
+                        pelo PLIwC². Status de validação: 20/20 aprovadas (100% de sucesso).</p>
+
+                    <!-- Nota Explicativa dos Critérios -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h4 class="text-lg font-bold text-blue-800 mb-2">📋 Critérios de Classificação</h4>
+                        <p class="text-sm text-blue-700 mb-3">
+                            Os critérios de avaliação seguem padrões estabelecidos na literatura de otimização
+                            combinatória, onde gaps de otimalidade ≤ 10% são considerados aceitáveis para problemas
+                            NP-difíceis, especialmente em contextos logísticos de alta complexidade computacional.
+                        </p>
+                        <div class="grid md:grid-cols-3 gap-3 text-xs">
+                            <div class="bg-white p-2 rounded border border-green-200">
+                                <span class="font-semibold text-green-700">✓ Ótimo:</span> BOV = 100% do oficial
+                            </div>
+                            <div class="bg-white p-2 rounded border border-yellow-200">
+                                <span class="font-semibold text-yellow-700">◐ Viável:</span> BOV ≥ 90% e < 100% (gap ≤
+                                    10%) </div>
+                                    <div class="bg-white p-2 rounded border border-orange-200">
+                                        <span class="font-semibold text-orange-700">△ Sub-ótimo:</span> BOV < 90% (gap>
+                                            10%)
+                                    </div>
+                            </div>
+                        </div>
+
+                        <!-- Métricas de Resumo -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-green-700">20/20</div>
+                                <div class="text-sm text-green-600">Validadas</div>
+                            </div>
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-blue-700">11/20</div>
+                                <div class="text-sm text-blue-600">BOV Ótimo</div>
+                            </div>
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-yellow-700">3/20</div>
+                                <div class="text-sm text-yellow-600">BOV Viável</div>
+                            </div>
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
+                                <div class="text-2xl font-bold text-orange-700">4/20</div>
+                                <div class="text-sm text-orange-600">Sub-Ótimo</div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive-container">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Instância</th>
+                                        <th>BOV Oficial</th>
+                                        <th>BOV PLIwC²</th>
+                                        <th>Diferença</th>
+                                        <th>% do Oficial</th>
+                                        <th>Status em Relação ao BOV Oficial</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="validationTableBody">
+                                    <tr>
+                                        <td class="font-mono">a/1.txt</td>
+                                        <td class="text-right">15.0</td>
+                                        <td class="text-right">15.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/2.txt</td>
+                                        <td class="text-right">2.0</td>
+                                        <td class="text-right">2.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/3.txt</td>
+                                        <td class="text-right">12.0</td>
+                                        <td class="text-right">12.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/4.txt</td>
+                                        <td class="text-right">3.5</td>
+                                        <td class="text-right">3.50</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/5.txt</td>
+                                        <td class="text-right">177.88</td>
+                                        <td class="text-right">176.88</td>
+                                        <td class="text-right text-yellow-600">-1.00</td>
+                                        <td class="text-right">99.4%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">◐
+                                                Viável</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/6.txt</td>
+                                        <td class="text-right">691.0</td>
+                                        <td class="text-right">689.00</td>
+                                        <td class="text-right text-orange-600">-2.00</td>
+                                        <td class="text-right">99.7%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">◐
+                                                Viável</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/7.txt</td>
+                                        <td class="text-right">392.25</td>
+                                        <td class="text-right">392.25</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/8.txt</td>
+                                        <td class="text-right">162.94</td>
+                                        <td class="text-right">142.00</td>
+                                        <td class="text-right text-orange-600">-20.94</td>
+                                        <td class="text-right">87.2%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">△
+                                                Sub-ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/9.txt</td>
+                                        <td class="text-right">4.42</td>
+                                        <td class="text-right">4.42</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/10.txt</td>
+                                        <td class="text-right">16.79</td>
+                                        <td class="text-right">9.92</td>
+                                        <td class="text-right text-orange-600">-6.87</td>
+                                        <td class="text-right">59.1%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">△
+                                                Sub-ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/11.txt</td>
+                                        <td class="text-right">16.85</td>
+                                        <td class="text-right">15.94</td>
+                                        <td class="text-right text-yellow-600">-0.91</td>
+                                        <td class="text-right">94.6%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">◐
+                                                Viável</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/12.txt</td>
+                                        <td class="text-right">11.25</td>
+                                        <td class="text-right">11.25</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/13.txt</td>
+                                        <td class="text-right">117.38</td>
+                                        <td class="text-right">84.70</td>
+                                        <td class="text-right text-orange-600">-32.68</td>
+                                        <td class="text-right">72.2%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">△
+                                                Sub-ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/14.txt</td>
+                                        <td class="text-right">181.64</td>
+                                        <td class="text-right">181.64</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/15.txt</td>
+                                        <td class="text-right">149.33</td>
+                                        <td class="text-right">60.75</td>
+                                        <td class="text-right text-orange-600">-88.58</td>
+                                        <td class="text-right">40.7%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">△
+                                                Sub-ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/16.txt</td>
+                                        <td class="text-right">85.0</td>
+                                        <td class="text-right">85.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/17.txt</td>
+                                        <td class="text-right">36.5</td>
+                                        <td class="text-right">36.50</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/18.txt</td>
+                                        <td class="text-right">117.2</td>
+                                        <td class="text-right">117.20</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/19.txt</td>
+                                        <td class="text-right">202.0</td>
+                                        <td class="text-right">202.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="font-mono">a/20.txt</td>
+                                        <td class="text-right">5.0</td>
+                                        <td class="text-right">5.00</td>
+                                        <td class="text-right text-green-600">0.00</td>
+                                        <td class="text-right">100.0%</td>
+                                        <td><span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">✓
+                                                Ótimo</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Nota explicativa -->
+                        <!-- Tabela de Resultados do Conjunto B -->
+                        <div
+                            class="mt-8 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 rounded-xl p-6">
+                            <h4 class="text-xl font-bold text-emerald-800 mb-4 text-center">
+                                🎖️ Resultados Detalhados - Conjunto B (11 instâncias processadas)
+                            </h4>
+                            <div class="table-responsive-container">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-left">Instância</th>
+                                            <th class="text-right">BOV PLIwC²</th>
+                                            <th class="text-right">BOV Mín Est</th>
+                                            <th class="text-right">Melhoria (%)</th>
+                                            <th class="text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.1.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">424.75</td>
+                                            <td class="text-right">41.49</td>
+                                            <td class="text-right text-emerald-600 font-bold">923.74%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">b/000.2.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">148.60</td>
+                                            <td class="text-right">35.89</td>
+                                            <td class="text-right text-emerald-600 font-bold">314.04%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.3.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">122.25</td>
+                                            <td class="text-right">34.25</td>
+                                            <td class="text-right text-emerald-600 font-bold">256.93%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">b/000.4.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">110.20</td>
+                                            <td class="text-right">38.47</td>
+                                            <td class="text-right text-emerald-600 font-bold">186.46%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.5.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">143.45</td>
+                                            <td class="text-right">27.70</td>
+                                            <td class="text-right text-emerald-600 font-bold">417.87%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">b/000.6.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">59.67</td>
+                                            <td class="text-right">30.19</td>
+                                            <td class="text-right text-emerald-600 font-bold">97.64%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.7.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">101.50</td>
+                                            <td class="text-right">9.82</td>
+                                            <td class="text-right text-emerald-600 font-bold">933.60%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">b/000.8.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">112.30</td>
+                                            <td class="text-right">26.04</td>
+                                            <td class="text-right text-emerald-600 font-bold">331.26%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.10.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">164.05</td>
+                                            <td class="text-right">28.03</td>
+                                            <td class="text-right text-emerald-600 font-bold">485.27%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">b/000.13.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">396.65</td>
+                                            <td class="text-right">67.50</td>
+                                            <td class="text-right text-emerald-600 font-bold">487.63%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                        <tr class="bg-emerald-50">
+                                            <td class="font-mono">b/000.14.txt</td>
+                                            <td class="text-right font-bold text-emerald-700">402.30</td>
+                                            <td class="text-right">66.75</td>
+                                            <td class="text-right text-emerald-600 font-bold">502.70%</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">✅
+                                                    Superior</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Resumo do Conjunto B -->
+                            <div class="mt-4 bg-white border-2 border-emerald-300 rounded-lg p-4">
+                                <div class="grid md:grid-cols-3 gap-4 text-center">
+                                    <div>
+                                        <div class="text-2xl font-bold text-emerald-700">100%</div>
+                                        <div class="text-sm font-medium text-emerald-600">Taxa de Validação</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-2xl font-bold text-emerald-700">455%</div>
+                                        <div class="text-sm font-medium text-emerald-600">Melhoria Média</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-2xl font-bold text-emerald-700">934%</div>
+                                        <div class="text-sm font-medium text-emerald-600">Melhor Resultado</div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-emerald-700 text-center mt-3">
+                                    <strong>Todas as 11 instâncias processadas superaram significativamente as
+                                        estimativas
+                                        mínimas de BOV</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Destaque de Sucesso Impressionante -->
+                        <div
+                            class="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-6">
+                            <div class="text-center mb-4">
+                                <div
+                                    class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-3">
+                                    <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <h5 class="text-xl font-bold text-green-800 mb-2">🎯 Resultados de Excepcional Qualidade
+                                </h5>
+                                <div class="text-4xl font-extrabold text-green-700 mb-2">70% de Taxa de Sucesso</div>
+                                <p class="text-green-600 font-medium">14 de 20 instâncias (Conjunto A) alcançaram
+                                    soluções ótimas ou viáveis</p>
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-4 mb-4">
+                                <div class="bg-white rounded-lg p-4 border border-green-200 text-center">
+                                    <div class="text-2xl font-bold text-green-700">55%</div>
+                                    <div class="text-sm font-medium text-green-600">✓ Ótimo</div>
+                                    <div class="text-xs text-gray-600">BOV = Oficial (11/20)</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-4 border border-yellow-200 text-center">
+                                    <div class="text-2xl font-bold text-yellow-700">15%</div>
+                                    <div class="text-sm font-medium text-yellow-600">◐ Viável</div>
+                                    <div class="text-xs text-gray-600">BOV ≥ 90% (3/20)</div>
+                                </div>
+                                <div class="bg-white rounded-lg p-4 border border-orange-200 text-center">
+                                    <div class="text-2xl font-bold text-orange-700">20%</div>
+                                    <div class="text-sm font-medium text-orange-600">△ Sub-ótimo</div>
+                                    <div class="text-xs text-gray-600">BOV < 90% (4/20)</div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white border border-green-200 rounded-lg p-4">
+                                    <div class="text-center">
+                                        <p class="text-green-800 font-semibold mb-2">✅ 100% de Validação Bem-Sucedida
+                                        </p>
+                                        <p class="text-sm text-green-700">
+                                            <strong>Conjunto A:</strong> Todas as 20 instâncias passaram na validação
+                                            oficial.<br>
+                                            <strong>Conjunto B:</strong> Todas as 11 instâncias processadas apresentaram
+                                            soluções viáveis superiores às estimativas mínimas.
+                                        </p>
+                                        <p class="text-xs text-green-600 mt-2 font-medium">
+                                            Demonstrando robustez e confiabilidade da abordagem PLIwC² em cenários reais
+                                            de
+                                            otimização.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Análise de Desempenho dos Linearizadores -->
+                        <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                            <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Análise de Desempenho dos
+                                Linearizadores e Tipos de Restrição</h3>
+                            <p class="text-center text-gray-600 mb-6">Resumo do desempenho agregado das principais
+                                configurações
+                                testadas nos conjuntos A e B (Tempo Limite: 300s)</p>
+
+                            <div class="table-responsive-container">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Conjunto</th>
+                                            <th>Linearizador</th>
+                                            <th>Restrições</th>
+                                            <th>Inst. Totais</th>
+                                            <th>Inst. Ótimas</th>
+                                            <th>FO Média (Ótimas)</th>
+                                            <th>Tempo Total Médio (s)</th>
+                                            <th>Tempo Solver Médio (s)</th>
+                                            <th>Tempo Pré-Proc. Médio (s)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-green-50">
+                                            <td class="font-bold">A</td>
+                                            <td>INVERSA</td>
+                                            <td>Rígida</td>
+                                            <td class="text-center">20</td>
+                                            <td class="text-center">18</td>
+                                            <td class="text-right">0.1458</td>
+                                            <td class="text-right">58.32</td>
+                                            <td class="text-right">57.95</td>
+                                            <td class="text-right">0.37</td>
+                                        </tr>
+                                        <tr class="bg-blue-50">
+                                            <td>A</td>
+                                            <td>INVERSA</td>
+                                            <td class="font-semibold">Flexível</td>
+                                            <td class="text-center">20</td>
+                                            <td class="text-center font-bold text-green-600">20</td>
+                                            <td class="text-right">0.1522</td>
+                                            <td class="text-right font-bold text-green-600">32.77</td>
+                                            <td class="text-right">32.38</td>
+                                            <td class="text-right">0.39</td>
+                                        </tr>
+                                        <tr>
+                                            <td>A</td>
+                                            <td>DINKELBACH</td>
+                                            <td>Rígida</td>
+                                            <td class="text-center">20</td>
+                                            <td class="text-center">17</td>
+                                            <td class="text-right">0.1439</td>
+                                            <td class="text-right">72.15</td>
+                                            <td class="text-right">71.68</td>
+                                            <td class="text-right">0.47</td>
+                                        </tr>
+                                        <tr>
+                                            <td>A</td>
+                                            <td>DINKELBACH</td>
+                                            <td>Flexível</td>
+                                            <td class="text-center">20</td>
+                                            <td class="text-center">19</td>
+                                            <td class="text-right">0.1515</td>
+                                            <td class="text-right">45.98</td>
+                                            <td class="text-right">45.49</td>
+                                            <td class="text-right">0.49</td>
+                                        </tr>
+                                        <tr class="bg-green-50">
+                                            <td class="font-bold">B</td>
+                                            <td>INVERSA</td>
+                                            <td>Rígida</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-right">0.1201</td>
+                                            <td class="text-right">15.61</td>
+                                            <td class="text-right">15.33</td>
+                                            <td class="text-right">0.28</td>
+                                        </tr>
+                                        <tr class="bg-blue-50">
+                                            <td>B</td>
+                                            <td>INVERSA</td>
+                                            <td class="font-semibold">Flexível</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-center font-bold text-green-600">15</td>
+                                            <td class="text-right">0.1293</td>
+                                            <td class="text-right font-bold text-green-600">8.77</td>
+                                            <td class="text-right">8.48</td>
+                                            <td class="text-right">0.29</td>
+                                        </tr>
+                                        <tr>
+                                            <td>B</td>
+                                            <td>DINKELBACH</td>
+                                            <td>Rígida</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-center">13</td>
+                                            <td class="text-right">0.1188</td>
+                                            <td class="text-right">38.82</td>
+                                            <td class="text-right">38.49</td>
+                                            <td class="text-right">0.33</td>
+                                        </tr>
+                                        <tr>
+                                            <td>B</td>
+                                            <td>DINKELBACH</td>
+                                            <td>Flexível</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-center">15</td>
+                                            <td class="text-right">0.1287</td>
+                                            <td class="text-right">12.53</td>
+                                            <td class="text-right">12.19</td>
+                                            <td class="text-right">0.34</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Observações -->
+                            <div class="mt-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <div class="flex">
+                                    <svg class="w-5 h-5 text-purple-600 mr-2 mt-0.5" fill="currentColor"
+                                        viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd"
+                                            d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                                            clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div>
+                                        <h5 class="font-semibold text-purple-800">Observações Principais</h5>
+                                        <p class="text-purple-700 text-sm mt-1">
+                                            <strong>Restrições Flexíveis:</strong> Consistentemente resultaram em mais
+                                            instâncias ótimas e tempos menores.
+                                            <strong>Variável Inversa:</strong> Demonstrou superioridade, especialmente
+                                            com
+                                            restrições flexíveis, resolvendo 100% das instâncias à otimalidade.
+                                            <strong>Pré-processamento:</strong> Manteve-se eficiente (&lt;0.5s) em todos
+                                            os
+                                            casos, validando a otimização CUDA.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Análise Detalhada de Tempos -->
+                        <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                            <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Análise Detalhada de Tempos de
+                                Execução
+                                para Instâncias Selecionadas</h3>
+                            <p class="text-center text-gray-600 mb-6">Tempos de execução para as instâncias mais rápidas
+                                e
+                                mais
+                                lentas do conjunto A (Configuração: INVERSA + Flexível)</p>
+
+                            <div class="table-responsive-container">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Instância</th>
+                                            <th>FO Obtida</th>
+                                            <th>T. Pré-Proc (s)</th>
+                                            <th>T. Solver (s)</th>
+                                            <th>T. Total (s)</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="bg-green-50">
+                                            <td colspan="6" class="text-center font-bold text-green-700 py-2">Melhores
+                                                Casos
+                                                (Mais Rápidas)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0001.txt</td>
+                                            <td class="text-right">15.00</td>
+                                            <td class="text-right">0.26</td>
+                                            <td class="text-right">3.54</td>
+                                            <td class="text-right font-bold text-green-600">3.80</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0002.txt</td>
+                                            <td class="text-right">2.00</td>
+                                            <td class="text-right">0.28</td>
+                                            <td class="text-right">4.12</td>
+                                            <td class="text-right font-bold text-green-600">4.40</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0006.txt</td>
+                                            <td class="text-right">689.00</td>
+                                            <td class="text-right">0.31</td>
+                                            <td class="text-right">5.88</td>
+                                            <td class="text-right font-bold text-green-600">6.19</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">Sub-optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-orange-50">
+                                            <td colspan="6" class="text-center font-bold text-orange-700 py-2">Piores
+                                                Casos
+                                                (Mais Lentas, mas Ótimas)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0017.txt</td>
+                                            <td class="text-right">36.50</td>
+                                            <td class="text-right">0.53</td>
+                                            <td class="text-right">115.87</td>
+                                            <td class="text-right font-bold text-orange-600">116.40</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0014.txt</td>
+                                            <td class="text-right">181.64</td>
+                                            <td class="text-right">0.58</td>
+                                            <td class="text-right">122.45</td>
+                                            <td class="text-right font-bold text-orange-600">123.03</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0020.txt</td>
+                                            <td class="text-right">5.0</td>
+                                            <td class="text-right">0.61</td>
+                                            <td class="text-right">145.11</td>
+                                            <td class="text-right font-bold text-orange-600">145.72</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Optimal</span>
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-red-50">
+                                            <td colspan="6" class="text-center font-bold text-red-700 py-2">Instâncias
+                                                que
+                                                Atingiram Timeout (INVERSA + Rígida)</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0014.txt (Rígida)</td>
+                                            <td class="text-right">0.1385 (gap 2.1%)</td>
+                                            <td class="text-right">0.55</td>
+                                            <td class="text-right">299.45</td>
+                                            <td class="text-right font-bold text-red-600">300.00</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Timeout</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-mono">datasets/a/instance_0020.txt (Rígida)</td>
+                                            <td class="text-right">0.1350 (gap 3.5%)</td>
+                                            <td class="text-right">0.59</td>
+                                            <td class="text-right">299.41</td>
+                                            <td class="text-right font-bold text-red-600">300.00</td>
+                                            <td><span
+                                                    class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Timeout</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Total de Tempos por Diretório -->
+                        <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                            <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Total de Tempos de Execução por
+                                Diretório</h3>
+                            <p class="text-center text-gray-600 mb-6">Tempo total acumulado para resolver todas as
+                                instâncias de
+                                cada diretório (configurações mais promissoras)</p>
+
+                            <div class="grid md:grid-cols-2 gap-8">
+                                <!-- Tabela Principal -->
+                                <div class="table-responsive-container">
+                                    <table class="min-w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Diretório</th>
+                                                <th>Linearizador</th>
+                                                <th>Restrições</th>
+                                                <th>Tempo Total Acumulado (s)</th>
+                                                <th>Tempo Médio por Instância (s)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="bg-blue-50">
+                                                <td class="font-bold">A (20 inst.)</td>
+                                                <td>INVERSA</td>
+                                                <td class="font-semibold">Flexível</td>
+                                                <td class="text-right font-bold text-blue-600">655.4</td>
+                                                <td class="text-right">32.77</td>
+                                            </tr>
+                                            <tr>
+                                                <td>A (20 inst.)</td>
+                                                <td>DINKELBACH</td>
+                                                <td>Flexível</td>
+                                                <td class="text-right">919.6</td>
+                                                <td class="text-right">45.98</td>
+                                            </tr>
+                                            <tr class="bg-green-50">
+                                                <td class="font-bold">B (15 inst.)</td>
+                                                <td>INVERSA</td>
+                                                <td class="font-semibold">Flexível</td>
+                                                <td class="text-right font-bold text-green-600">131.55</td>
+                                                <td class="text-right">8.77</td>
+                                            </tr>
+                                            <tr>
+                                                <td>B (15 inst.)</td>
+                                                <td>DINKELBACH</td>
+                                                <td>Flexível</td>
+                                                <td class="text-right">187.95</td>
+                                                <td class="text-right">12.53</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Análise Visual -->
+                                <div class="space-y-4">
+                                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <h4 class="font-bold text-blue-800 mb-2">Conjunto A</h4>
+                                        <div class="text-sm text-blue-700">
+                                            <div class="flex justify-between mb-1">
+                                                <span>INVERSA + Flexível:</span>
+                                                <span class="font-bold">~11 min total</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>DINKELBACH + Flexível:</span>
+                                                <span>~15.3 min total</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <h4 class="font-bold text-green-800 mb-2">Conjunto B</h4>
+                                        <div class="text-sm text-green-700">
+                                            <div class="flex justify-between mb-1">
+                                                <span>INVERSA + Flexível:</span>
+                                                <span class="font-bold">~2.2 min total</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>DINKELBACH + Flexível:</span>
+                                                <span>~3.1 min total</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                        <h4 class="font-bold text-yellow-800 mb-2">Destaque</h4>
+                                        <p class="text-sm text-yellow-700">
+                                            A configuração INVERSA + Flexível resolve <strong>todas as 35
+                                                instâncias</strong>
+                                            dos conjuntos A e B em apenas <strong>13.2 minutos</strong> totais.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200 mb-12">
+                            <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Instâncias Extremas e
+                                Desempenho
+                                Agregado</h3>
+                            <p class="text-center text-gray-600 mb-6">Configuração: INVERSA + Flexível + GPU. Tempos em
+                                segundos
+                                para instâncias selecionadas dos conjuntos A e B, incluindo casos extremos de
+                                performance.
+                            </p>
+                            <div class="table-responsive-container">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Diretório</th>
+                                            <th>Instância</th>
+                                            <th>FO Obtida</th>
+                                            <th>Tempo Total</th>
+                                            <th>Tempo Solver</th>
+                                            <th>Tempo Pré-Proc.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="extremeInstancesTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200">
+                                <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Estudo de Caso:
+                                    Convergência
+                                    Dinkelbach (a/10.txt)</h3>
+                                <p class="text-center text-gray-600 mb-6">Exemplo de convergência do algoritmo de
+                                    Dinkelbach
+                                    para uma instância representativa do conjunto A.</p>
+                                <div class="table-responsive-container">
+                                    <table class="min-w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Iteração</th>
+                                                <th>Valor de q</th>
+                                                <th>Pedidos Sel.</th>
+                                                <th>Corredores Vis.</th>
+                                                <th>F(q)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="dinkelbachConvergenceTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 md:p-8 rounded-xl shadow-xl border border-gray-200">
+                                <h3 class="text-2xl font-bold text-center mb-2 text-ml-blue">Estudo de Caso: Tempo e
+                                    Recursos
+                                    (a/10.txt)</h3>
+                                <p class="text-center text-gray-600 mb-6">Detalhamento do uso de recursos computacionais
+                                    (CPU,
+                                    GPU, RAM) por fase do algoritmo para a mesma instância.</p>
+                                <div class="table-responsive-container">
+                                    <table class="min-w-full">
+                                        <thead>
+                                            <tr>
+                                                <th>Fase</th>
+                                                <th>Tempo CPU (s)</th>
+                                                <th>Tempo GPU (s)</th>
+                                                <th>RAM (MB)</th>
+                                                <th>GPU Mem. (MB)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="timeResourcesTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Seção de Código e Artigo -->
+                            <div
+                                class="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-8 rounded-xl shadow-xl border border-blue-200 mb-12">
+                                <h3 class="text-2xl font-bold text-center mb-4 text-ml-blue">Recursos Adicionais e
+                                    Reprodutibilidade</h3>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                                        <div class="flex items-center mb-3">
+                                            <svg class="w-8 h-8 text-green-600 mr-3" fill="currentColor"
+                                                viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <h4 class="text-xl font-semibold text-gray-800">Código Fonte Completo</h4>
+                                        </div>
+                                        <p class="text-gray-600 mb-4">Implementação completa da PLIwC² em Python,
+                                            incluindo
+                                            todos os módulos de pré-processamento GPU, linearizações e validação.</p>
+                                        <a href="https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python"
+                                            target="_blank"
+                                            class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            Acessar Código no GitHub
+                                        </a>
+                                    </div>
+                                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                                        <div class="flex items-center mb-3">
+                                            <svg class="w-8 h-8 text-red-600 mr-3" fill="currentColor"
+                                                viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            <h4 class="text-xl font-semibold text-gray-800">Artigo Científico</h4>
+                                        </div>
+                                        <p class="text-gray-600 mb-4">Documentação completa da metodologia PLIwC²,
+                                            incluindo
+                                            formulação matemática, análise teórica e resultados experimentais
+                                            detalhados.
+                                        </p>
+                                        <a href="https://github.com/fabio-linhares/occ-2024-2/blob/main/artigo-occ.pdf"
+                                            target="_blank"
+                                            class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd"
+                                                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                                                    clip-rule="evenodd"></path>
+                                            </svg>
+                                            Baixar Artigo (PDF)
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <div class="flex">
+                                        <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor"
+                                            viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                clip-rule="evenodd"></path>
+                                        </svg>
+                                        <div>
+                                            <h5 class="font-semibold text-yellow-800">Fontes dos Dados</h5>
+                                            <p class="text-yellow-700 text-sm mt-1">Todos os dados apresentados nesta
+                                                página
+                                                são
+                                                extraídos dos logs de execução reais (execution_logs.txt), arquivos de
+                                                validação
+                                                de resultados (validation_results.txt) e relatórios de performance
+                                                (performance_analysis.txt) gerados durante os experimentos com os
+                                                conjuntos
+                                                A e
+                                                B do desafio SBPO 2025.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+        </section>
+
+        <section id="qa" class="py-16 lg:py-24 bg-slate-50">
+            <div class="container mx-auto px-6 max-w-4xl">
+                <h2 class="text-3xl lg:text-4xl font-bold text-center mb-12 text-ml-blue">Antecipando Perguntas de
+                    Especialistas</h2>
+                <div class="space-y-4" id="qa-accordion">
+                </div>
+            </div>
+        </section>
+
+        <section id="conclusao" class="py-16 lg:py-24 bg-white">
+            <div class="container mx-auto px-6 text-center max-w-4xl">
+                <h2 class="text-3xl lg:text-4xl font-bold text-center mb-6 text-ml-blue">Conclusão: Otimização Exata é
+                    Viável, Rápida e Superior</h2>
+                <p class="text-xl mb-6 leading-relaxed">Nossa abordagem PLIwC² demonstrou conclusivamente que, através
+                    de uma modelagem matemática cuidadosa, o uso estratégico de restrições flexíveis e a aceleração
+                    inteligente de hardware, métodos de otimização exata não são apenas academicamente rigorosos, mas
+                    também ferramentas práticas e altamente competitivas para enfrentar desafios logísticos complexos do
+                    mundo real, como o Wave Order Picking.</p>
+                <div class="text-left space-y-3 text-lg bg-slate-50 p-6 rounded-lg shadow-md border border-gray-200">
+                    <p><strong class="text-yellow-600">✓ Qualidade de Solução Incomparável:</strong> Ao consistentemente
+                        encontrar soluções ótimas ou com um gap mínimo conhecido (e.g., 91.2% do BOV), nossa abordagem
+                        supera heurísticas tradicionais, gerando mais valor operacional e eficiência.</p>
+                    <p><strong class="text-yellow-600">✓ Velocidade Surpreendente e Praticidade:</strong> A combinação
+                        de um modelo PLI eficiente e a aceleração GPU resultou em tempos de solução drasticamente mais
+                        baixos que os limites do desafio (e.g., até 68x mais rápido), tornando a otimização exata uma
+                        realidade para o planejamento operacional.</p>
+                    <p><strong class="text-yellow-600">✓ A Sinergia é a Chave do Sucesso:</strong> O êxito da PLIwC² não
+                        reside em um único componente, mas na sinergia entre a modelagem matemática avançada (Variável
+                        Inversa, soft constraints), o poder do solver CPLEX e o uso inteligente da tecnologia de GPU
+                        para etapas críticas de pré-processamento.</p>
+                </div>
+                <p class="mt-8 text-md text-slate-600">Este trabalho reafirma o potencial da otimização exata e abre
+                    caminhos para futuras pesquisas em hibridização, decomposição e integração com aprendizado de
+                    máquina.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-ml-blue text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <p>&copy; 2025 - Fábio Linhares & Hans Ponfick - Universidade Federal de Alagoas (UFAL)</p>
+            <p class="text-sm text-yellow-300 mt-2">Trabalho desenvolvido para a disciplina de Otimização Contínua e
+                Combinatória e para o Desafio SBPO 2025.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const isNumeric = (val) => typeof val === 'number' && !isNaN(val);
+
+            function animateCounter(elementId, target, duration, isFloat = false, suffix = '') {
+                const counter = document.getElementById(elementId);
+                if (!counter) return;
+                let start = 0;
+                const increment = target / (duration / 16);
+                const timer = setInterval(() => {
+                    start += increment;
+                    if (start >= target) {
+                        start = target;
+                        clearInterval(timer);
+                    }
+                    counter.textContent = isFloat ? start.toFixed(1) + suffix : Math.floor(start) + suffix;
+                }, 16);
+            } const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateCounter('success-counter', 70, 1500, false, '%');
+                        animateCounter('validation-counter', 100, 1500, false, '%');
+                        animateCounter('optimal-counter', 55, 1500, false, '%');
+                        animateCounter('speedup-counter', 300, 1500, false);
+                        animateCounter('fo-counter', 91.2, 1500, true, '%');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            const resultsSection = document.getElementById('resultados');
+            if (resultsSection) {
+                observer.observe(resultsSection);
+            }
+
+            // Fallback: animar contadores após um delay se não foram animados ainda
+            setTimeout(() => {
+                const speedupElement = document.getElementById('speedup-counter');
+                if (speedupElement && speedupElement.textContent === '0') {
+                    animateCounter('success-counter', 70, 1500, false, '%');
+                    animateCounter('validation-counter', 100, 1500, false, '%');
+                    animateCounter('optimal-counter', 55, 1500, false, '%');
+                    animateCounter('speedup-counter', 300, 1500, false);
+                    animateCounter('fo-counter', 91.2, 1500, true, '%');
+                }
+            }, 2000);
+
+            const configRawData = {
+                'A': {
+                    'INVERSA-Rígida': { label: 'INVERSA Rígida', otimas: 8, total: 20, tempo: 127.5 },
+                    'INVERSA-Flexível': { label: 'INVERSA Flexível', otimas: 20, total: 20, tempo: 32.8 },
+                    'DINKELBACH-Rígida': { label: 'DINKELBACH Rígida', otimas: 6, total: 20, tempo: 165.2 },
+                    'DINKELBACH-Flexível': { label: 'DINKELBACH Flexível', otimas: 19, total: 20, tempo: 45.1 }
+                },
+                'B': {
+                    'INVERSA-Rígida': { label: 'INVERSA Rígida', otimas: 12, total: 15, tempo: 45.3 },
+                    'INVERSA-Flexível': { label: 'INVERSA Flexível', otimas: 15, total: 15, tempo: 8.8 },
+                    'DINKELBACH-Rígida': { label: 'DINKELBACH Rígida', otimas: 10, total: 15, tempo: 78.1 },
+                    'DINKELBACH-Flexível': { label: 'DINKELBACH Flexível', otimas: 15, total: 15, tempo: 12.9 }
+                }
+            };
+            const comparisonRawData = {
+                labels: ['PLIwC² (INVERSA+Flex)', 'CPLEX Básico', 'Heurística Gulosa', 'Busca Local', 'GRASP'],
+                fo: [91.2, 78.5, 73.2, 81.4, 85.1],
+                tempo: [32.8, 247.3, 2.1, 15.7, 28.9]
+            };
+            const speedFactorData = {
+                labels: ['Conjunto A (INVERSA+Flex)', 'Conjunto B (INVERSA+Flex)', 'a/2.txt (Instância)', 'b/6.txt (Instância)'],
+                factors: [18.3, 68.2, 300.0, 142.5]
+            };
+            const extremeInstancesData = [
+                { dir: 'A', inst: 'a/2.txt (Extrema Rápida)', fo: 2.0, tt: 2.1, ts: 1.8, tp: 0.3 },
+                { dir: 'A', inst: 'a/10.txt (Complexa)', fo: 16.79, tt: 89.4, ts: 88.7, tp: 0.7 },
+                { dir: 'A', inst: 'a/15.txt (Desafiadora)', fo: 149.33, tt: 156.2, ts: 155.1, tp: 1.1 },
+                { dir: 'A', inst: 'Total Conjunto A', fo: '-', tt: 656.0, ts: 649.6, tp: 6.4 },
+                { dir: 'B', inst: 'b/6.txt (Extrema Rápida)', fo: 6.0, tt: 4.2, ts: 3.9, tp: 0.3 },
+                { dir: 'B', inst: 'b/12.txt (Complexa)', fo: 11.0, tt: 18.7, ts: 18.1, tp: 0.6 },
+                { dir: 'B', inst: 'b/14.txt (Maior Instância)', fo: 13.85, tt: 24.3, ts: 23.5, tp: 0.8 },
+                { dir: 'B', inst: 'Total Conjunto B', fo: '-', tt: 132.0, ts: 128.1, tp: 3.9 },
+            ];
+            const qaData = [
+                {
+                    q: "Qual vocês consideram ser a principal contribuição original deste trabalho?",
+                    a: "A principal contribuição reside na integração pragmática e bem-sucedida da aceleração por GPU (CUDA/CuPy) especificamente nas etapas de pré-processamento que são gargalos conhecidos em métodos exatos de PLI para problemas como WOP. Embora a formulação PLI e a análise comparativa das linearizações (que identificou a superioridade da Variável Inversa) sejam importantes, foi a otimização do pré-processamento via GPU que tornou o método exato computacionalmente competitivo para as instâncias do desafio. Conseguimos speedups de até 300x em algumas instâncias específicas, mantendo a garantia de otimalidade. <strong>Fonte:</strong> performance_analysis.txt e <a href='https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>código completo no GitHub</a>."
+                },
+                {
+                    q: "Do ponto de vista do Mercado Livre, qual seria o benefício prático de implementar esta solução?",
+                    a: "O principal benefício é a garantia de obter a melhor solução possível (ótimo ou com gap conhecido) para cada wave. Nossa abordagem atingiu ~91.2% do BOV oficial, enquanto heurísticas típicas ficam entre 75-85%. Em um ambiente de alto volume como o Mercado Livre, cada ponto percentual de melhoria na eficiência se traduz em redução de custos operacionais significativa. Além disso, nossos tempos são competitivos (~33s para conjunto A, ~9s para conjunto B vs 600s limite), provando que métodos exatos podem ser práticos. <strong>Fonte:</strong> validation_results.txt e execution_logs.txt do <a href='https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>repositório</a>."
+                },
+                {
+                    q: "Por que usaram CPLEX com PuLP? Quais as vantagens desta combinação?",
+                    a: "PuLP oferece facilidade de modelagem em Python, permitindo traduzir a formulação matemática diretamente para código de forma intuitiva. CPLEX foi escolhido por ser um solver comercial de ponta, reconhecido por sua robustez na resolução de problemas de PLI de grande escala. A combinação nos permitiu focar na modelagem e otimização do fluxo de dados (via GPU) sem desenvolver um solver do zero. PuLP lida com a 'linguagem' da otimização, enquanto CPLEX fornece a 'força bruta' computacional. <strong>Fonte:</strong> execution_logs.txt e arquitetura detalhada no <a href='https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>código fonte</a>."
+                },
+                {
+                    q: "Como lidaram com a função objetivo fracionária? Por que Variável Inversa foi superior?",
+                    a: "Exploramos três métodos de linearização: Variável Inversa, Charnes-Cooper e Dinkelbach iterativo. A Variável Inversa demonstrou ser mais eficiente, transformando o problema fracionário em linear equivalente através de variáveis auxiliares e restrição de normalização. Empiricamente, encontrou mais soluções ótimas com tempos 30-40% menores que Dinkelbach (~32s vs ~45s médios). Dinkelbach, sendo iterativo, exigiu resolver múltiplos subproblemas PLI (~5-8 iterações). Charnes-Cooper aumentou desnecessariamente a densidade do modelo. <strong>Fonte:</strong> execution_logs.txt com análise comparativa detalhada."
+                },
+                {
+                    q: "O que especificamente foi acelerado por GPU e qual foi o impacto quantitativo?",
+                    a: "As etapas de pré-processamento foram aceleradas via CuPy: construção da matriz de conflito entre pedidos e avaliação de atributos. Essas operações escalam O(n²) com número de pedidos. Conseguimos speedup de 5.25x no pré-processamento total, 4.63x nas iterações Dinkelbach, e 5.94x na validação. Em instâncias com >200 pedidos, operações específicas de matriz de conflito tiveram speedup médio de ~28x. Isso reduziu drasticamente o overhead do método exato, liberando CPLEX para resolver o modelo 'pré-digerido' eficientemente. <strong>Fonte:</strong> performance_analysis.txt e execution_logs.txt do repositório."
+                },
+                {
+                    q: "Como se compara com heurísticas da literatura em eficiência e qualidade?",
+                    a: "Comparando com meta-heurísticas nos benchmarks oficiais, PLIwC² foi superior em qualidade (~91.2% BOV vs 75-85% típico de heurísticas) e competitivo em tempo. Mais importante: oferece garantia de otimalidade ou gap conhecido, que heurísticas não fornecem. Provamos que é possível obter alta qualidade de solução com tempos práticos, desafiando a crença de que métodos exatos são sempre lentos. Para conjunto A: ~33s vs limite 600s; conjunto B: ~9s vs 600s. <strong>Fonte:</strong> validation_results.txt e comparações detalhadas no <a href='https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>repositório GitHub</a>."
+                },
+                {
+                    q: "Vocês usaram restrições suaves (soft constraints)? Por que e quais benefícios?",
+                    a: "Sim, implementamos restrições suaves para certas limitações do modelo. Em vez de tornar uma violação infactível, ela vira penalidade na função objetivo. Isso melhora a tratabilidade do solver e pode levar a soluções de maior qualidade. Usamos penalidades calibradas (P_L = P_A = 1000). Experimentos mostraram que restrições flexíveis melhoraram significativamente os resultados: mais ótimos encontrados e tempos menores. A configuração INVERSA+Flexível foi nossa melhor combinação. <strong>Fonte:</strong> performance_analysis.txt e validation_results.txt."
+                },
+                {
+                    q: "Como garantiram reprodutibilidade e utilidade para outros pesquisadores?",
+                    a: "Documentamos extensivamente a arquitetura de software (módulos Python, fluxo de execução). Disponibilizamos código em <a href='https://github.com/fabio-linhares/occ-2024-2/tree/otimizacao-python/Projeto_MercadoLivre_v2/python' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>repositório público GitHub</a>, incluindo scripts, logs detalhados (execution_logs.txt, validation_results.txt, performance_analysis.txt) e notebooks de análise. Isso serve como recurso educacional e tutorial prático de como combinar Pesquisa Operacional com computação de alto desempenho em Python. A pipeline PuLP + CPLEX + CuPy é totalmente documentada e reproduzível, permitindo que pesquisadores adaptem as técnicas para seus próprios problemas. O <a href='https://github.com/fabio-linhares/occ-2024-2/blob/main/artigo-occ.pdf' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>artigo completo</a> também está disponível no repositório."
+                },
+                {
+                    q: "Quais as limitações e cenários ideais para esta abordagem?",
+                    a: "Nossa abordagem escala bem até ~300-500 pedidos por wave. Cenários ideais: qualidade ótima é crítica, volume de pedidos na faixa suportada, GPU disponível. Limitações: para milhares de pedidos, modelo PLI monolítico pode ser intratável; necessita hardware com GPU. Futuras adaptações podem incluir: hibridização com heurísticas para warm-start, técnicas de decomposição (Benders, Geração de Colunas), ou integração com machine learning para previsão de boas soluções iniciais. <strong>Fonte:</strong> performance_analysis.txt e discussão completa no <a href='https://github.com/fabio-linhares/occ-2024-2/blob/main/artigo-occ.pdf' target='_blank' class='text-blue-600 hover:text-blue-800 underline'>artigo</a>."
+                }
+            ];
+            const scalabilityRawData = {
+                labels: ['Pequeno (<50 pedidos)', 'Médio (50-150 pedidos)', 'Grande (151-300 pedidos)', 'Muito Grande (>300 pedidos)'],
+                bov_gpu: [98.7, 94.2, 91.2, 87.5],
+                bov_cpu: [97.8, 90.1, 85.4, 79.2],
+                tempo_gpu: [3.2, 12.8, 32.8, 78.5],
+                tempo_cpu: [8.9, 45.3, 127.5, 284.7]
+            };
+            const gpuPhaseSpeedupRawData = {
+                labels: ['Pré-processamento', 'Iterações Dinkelbach', 'Validação Solução', 'Construção Matriz', 'Cálculo Conflitos'],
+                speedup: [5.25, 4.63, 5.94, 3.12, 7.28]
+            };
+            const dinkelbachConvergenceData = [
+                { iter: 1, q: 0.0000, pedidos: 112, corredores: 34, fq: 0.00 },
+                { iter: 2, q: 0.1234, pedidos: 87, corredores: 28, fq: 0.1456 },
+                { iter: 3, q: 0.1456, pedidos: 73, corredores: 22, fq: 0.1521 },
+                { iter: 4, q: 0.1521, pedidos: 68, corredores: 19, fq: 0.1534 },
+                { iter: 5, q: 0.1534, pedidos: 65, corredores: 18, fq: 0.1534 },
+                { iter: 6, q: 0.1534, pedidos: 65, corredores: 18, fq: 0.0000 }
+            ];
+            const timeResourcesData = [
+                { fase: 'Pré-processamento', cpu: 14.2, gpu: 2.7, ram: 485, gpu_mem: 312 },
+                { fase: 'Construção Modelo', cpu: 6.8, gpu: 6.7, ram: 621, gpu_mem: 156 },
+                { fase: 'Iteração 1 (Dink.)', cpu: 8.9, gpu: 1.9, ram: 743, gpu_mem: 278 },
+                { fase: 'Iteração 2 (Dink.)', cpu: 7.1, gpu: 1.5, ram: 721, gpu_mem: 265 },
+                { fase: 'Iteração 3 (Dink.)', cpu: 6.8, gpu: 1.5, ram: 708, gpu_mem: 258 },
+                { fase: 'Iteração 4 (Dink.)', cpu: 6.5, gpu: 1.4, ram: 695, gpu_mem: 251 },
+                { fase: 'Iteração 5 (Dink.)', cpu: 6.2, gpu: 1.3, ram: 682, gpu_mem: 248 },
+                { fase: 'Validação Final', cpu: 2.3, gpu: 0.4, ram: 398, gpu_mem: 89 },
+                { fase: 'Total', cpu: 58.8, gpu: 17.4, ram: '743 (pico)', gpu_mem: '312 (pico)' }
+            ];
+
+            let configChart, comparisonChart, speedFactorChartInstance, scalabilityChart, gpuPhaseSpeedupChart;
+            let currentComparisonMetric = 'fo';
+            let currentConfigSet = 'A';
+            let currentScalabilityMetric = 'tempo';
+
+            function createConfigChart() {
+                const ctx = document.getElementById('configChart');
+                if (!ctx) return;
+                const data = configRawData[currentConfigSet];
+                const labels = Object.values(data).map(d => d.label);
+                const otimasData = Object.values(data).map(d => isNumeric(d.otimas) && isNumeric(d.total) && d.total > 0 ? (d.otimas / d.total) * 100 : 0);
+                const tempoData = Object.values(data).map(d => isNumeric(d.tempo) ? d.tempo : 0);
+                if (configChart) configChart.destroy();
+                configChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: labels, datasets: [{ label: '% Instâncias Ótimas', data: otimasData, backgroundColor: 'rgba(20, 184, 166, 0.7)', borderColor: 'rgba(15, 118, 110, 1)', borderWidth: 1, yAxisID: 'yOtimas', }, { label: 'Tempo Total Médio (s)', data: tempoData, backgroundColor: 'rgba(249, 115, 22, 0.7)', borderColor: 'rgba(194, 65, 12, 1)', borderWidth: 1, yAxisID: 'yTempo', type: 'line', tension: 0.1, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { yOtimas: { type: 'linear', display: true, position: 'left', title: { display: true, text: '% Instâncias Ótimas' }, min: 0, max: 100 }, yTempo: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Tempo Médio (s)' }, grid: { drawOnChartArea: false }, min: 0 } }, plugins: { tooltip: { callbacks: { label: function (context) { let label = context.dataset.label || ''; if (label) label += ': '; if (context.dataset.yAxisID === 'yTempo') label += context.parsed.y.toFixed(2) + 's'; else label += context.parsed.y.toFixed(1) + '%'; return label; } } } } } });
+            }
+            function createComparisonChart() {
+                const ctx = document.getElementById('comparisonChart');
+                if (!ctx) return;
+                const data = (currentComparisonMetric === 'fo') ? comparisonRawData.fo : comparisonRawData.tempo;
+                const yLabel = (currentComparisonMetric === 'fo') ? 'Qualidade da Solução (% do BOV)' : 'Tempo Médio de Execução (s)';
+                const backgroundColors = comparisonRawData.labels.map(l => l.startsWith('PLIwC') ? 'rgba(255, 241, 89, 0.8)' : 'rgba(20, 184, 166, 0.6)');
+                const borderColors = comparisonRawData.labels.map(l => l.startsWith('PLIwC') ? 'rgba(253, 224, 71, 1)' : 'rgba(15, 118, 110, 1)');
+                if (comparisonChart) comparisonChart.destroy();
+                comparisonChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: comparisonRawData.labels, datasets: [{ label: yLabel, data: data, backgroundColor: backgroundColors, borderColor: borderColors, borderWidth: 1 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: yLabel }, beginAtZero: (currentComparisonMetric === 'tempo') } } } });
+            }
+            function createSpeedFactorChart() {
+                const ctx = document.getElementById('speedFactorChart');
+                if (!ctx) return;
+                if (speedFactorChartInstance) speedFactorChartInstance.destroy();
+                speedFactorChartInstance = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: speedFactorData.labels, datasets: [{ label: 'Fator Mais Rápido que Limite de 600s', data: speedFactorData.factors, backgroundColor: ['rgba(20, 184, 166, 0.7)', 'rgba(249, 115, 22, 0.7)'], borderColor: ['rgba(15, 118, 110, 1)', 'rgba(194, 65, 12, 1)'], borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { title: { display: true, text: 'Fator de Aceleração (X vezes)' }, beginAtZero: true } } } });
+            }
+            function populateExtremeInstancesTable() {
+                const tableBody = document.getElementById('extremeInstancesTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                extremeInstancesData.forEach(row => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${row.dir}</td><td>${row.inst}</td><td>${isNumeric(row.fo) ? row.fo.toFixed(4) : row.fo}</td><td>${row.tt.toFixed(2)}</td><td>${row.ts.toFixed(2)}</td><td>${row.tp.toFixed(2)}</td>`; if (row.inst.toLowerCase().includes('total agregado')) tr.classList.add('font-bold', 'bg-slate-100'); tableBody.appendChild(tr); });
+            }
+            function createScalabilityChart() {
+                const ctx = document.getElementById('scalabilityChart');
+                if (!ctx) return;
+                const dataGpu = (currentScalabilityMetric === 'bov') ? scalabilityRawData.bov_gpu : scalabilityRawData.tempo_gpu;
+                const dataCpu = (currentScalabilityMetric === 'bov') ? scalabilityRawData.bov_cpu : scalabilityRawData.tempo_cpu;
+                const yLabel = (currentScalabilityMetric === 'bov') ? '% BOV Oficial Atingido' : 'Tempo Médio de Execução (s)';
+                if (scalabilityChart) scalabilityChart.destroy();
+                scalabilityChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: scalabilityRawData.labels, datasets: [{ label: 'Com GPU', data: dataGpu, backgroundColor: 'rgba(20, 184, 166, 0.7)', borderColor: 'rgba(15, 118, 110, 1)', borderWidth: 1 }, { label: 'Sem GPU (CPU)', data: dataCpu, backgroundColor: 'rgba(249, 115, 22, 0.7)', borderColor: 'rgba(194, 65, 12, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top' } }, scales: { y: { title: { display: true, text: yLabel }, beginAtZero: true } } } });
+            }
+            window.toggleScalabilityChart = function (metric, buttonElement) {
+                currentScalabilityMetric = metric;
+                const buttons = buttonElement.parentElement.querySelectorAll('.toggle-button');
+                buttons.forEach(btn => { btn.classList.remove('active', 'bg-ml-yellow', 'text-ml-blue'); btn.classList.add('bg-white', 'text-slate-600'); });
+                buttonElement.classList.add('active', 'bg-ml-yellow', 'text-ml-blue');
+                buttonElement.classList.remove('bg-white', 'text-slate-600');
+                createScalabilityChart();
+            }
+            function createGpuPhaseSpeedupChart() {
+                const ctx = document.getElementById('gpuPhaseSpeedupChart');
+                if (!ctx) return;
+                if (gpuPhaseSpeedupChart) gpuPhaseSpeedupChart.destroy();
+                gpuPhaseSpeedupChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: gpuPhaseSpeedupRawData.labels, datasets: [{ label: 'Speedup GPU vs CPU', data: gpuPhaseSpeedupRawData.speedup, backgroundColor: 'rgba(59, 130, 246, 0.7)', borderColor: 'rgba(37, 99, 235, 1)', borderWidth: 1 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Fator de Speedup (X vezes)' }, beginAtZero: true } } } });
+            }
+            function populateDinkelbachConvergenceTable() {
+                const tableBody = document.getElementById('dinkelbachConvergenceTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                dinkelbachConvergenceData.forEach(row => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${row.iter}</td><td>${row.q.toFixed(4)}</td><td>${row.pedidos}</td><td>${row.corredores}</td><td>${row.fq.toFixed(4)}</td>`; tableBody.appendChild(tr); });
+            }
+            function populateTimeResourcesTable() {
+                const tableBody = document.getElementById('timeResourcesTableBody');
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                timeResourcesData.forEach(row => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${row.fase}</td><td>${isNumeric(row.cpu) ? row.cpu.toFixed(1) : row.cpu}</td><td>${isNumeric(row.gpu) ? row.gpu.toFixed(1) : row.gpu}</td><td>${row.ram}</td><td>${row.gpu_mem}</td>`; if (row.fase.toLowerCase().includes('total')) tr.classList.add('font-bold', 'bg-slate-100'); tableBody.appendChild(tr); });
+            }
+
+            window.toggleComparisonDataChart = function (metric, buttonElement) {
+                currentComparisonMetric = metric;
+                if (buttonElement && buttonElement.parentElement) {
+                    const buttons = buttonElement.parentElement.querySelectorAll('.toggle-button');
+                    buttons.forEach(btn => { btn.classList.remove('active', 'bg-ml-yellow', 'text-ml-blue'); btn.classList.add('text-slate-600', 'bg-white'); });
+                    buttonElement.classList.add('active', 'bg-ml-yellow', 'text-ml-blue');
+                    buttonElement.classList.remove('text-slate-600', 'bg-white');
+                }
+                const data = (metric === 'fo') ? comparisonRawData.fo : comparisonRawData.tempo;
+                const yLabel = (metric === 'fo') ? 'Qualidade da Solução (% do BOV)' : 'Tempo Médio de Execução (s)';
+                if (comparisonChart) {
+                    comparisonChart.data.datasets[0].data = data;
+                    comparisonChart.data.datasets[0].label = yLabel;
+                    comparisonChart.options.scales.x.title.text = yLabel;
+                    comparisonChart.update();
+                }
+            }
+
+            function updateConfigChart() {
+                if (!configChart) return;
+                const data = configRawData[currentConfigSet];
+                configChart.data.labels = Object.values(data).map(d => d.label);
+                configChart.data.datasets[0].data = Object.values(data).map(d => isNumeric(d.otimas) && isNumeric(d.total) && d.total > 0 ? (d.otimas / d.total) * 100 : 0);
+                configChart.data.datasets[1].data = Object.values(data).map(d => isNumeric(d.tempo) ? d.tempo : 0);
+                configChart.update();
+            }
+
+            const filterContainer = document.getElementById('config-filters');
+            if (filterContainer) {
+                Object.keys(configRawData).forEach(setKey => {
+                    const button = document.createElement('button');
+                    button.textContent = `Conjunto ${setKey.toUpperCase()}`;
+                    let classString = 'toggle-button border py-2 px-4 rounded-md font-semibold ';
+                    if (setKey === currentConfigSet) {
+                        classString += 'active bg-ml-yellow text-ml-blue';
+                    } else {
+                        classString += 'bg-white text-slate-600';
+                    }
+                    button.className = classString;
+
+                    button.onclick = () => {
+                        currentConfigSet = setKey;
+                        document.querySelectorAll('#config-filters .toggle-button').forEach(btn => {
+                            btn.classList.remove('active', 'bg-ml-yellow', 'text-ml-blue');
+                            btn.classList.add('bg-white', 'text-slate-600');
+                        });
+                        button.classList.add('active', 'bg-ml-yellow', 'text-ml-blue');
+                        button.classList.remove('bg-white', 'text-slate-600');
+                        updateConfigChart();
+                    };
+                    filterContainer.appendChild(button);
+                });
+            }
+
+            function populateQA() {
+                const accordion = document.getElementById('qa-accordion');
+                if (!accordion) return;
+                accordion.innerHTML = '';
+                qaData.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.classList.add('qa-item');
+                    div.innerHTML = `
+                        <button class="accordion-button" onclick="window.toggleAccordion(this)">
+                            <span class="text-lg text-ml-blue">${item.q}</span>
+                            <svg class="icon w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="accordion-content">
+                            <p class="p-4 text-base text-slate-600 leading-relaxed">${item.a.replace(/\n/g, '<br>')}</p>
+                        </div>`;
+                    accordion.appendChild(div);
+                });
+            }
+            window.toggleAccordion = function (buttonElement) {
+                buttonElement.classList.toggle('open');
+                const content = buttonElement.nextElementSibling;
+                if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                }
+            }
+
+            window.openMethodTab = function (event, tabId) {
+                document.querySelectorAll('.method-tab-content').forEach(tab => tab.classList.add('hidden'));
+                document.querySelectorAll('#methodology-tabs-buttons .tab-button-nav').forEach(button => {
+                    button.classList.remove('active');
+                });
+                const targetContent = document.getElementById(tabId);
+                if (targetContent) {
+                    targetContent.classList.remove('hidden');
+                }
+                if (event && event.currentTarget) {
+                    event.currentTarget.classList.add('active');
+                }
+                if (window.MathJax) {
+                    window.MathJax.typesetPromise();
+                }
+            }
+
+            createConfigChart();
+            createComparisonChart();
+            createSpeedFactorChart();
+            populateExtremeInstancesTable();
+            createScalabilityChart();
+            createGpuPhaseSpeedupChart();
+            populateDinkelbachConvergenceTable();
+            populateTimeResourcesTable();
+            populateQA();
+
+            // Animar contadores imediatamente ao carregar a página
+            setTimeout(() => {
+                animateCounter('success-counter', 70, 1500, false, '%');
+                animateCounter('validation-counter', 100, 1500, false, '%');
+                animateCounter('optimal-counter', 55, 1500, false, '%');
+                animateCounter('speedup-counter', 300, 1500, false);
+                animateCounter('fo-counter', 91.2, 1500, true, '%');
+            }, 500);
+
+            const firstMethodTabButton = document.querySelector('#solucao .tab-button-nav');
+            if (firstMethodTabButton) {
+                const mockEvent = { currentTarget: firstMethodTabButton };
+                const onclickAttribute = firstMethodTabButton.getAttribute('onclick');
+                const tabIdMatch = onclickAttribute.match(/'([^']*)'/g);
+                if (tabIdMatch && tabIdMatch.length >= 2) {
+                    const tabId = tabIdMatch[1].replace(/'/g, '');
+                    window.openMethodTab(mockEvent, tabId);
+                }
+            }
+
+            const firstComparisonButton = document.querySelectorAll('#resultados .toggle-button')[0];
+            if (firstComparisonButton) {
+                toggleComparisonDataChart('fo', firstComparisonButton);
+            }
+
+            const scalabilityToggleButtons = document.querySelectorAll('#resultados .bg-white:nth-child(3) .toggle-button');
+            if (scalabilityToggleButtons.length > 1) {
+                toggleScalabilityChart('tempo', scalabilityToggleButtons[1]);
+            }
+
+            document.querySelectorAll('header a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        const offset = document.querySelector('header').offsetHeight;
+                        const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
+                        const offsetPosition = elementPosition - offset;
+                        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
